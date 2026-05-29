@@ -21,12 +21,12 @@ end
 
 local function IYAI()
     print("Loading IYAI...")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Shipwuu/Blair-V2/refs/heads/main/iyailoadstring"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/IYAI-Loaders"))()
 end
 
 local function FC()
     print("Loading FC...")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Shipwuu/Blair-V3/refs/heads/main/sc5"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam"))()
 end
 
 local function EM()
@@ -35,7 +35,7 @@ local function EM()
 end
 
 -- =========================
--- ⌨️ INPUT HANDLER
+-- INPUT HANDLER
 -- =========================
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
