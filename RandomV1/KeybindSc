@@ -1,0 +1,89 @@
+local UserInputService = game:GetService("UserInputService")
+
+local holdingShift = false
+local debounce = false
+
+-- LOADERS
+local function loadInfiniteYield()
+    print("Loading Infinite Yield...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+end
+
+local function loadRemoteSpy()
+    print("Loading RemoteSpy...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua"))()
+end
+
+local function loadDex()
+    print("Loading Dex...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+end
+
+local function IYAI()
+    print("Loading IYAI...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Shipwuu/Blair-V2/refs/heads/main/iyailoadstring"))()
+end
+
+local function FC()
+    print("Loading FC...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Shipwuu/Blair-V3/refs/heads/main/sc5"))()
+end
+
+local function EM()
+    print("Loading EM...")
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-emote-script-7yd7-63469"))()
+end
+
+-- =========================
+-- ⌨️ INPUT HANDLER
+-- =========================
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    -- Detect Shift
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        holdingShift = true
+    end
+
+    -- Prevent spam
+    if debounce then return end
+
+    if holdingShift then
+        if input.KeyCode == Enum.KeyCode.K then
+            debounce = true
+            loadInfiniteYield()
+
+        elseif input.KeyCode == Enum.KeyCode.P then
+            debounce = true
+            loadRemoteSpy()
+
+        elseif input.KeyCode == Enum.KeyCode.M then
+            debounce = true
+            IYAI()
+
+        elseif input.KeyCode == Enum.KeyCode.Quote then
+            debounce = true
+            FC()
+
+        elseif input.KeyCode == Enum.KeyCode.RightBracket
+            and UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
+            debounce = true
+            EM()
+
+        elseif input.KeyCode == Enum.KeyCode.L then
+            debounce = true
+            loadDex()
+        end
+
+        -- Cooldown
+        task.wait(0.5)
+        debounce = false
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        holdingShift = false
+    end
+end)
