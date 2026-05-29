@@ -1,0 +1,90 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- =========================
+-- 🎨 GUI
+-- =========================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AudioDetectorGUI"
+gui.Parent = playerGui
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame")
+frame.Parent = gui
+frame.Size = UDim2.new(0, 250, 0, 120)
+frame.Position = UDim2.new(0, 20, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BackgroundTransparency = 0.3
+frame.Active = true
+frame.Draggable = true
+
+local corner = Instance.new("UICorner", frame)
+
+local title = Instance.new("TextLabel")
+title.Parent = frame
+title.Size = UDim2.new(1, 0, 0, 25)
+title.BackgroundTransparency = 1
+title.Text = "🎵 Now Playing"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.SourceSansBold
+title.TextScaled = true
+
+local text = Instance.new("TextLabel")
+text.Parent = frame
+text.Position = UDim2.new(0, 5, 0, 30)
+text.Size = UDim2.new(1, -10, 1, -35)
+text.BackgroundTransparency = 1
+text.TextColor3 = Color3.new(1,1,1)
+text.Font = Enum.Font.Code
+text.TextScaled = false
+text.TextWrapped = true
+text.TextYAlignment = Enum.TextYAlignment.Top
+text.Text = "Scanning..."
+
+-- =========================
+-- 🔍 AUDIO SCANNER
+-- =========================
+
+local function getPlayingSounds()
+    local sounds = {}
+
+    for _, v in ipairs(game:GetDescendants()) do
+        if v:IsA("Sound") then
+            if v.Playing and v.SoundId ~= "" then
+                local id = v.SoundId
+
+                -- Clean ID
+                id = string.gsub(id, "rbxassetid://", "")
+                id = string.gsub(id, "http://www.roblox.com/asset/%?id=", "")
+
+                sounds[id] = v -- avoid duplicates
+            end
+        end
+    end
+
+    return sounds
+end
+
+-- =========================
+-- 🔁 REAL-TIME UPDATE
+-- =========================
+
+RunService.RenderStepped:Connect(function()
+    local sounds = getPlayingSounds()
+
+    if next(sounds) then
+        local result = ""
+
+        for id, sound in pairs(sounds) do
+            result = result .. "ID: " .. id .. "\n"
+        end
+
+        text.Text = result
+    else
+        text.Text = "No audio playing"
+    end
+end)

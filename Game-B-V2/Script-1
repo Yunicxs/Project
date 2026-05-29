@@ -1,0 +1,122 @@
+-- Loading Screen Script
+
+-- Create the ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "LoadingScreen"
+screenGui.Parent = game.Players.LocalPlayer.PlayerGui
+
+-- Create the ImageLabel
+local imageLabel = Instance.new("ImageLabel")
+imageLabel.Name = "LoadingImage"
+imageLabel.Parent = screenGui
+imageLabel.AnchorPoint = Vector2.new(0.5, 0.5) -- Center the image
+imageLabel.Position = UDim2.new(0.5, 0, 0.5, 0) -- Position in the center of the screen
+imageLabel.Size = UDim2.new(0, 400, 0, 400) -- Set size to 400x400
+imageLabel.Image = "rbxthumb://type=Asset&id=95436708584038&w=420&h=420" -- Set your image asset
+imageLabel.BackgroundTransparency = 1 -- Make the background transparent
+imageLabel.ImageTransparency = 1 -- Start as fully transparent
+
+-- Create the Fade In and Fade Out Tweening
+local tweenService = game:GetService("TweenService")
+
+-- Define the fade-in tween
+local fadeInTween = tweenService:Create(imageLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {ImageTransparency = 0})
+
+-- Define the fade-out tween
+local fadeOutTween = tweenService:Create(imageLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 1})
+
+-- Play the fade-in animation when the script starts
+fadeInTween:Play()
+
+-- After the fade-in completes, wait for a moment and then start the fade-out
+fadeInTween.Completed:Connect(function()
+    wait(3) -- Optional wait time after fade-in
+    fadeOutTween:Play()
+    
+    -- After fade-out completes, remove the loading screen
+    fadeOutTween.Completed:Connect(function()
+        screenGui:Destroy()
+    end)
+end)
+
+
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+
+-- Toggle state
+local FullBrightEnabled = false
+
+-- Store original settings
+local OriginalSettings = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+    OutdoorAmbient = Lighting.OutdoorAmbient
+}
+
+-- Store Atmosphere instances
+local SavedAtmospheres = {}
+
+-- ✅ APPLY FULLBRIGHT
+local function enableFullBright()
+    -- Save Atmospheres before removing
+    SavedAtmospheres = {}
+    for _, v in pairs(Lighting:GetDescendants()) do
+        if v:IsA("Atmosphere") then
+            table.insert(SavedAtmospheres, v:Clone())
+            v:Destroy()
+        end
+    end
+
+    Lighting.Brightness = 1
+    Lighting.ClockTime = 14
+    Lighting.FogEnd = 100000
+    Lighting.GlobalShadows = false
+    Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+
+    print("FullBright ON")
+end
+
+-- ❌ RESTORE ORIGINAL SETTINGS
+local function disableFullBright()
+    Lighting.Brightness = OriginalSettings.Brightness
+    Lighting.ClockTime = OriginalSettings.ClockTime
+    Lighting.FogEnd = OriginalSettings.FogEnd
+    Lighting.GlobalShadows = OriginalSettings.GlobalShadows
+    Lighting.OutdoorAmbient = OriginalSettings.OutdoorAmbient
+
+    -- Restore Atmosphere
+    for _, v in pairs(SavedAtmospheres) do
+        v.Parent = Lighting
+    end
+
+    print("FullBright OFF (Restored)")
+end
+
+-- 🔁 TOGGLE FUNCTION
+local function toggleFullBright()
+    FullBrightEnabled = not FullBrightEnabled
+
+    if FullBrightEnabled then
+        enableFullBright()
+    else
+        disableFullBright()
+    end
+end
+
+-- ⌨️ KEYBIND (T)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.T then
+        toggleFullBright()
+    end
+end)
+
+-- Instant ProximityPrompt
+for _, v in ipairs(game:GetService("Workspace"):GetDescendants()) do
+    if v:IsA("ProximityPrompt") then
+        v.HoldDuration = 0
+    end
+end

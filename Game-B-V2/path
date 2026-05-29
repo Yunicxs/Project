@@ -1,0 +1,9 @@
+game:GetService("Players").LocalPlayer.Hiding
+workspace.Ghost
+game:GetService("Players").LocalPlayer.Zone
+5game:GetService("ReplicatedStorage").HuntDuration
+workspace.Ghost.Zone
+workspace.Ghost.Huntingworkspace.Map.Zones.Room221.BloodMoonHunt
+workspace.Map.Zones.Room221._____Temperature._____LocalBaseTemp
+workspace.Map.Zones.Room221.SpawnPoint
+workspace.Ghost.Hunting

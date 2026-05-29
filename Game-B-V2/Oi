@@ -1,0 +1,8 @@
+game:GetService("Players").LocalPlayer.MaxSlots
+workspace.Map.Zones.Outside.TouchInterest
+workspace.Map.Zones.BasementHallway._____Temperature._____LocalBaseTemp
+game:GetService("ReplicatedStorage").GotTeleportData
+game:GetService("ReplicatedStorage").Disruption
+game:GetService("ReplicatedStorage").Activity
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Shipwuu/Blair-V2/refs/heads/main/Tester"))()

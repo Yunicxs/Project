@@ -1,0 +1,84 @@
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = PlayerGui
+ScreenGui.ResetOnSpawn = false
+
+-- Create Frame for the button
+local ButtonFrame = Instance.new("Frame")
+ButtonFrame.Size = UDim2.new(0, 100, 0, 50)
+ButtonFrame.Position = UDim2.new(0.5, -50, 0.8, 0)
+ButtonFrame.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+ButtonFrame.Parent = ScreenGui
+
+-- UICorner
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = ButtonFrame
+
+-- UIStroke
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(255, 255, 255)
+UIStroke.Thickness = 2
+UIStroke.Parent = ButtonFrame
+
+-- TextButton
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(1, 0, 1, 0)
+Button.BackgroundTransparency = 1
+Button.Text = "Touch Interest"
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Parent = ButtonFrame
+
+-- Dragging functionality
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    ButtonFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+ButtonFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = ButtonFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+ButtonFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Touch Interest Function
+Button.MouseButton1Click:Connect(function()
+    local touchInterest = workspace:FindFirstChild("Map"):FindFirstChild("Zones"):FindFirstChild("Outside"):FindFirstChild("TouchInterest")
+    
+    if touchInterest then
+        firetouchinterest(Player.Character.HumanoidRootPart, touchInterest, 0)
+        wait(0.1)
+        firetouchinterest(Player.Character.HumanoidRootPart, touchInterest, 1)
+    else
+        warn("Touch Interest not found in the specified path!")
+    end
+end)

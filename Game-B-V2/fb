@@ -1,0 +1,395 @@
+-- Simple Roblox UI Script to test the layout and functionality before integrating with the complete UI
+
+-- Step 1: Create the ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ShipuHub"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Step 2: Create the Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0.5, 0, 0.3, 0)
+MainFrame.Position = UDim2.new(0.25, 0, 0.35, 0)
+MainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+MainFrame.BackgroundTransparency = 0.8
+MainFrame.Parent = ScreenGui
+
+local MainUICorner = Instance.new("UICorner")
+MainUICorner.CornerRadius = UDim.new(0, 10)
+MainUICorner.Parent = MainFrame
+
+local MainUIGradient = Instance.new("UIGradient")
+MainUIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0, 0))
+})
+MainUIGradient.Rotation = 90 -- Vertical gradient
+MainUIGradient.Parent = MainFrame
+
+-- UI Elements:
+-- The UI will be composed of ScreenGui, a Frame, and various UI components such as TextBox and TextButton.
+-- These UI components will allow you to manage your scripts directly.
+
+-- Step 3: Layout for Script Buttons (Horizontal Layout)
+local ButtonLayout = Instance.new("UIListLayout")
+ButtonLayout.FillDirection = Enum.FillDirection.Horizontal
+ButtonLayout.Padding = UDim.new(0, 5)
+ButtonLayout.Parent = MainFrame
+
+-- Step 4: Create a Template Button for Saved Scripts
+local TemplateButton = Instance.new("TextButton")
+TemplateButton.Size = UDim2.new(0, 40, 0, 40)
+TemplateButton.BackgroundColor3 = Color3.new(0, 0, 0)
+TemplateButton.Text = "Script"
+TemplateButton.TextColor3 = Color3.new(1, 1, 1)
+TemplateButton.Visible = false -- Make template button invisible
+TemplateButton.Parent = MainFrame
+
+local TemplateUICorner = Instance.new("UICorner")
+TemplateUICorner.CornerRadius = UDim.new(0, 10)
+TemplateUICorner.Parent = TemplateButton
+
+local TemplateUIGradient = Instance.new("UIGradient")
+TemplateUIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0, 0))
+})
+TemplateUIGradient.Rotation = 90 -- Vertical gradient
+TemplateUIGradient.Parent = TemplateButton
+
+-- Step 5: Create an 'Add Script' Button
+local AddScriptButton = Instance.new("TextButton")
+AddScriptButton.Size = UDim2.new(0, 100, 0, 40)
+AddScriptButton.Position = UDim2.new(0.8, 0, 0.85, 0)
+AddScriptButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+AddScriptButton.Text = "Add Script"
+AddScriptButton.TextColor3 = Color3.new(1, 1, 1)
+AddScriptButton.Parent = MainFrame
+
+local AddScriptUICorner = Instance.new("UICorner")
+AddScriptUICorner.CornerRadius = UDim.new(0, 10)
+AddScriptUICorner.Parent = AddScriptButton
+
+-- Step 6: Create a 'Clear ALL' Button to Delete All Scripts
+local ClearAllButton = Instance.new("TextButton")
+ClearAllButton.Size = UDim2.new(0, 100, 0, 40)
+ClearAllButton.Position = UDim2.new(0.65, 0, 0.85, 0)
+ClearAllButton.BackgroundColor3 = Color3.new(0.7, 0, 0)
+ClearAllButton.Text = "Clear ALL"
+ClearAllButton.TextColor3 = Color3.new(1, 1, 1)
+ClearAllButton.Parent = MainFrame
+
+local ClearAllUICorner = Instance.new("UICorner")
+ClearAllUICorner.CornerRadius = UDim.new(0, 10)
+ClearAllUICorner.Parent = ClearAllButton
+
+-- Confirmation Frame for Clearing All Scripts
+local function showClearConfirmation()
+    -- Create a confirmation frame
+    local ConfirmFrame = Instance.new("Frame")
+    ConfirmFrame.Size = UDim2.new(0.3, 0, 0.2, 0)
+    ConfirmFrame.Position = UDim2.new(0.35, 0, 0.4, 0)
+    ConfirmFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    ConfirmFrame.Parent = ScreenGui
+
+    local ConfirmUICorner = Instance.new("UICorner")
+    ConfirmUICorner.CornerRadius = UDim.new(0, 10)
+    ConfirmUICorner.Parent = ConfirmFrame
+
+    local ConfirmLabel = Instance.new("TextLabel")
+    ConfirmLabel.Size = UDim2.new(0.9, 0, 0.4, 0)
+    ConfirmLabel.Position = UDim2.new(0.05, 0, 0.1, 0)
+    ConfirmLabel.Text = "Are You Sure You Want to Clear All Scripts?"
+    ConfirmLabel.TextColor3 = Color3.new(1, 1, 1)
+    ConfirmLabel.Parent = ConfirmFrame
+
+    -- Yes Button
+    local YesButton = Instance.new("TextButton")
+    YesButton.Text = "Yes"
+    YesButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+    YesButton.Position = UDim2.new(0.1, 0, 0.6, 0)
+    YesButton.BackgroundColor3 = Color3.new(0.1, 0.5, 0.1)
+    YesButton.TextColor3 = Color3.new(1, 1, 1)
+    YesButton.Parent = ConfirmFrame
+
+    YesButton.MouseButton1Click:Connect(function()
+        -- Clear all saved scripts in the file
+        if isfile("scripts.txt") then
+            writefile("scripts.txt", "")
+        end
+        -- Remove all script buttons from the UI
+        for _, child in ipairs(MainFrame:GetChildren()) do
+            if child:IsA("TextButton") and child ~= AddScriptButton and child ~= ClearAllButton and child ~= TemplateButton and child ~= DeleteButton then
+                child:Destroy()
+            end
+        end
+        -- Destroy the confirmation frame
+        ConfirmFrame:Destroy()
+    end)
+
+    -- No Button
+    local NoButton = Instance.new("TextButton")
+    NoButton.Text = "No"
+    NoButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+    NoButton.Position = UDim2.new(0.5, 0, 0.6, 0)
+    NoButton.BackgroundColor3 = Color3.new(0.5, 0.1, 0.1)
+    NoButton.TextColor3 = Color3.new(1, 1, 1)
+    NoButton.Parent = ConfirmFrame
+
+    NoButton.MouseButton1Click:Connect(function()
+        -- Close the confirmation frame
+        ConfirmFrame:Destroy()
+    end)
+end
+
+-- Connect the "Clear ALL" button to show confirmation
+ClearAllButton.MouseButton1Click:Connect(function()
+    showClearConfirmation()
+end)
+
+-- Step 7: Create a 'Delete' Button with Toggle Functionality
+local DeleteButton = Instance.new("TextButton")
+DeleteButton.Size = UDim2.new(0, 100, 0, 40)
+DeleteButton.Position = UDim2.new(0.5, 0, 0.85, 0)
+DeleteButton.BackgroundColor3 = Color3.new(0.5, 0.1, 0.1)
+DeleteButton.Text = "Delete"
+DeleteButton.TextColor3 = Color3.new(1, 1, 1)
+DeleteButton.Parent = MainFrame
+
+local DeleteUICorner = Instance.new("UICorner")
+DeleteUICorner.CornerRadius = UDim.new(0, 10)
+DeleteUICorner.Parent = DeleteButton
+
+local deleteMode = false
+
+DeleteButton.MouseButton1Click:Connect(function()
+    deleteMode = not deleteMode
+    if deleteMode then
+        DeleteButton.Text = "ON"
+        DeleteButton.BackgroundColor3 = Color3.new(0.1, 0.5, 0.1)
+        for _, child in ipairs(MainFrame:GetChildren()) do
+            if child:IsA("TextButton") and child ~= AddScriptButton and child ~= ClearAllButton and child ~= DeleteButton and child ~= TemplateButton then
+                child.BackgroundColor3 = Color3.new(1, 0, 0) -- Turn buttons red for delete mode
+                child.MouseButton1Click:Connect(function()
+                    if deleteMode then
+                        -- Confirm Deletion Frame
+                        local ConfirmFrame = Instance.new("Frame")
+                        ConfirmFrame.Size = UDim2.new(0.3, 0, 0.2, 0)
+                        ConfirmFrame.Position = UDim2.new(0.35, 0, 0.4, 0)
+                        ConfirmFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+                        ConfirmFrame.Parent = ScreenGui
+
+                        local ConfirmUICorner = Instance.new("UICorner")
+                        ConfirmUICorner.CornerRadius = UDim.new(0, 10)
+                        ConfirmUICorner.Parent = ConfirmFrame
+
+                        local ConfirmLabel = Instance.new("TextLabel")
+                        ConfirmLabel.Size = UDim2.new(0.9, 0, 0.4, 0)
+                        ConfirmLabel.Position = UDim2.new(0.05, 0, 0.1, 0)
+                        ConfirmLabel.Text = "Are You Sure You Want to Delete This?"
+                        ConfirmLabel.TextColor3 = Color3.new(1, 1, 1)
+                        ConfirmLabel.Parent = ConfirmFrame
+
+                        -- Yes Button
+                        local YesButton = Instance.new("TextButton")
+                        YesButton.Text = "Yes"
+                        YesButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+                        YesButton.Position = UDim2.new(0.1, 0, 0.6, 0)
+                        YesButton.BackgroundColor3 = Color3.new(0.1, 0.5, 0.1)
+                        YesButton.TextColor3 = Color3.new(1, 1, 1)
+                        YesButton.Parent = ConfirmFrame
+
+                        YesButton.MouseButton1Click:Connect(function()
+                            -- Delete the selected script button
+                            child:Destroy()
+                            ConfirmFrame:Destroy()
+
+                            -- Remove the script from the file
+                            if isfile("scripts.txt") then
+                                local scripts = readfile("scripts.txt")
+                                local updatedScripts = scripts:gsub("newcratescript%d+%s" .. child.Text .. "\n.-\n", "")
+                                writefile("scripts.txt", updatedScripts)
+                            end
+                        end)
+
+                        -- No Button
+                        local NoButton = Instance.new("TextButton")
+                        NoButton.Text = "No"
+                        NoButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+                        NoButton.Position = UDim2.new(0.5, 0, 0.6, 0)
+                        NoButton.BackgroundColor3 = Color3.new(0.5, 0.1, 0.1)
+                        NoButton.TextColor3 = Color3.new(1, 1, 1)
+                        NoButton.Parent = ConfirmFrame
+
+                        NoButton.MouseButton1Click:Connect(function()
+                            -- Close the confirmation frame
+                            ConfirmFrame:Destroy()
+                        end)
+                    end
+                end)
+            end
+        end
+    else
+        DeleteButton.Text = "OFF"
+        DeleteButton.BackgroundColor3 = Color3.new(0.5, 0.1, 0.1)
+        wait(1)
+        DeleteButton.Text = "Delete"
+        for _, child in ipairs(MainFrame:GetChildren()) do
+            if child:IsA("TextButton") and child ~= AddScriptButton and child ~= ClearAllButton and child ~= DeleteButton and child ~= TemplateButton then
+                child.BackgroundColor3 = Color3.new(0, 0, 0) -- Revert button color back to normal
+            end
+        end
+    end
+end)
+
+-- Step 8: Script for Adding New Script through UI Menu
+AddScriptButton.MouseButton1Click:Connect(function()
+    -- Create New Frame for Input
+    local InputFrame = Instance.new("Frame")
+    InputFrame.Size = UDim2.new(0.4, 0, 0.4, 0)
+    InputFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+    InputFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    InputFrame.Parent = ScreenGui
+
+    local InputUICorner = Instance.new("UICorner")
+    InputUICorner.CornerRadius = UDim.new(0, 10)
+    InputUICorner.Parent = InputFrame
+
+    local InputUIGradient = Instance.new("UIGradient")
+    InputUIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0, 0))
+    })
+    InputUIGradient.Rotation = 90 -- Vertical gradient
+    InputUIGradient.Parent = InputFrame
+
+    -- Input Fields
+    local ScriptNameBox = Instance.new("TextBox")
+    ScriptNameBox.PlaceholderText = "Name Script / ImageID"
+    ScriptNameBox.Size = UDim2.new(0.9, 0, 0.2, 0)
+    ScriptNameBox.Position = UDim2.new(0.05, 0, 0.1, 0)
+    ScriptNameBox.Parent = InputFrame
+
+    local ScriptContentBox = Instance.new("TextBox")
+    ScriptContentBox.PlaceholderText = "Put Script Here"
+    ScriptContentBox.Size = UDim2.new(0.9, 0, 0.4, 0)
+    ScriptContentBox.Position = UDim2.new(0.05, 0, 0.35, 0)
+    ScriptContentBox.MultiLine = true
+    ScriptContentBox.Parent = InputFrame
+
+    -- Confirm Button to Save the Script
+    local ConfirmButton = Instance.new("TextButton")
+    ConfirmButton.Text = "Confirm"
+    ConfirmButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+    ConfirmButton.Position = UDim2.new(0.1, 0, 0.8, 0)
+    ConfirmButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+    ConfirmButton.TextColor3 = Color3.new(1, 1, 1)
+    ConfirmButton.Parent = InputFrame
+    ConfirmButton.AutoButtonColor = false -- Disable button if not filled in
+
+    -- Cancel Button to Cancel Adding New Script
+    local CancelButton = Instance.new("TextButton")
+    CancelButton.Text = "Cancel"
+    CancelButton.Size = UDim2.new(0.4, 0, 0.2, 0)
+    CancelButton.Position = UDim2.new(0.5, 0, 0.8, 0)
+    CancelButton.BackgroundColor3 = Color3.new(0.5, 0.1, 0.1)
+    CancelButton.TextColor3 = Color3.new(1, 1, 1)
+    CancelButton.Parent = InputFrame
+
+    CancelButton.MouseButton1Click:Connect(function()
+        -- Close Input Frame
+        InputFrame:Destroy()
+    end)
+
+    -- Notification for empty fields
+    local NotificationLabel = Instance.new("TextLabel")
+    NotificationLabel.Size = UDim2.new(0.9, 0, 0.1, 0)
+    NotificationLabel.Position = UDim2.new(0.05, 0, 0.75, 0)
+    NotificationLabel.Text = "Please fill in all fields."
+    NotificationLabel.TextColor3 = Color3.new(1, 0, 0)
+    NotificationLabel.Visible = false
+    NotificationLabel.Parent = InputFrame
+
+    local function updateConfirmButtonState()
+        if ScriptNameBox.Text == "" or ScriptContentBox.Text == "" then
+            ConfirmButton.BackgroundColor3 = Color3.new(0.5, 0.5, 0.5)
+            ConfirmButton.Active = false
+            NotificationLabel.Visible = true
+        else
+            ConfirmButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+            ConfirmButton.Active = true
+            NotificationLabel.Visible = false
+        end
+    end
+
+    ScriptNameBox:GetPropertyChangedSignal("Text"):Connect(updateConfirmButtonState)
+    ScriptContentBox:GetPropertyChangedSignal("Text"):Connect(updateConfirmButtonState)
+    updateConfirmButtonState()
+
+    ConfirmButton.MouseButton1Click:Connect(function()
+        local scriptName = ScriptNameBox.Text
+        local scriptContent = ScriptContentBox.Text
+
+        if scriptName ~= "" and scriptContent ~= "" then
+            -- Create New Button for Script
+            local NewScriptButton = TemplateButton:Clone()
+            NewScriptButton.Text = scriptName
+            NewScriptButton.Visible = true
+            NewScriptButton.Parent = MainFrame
+
+            -- Storage Logic:
+            -- File Creation: Check if the storage file exists, if not, create it.
+            -- Saving Data: Scripts will be saved in a .txt file, appending new scripts.
+            if not isfile("scripts.txt") then
+                writefile("scripts.txt", "")
+            end
+            appendfile("scripts.txt", "newcratescript1 " .. scriptName .. "\n" .. scriptContent .. "\n")
+
+            -- Dynamic Button Creation:
+            -- Clicking on the button will execute the associated script using loadstring().
+            NewScriptButton.MouseButton1Click:Connect(function()
+                local success, err = pcall(function()
+                    loadstring(scriptContent)()
+                end)
+                if not success then
+                    warn("Error executing script: " .. err)
+                end
+            end)
+
+            -- Close Input Frame
+            InputFrame:Destroy()
+        else
+            warn("Please enter both script name and content.")
+        end
+    end)
+end)
+
+-- Step 9: Load Saved Scripts from File
+if isfile("scripts.txt") then
+    local success, savedScripts = pcall(function()
+        return readfile("scripts.txt")
+    end)
+    if success and savedScripts then
+        for scriptEntry in savedScripts:gmatch("(newcratescript%d+%s.-\n.-\n)") do
+            local scriptName, scriptContent = scriptEntry:match("newcratescript%d+%s(.-)\n(.-)\n")
+            if scriptName and scriptContent then
+                -- Create New Button for Saved Script
+                local SavedScriptButton = TemplateButton:Clone()
+                SavedScriptButton.Text = scriptName
+                SavedScriptButton.Visible = true
+                SavedScriptButton.Parent = MainFrame
+
+                -- Clicking on the button will execute the associated script using loadstring().
+                SavedScriptButton.MouseButton1Click:Connect(function()
+                    local success, err = pcall(function()
+                        loadstring(scriptContent)()
+                    end)
+                    if not success then
+                        warn("Error executing script: " .. err)
+                    end
+                end)
+            end
+        end
+    else
+        warn("Failed to read saved scripts.")
+    end
+end

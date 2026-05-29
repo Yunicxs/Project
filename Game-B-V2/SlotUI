@@ -1,0 +1,380 @@
+-- ShowSlotPlayer Script
+-- Place in StarterGui as a LocalScript (ScreenGui with all UI inside)
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- ============================================================
+-- CREATE SCREEN GUI
+-- ============================================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ShowSlotPlayerGui"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- ============================================================
+-- MAIN FRAME (small pill when collapsed, full panel when expanded)
+-- ============================================================
+local collapsedSize = 30
+local expandedWidth = 280
+local expandedHeight = 200
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, collapsedSize, 0, collapsedSize)
+mainFrame.Position = UDim2.new(0, 16, 1, -100)
+mainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+mainFrame.BackgroundTransparency = 0.8
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 8)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(60, 60, 80)
+mainStroke.Thickness = 1
+mainStroke.Transparency = 0.3
+mainStroke.Parent = mainFrame
+
+-- ============================================================
+-- HEADER BAR (clickable, always visible)
+-- ============================================================
+local header = Instance.new("TextButton")
+header.Name = "Header"
+header.Size = UDim2.new(0, collapsedSize, 0, collapsedSize)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundTransparency = 1
+header.Text = ""
+header.AutoButtonColor = false
+header.Parent = mainFrame
+
+-- Title "S"
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "Title"
+titleLabel.Size = UDim2.new(0, 12, 0, collapsedSize)
+titleLabel.Position = UDim2.new(0, 5, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "⚝"
+titleLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+titleLabel.TextSize = 13
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.TextYAlignment = Enum.TextYAlignment.Center
+titleLabel.Parent = header
+
+-- Arrow
+local arrowLabel = Instance.new("TextLabel")
+arrowLabel.Name = "Arrow"
+arrowLabel.Size = UDim2.new(0, 12, 0, collapsedSize)
+arrowLabel.Position = UDim2.new(0, 17, 0, 0)
+arrowLabel.BackgroundTransparency = 1
+arrowLabel.Text = "▼"
+arrowLabel.TextColor3 = Color3.fromRGB(160, 160, 180)
+arrowLabel.TextSize = 10
+arrowLabel.Font = Enum.Font.GothamBold
+arrowLabel.TextYAlignment = Enum.TextYAlignment.Center
+arrowLabel.Parent = header
+
+-- ============================================================
+-- CONTENT AREA (scrolling list, hidden when collapsed)
+-- ============================================================
+local contentFrame = Instance.new("Frame")
+contentFrame.Name = "Content"
+contentFrame.Size = UDim2.new(1, -8, 1, -(collapsedSize + 4))
+contentFrame.Position = UDim2.new(0, 4, 0, collapsedSize + 2)
+contentFrame.BackgroundTransparency = 1
+contentFrame.ClipsDescendants = true
+contentFrame.Visible = false
+contentFrame.Parent = mainFrame
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Name = "ScrollFrame"
+scrollFrame.Size = UDim2.new(1, 0, 1, 0)
+scrollFrame.Position = UDim2.new(0, 0, 0, 0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 5
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.Parent = contentFrame
+
+local innerFrame = Instance.new("Frame")
+innerFrame.Name = "InnerFrame"
+innerFrame.Size = UDim2.new(1, 0, 0, 0)
+innerFrame.AutomaticSize = Enum.AutomaticSize.Y
+innerFrame.BackgroundTransparency = 1
+innerFrame.Parent = scrollFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 3)
+listLayout.Parent = innerFrame
+
+local listPadding = Instance.new("UIPadding")
+listPadding.PaddingTop = UDim.new(0, 2)
+listPadding.PaddingLeft = UDim.new(0, 2)
+listPadding.PaddingRight = UDim.new(0, 6)
+listPadding.Parent = innerFrame
+
+-- ============================================================
+-- TOGGLE ANIMATE
+local baseX = 16
+local baseY = -46  -- bottom anchor offset
+
+local function toggleUI()
+	isOpen = not isOpen
+
+	local targetWidth = isOpen and expandedWidth or collapsedSize
+	local targetHeight = isOpen and expandedHeight or collapsedSize
+	local targetRotation = isOpen and 180 or 0
+
+	-- When expanding, shift position up by the height difference
+	local heightDiff = expandedHeight - collapsedSize
+	local targetY = isOpen and (baseY - heightDiff) or baseY
+
+	local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+
+	if isOpen then
+		contentFrame.Visible = true
+	end
+
+	TweenService:Create(mainFrame, tweenInfo, {
+		Size = UDim2.new(0, targetWidth, 0, targetHeight),
+		Position = UDim2.new(0, baseX, 1, targetY)
+	}):Play()
+	TweenService:Create(arrowLabel, tweenInfo, {Rotation = targetRotation}):Play()
+
+	if not isOpen then
+		task.delay(0.26, function()
+			contentFrame.Visible = false
+		end)
+	end
+end
+header.MouseButton1Click:Connect(toggleUI)
+
+-- ============================================================
+-- BUILD PLAYER ROW
+-- ============================================================
+local rowHeight = 24
+local slotCount = 5
+
+local function createPlayerRow(plr)
+	local row = Instance.new("Frame")
+	row.Name = plr.Name
+	row.Size = UDim2.new(1, 0, 0, rowHeight)
+	row.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+	row.BackgroundTransparency = 0.5
+	row.BorderSizePixel = 0
+	row.LayoutOrder = 0
+
+	local rowCorner = Instance.new("UICorner")
+	rowCorner.CornerRadius = UDim.new(0, 5)
+	rowCorner.Parent = row
+
+	-- Player name
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Name = "PlayerName"
+	nameLabel.Size = UDim2.new(0, 100, 1, 0)
+	nameLabel.Position = UDim2.new(0, 8, 0, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = plr.Name
+	nameLabel.TextColor3 = Color3.fromRGB(100, 180, 255)
+	nameLabel.TextSize = 12
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	nameLabel.Parent = row
+
+	-- Slot container
+	local slotContainer = Instance.new("Frame")
+	slotContainer.Name = "SlotContainer"
+	slotContainer.Size = UDim2.new(1, -110, 1, 0)
+	slotContainer.Position = UDim2.new(0, 108, 0, 0)
+	slotContainer.BackgroundTransparency = 1
+	slotContainer.Parent = row
+
+	local slotLayout = Instance.new("UIListLayout")
+	slotLayout.FillDirection = Enum.FillDirection.Horizontal
+	slotLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	slotLayout.Padding = UDim.new(0, 4)
+	slotLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	slotLayout.Parent = slotContainer
+
+	return row
+end
+
+-- ============================================================
+-- REFRESH ALL PLAYERS
+-- ============================================================
+local function refresh()
+	for _, child in ipairs(innerFrame:GetChildren()) do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local row = createPlayerRow(plr)
+		row.LayoutOrder = plr.UserId
+		row.Parent = innerFrame
+
+		local slotContainer = row:FindFirstChild("SlotContainer")
+		if slotContainer then
+			for i = 1, slotCount do
+				local slotValue = plr:FindFirstChild("Slot" .. i)
+				if slotValue and slotValue:IsA("ValueBase") then
+					local val = slotValue.Value
+					if val ~= nil and val ~= "" and val ~= 0 then
+						local slotLabel = Instance.new("TextLabel")
+						slotLabel.Name = "Slot" .. i
+						slotLabel.Size = UDim2.new(0, 28, 1, 0)
+						slotLabel.LayoutOrder = i
+						slotLabel.BackgroundTransparency = 1
+						slotLabel.Text = tostring(val)
+						slotLabel.TextColor3 = Color3.fromRGB(180, 220, 130)
+						slotLabel.TextSize = 11
+						slotLabel.Font = Enum.Font.Gotham
+						slotLabel.TextXAlignment = Enum.TextXAlignment.Center
+						slotLabel.TextTruncate = Enum.TextTruncate.AtEnd
+						slotLabel.Parent = slotContainer
+					end
+				end
+			end
+		end
+	end
+end
+
+-- ============================================================
+-- LIVE UPDATE LOOP
+-- ============================================================
+local function startLiveUpdate()
+	task.spawn(function()
+		while screenGui.Parent do
+			for _, plr in ipairs(Players:GetPlayers()) do
+				local row = innerFrame:FindFirstChild(plr.Name)
+				if row then
+					local slotContainer = row:FindFirstChild("SlotContainer")
+					if slotContainer then
+						local activeSlots = {}
+						for i = 1, slotCount do
+							local slotValue = plr:FindFirstChild("Slot" .. i)
+							if slotValue and slotValue:IsA("ValueBase") then
+								local val = slotValue.Value
+								local isEmpty = (val == nil or val == "" or val == 0)
+								activeSlots[i] = { value = val, isEmpty = isEmpty }
+							end
+						end
+
+						local needsRebuild = false
+						local existingLabels = {}
+						for _, child in ipairs(slotContainer:GetChildren()) do
+							if child:IsA("TextLabel") then
+								existingLabels[child.Name] = child
+							end
+						end
+
+						for name, label in pairs(existingLabels) do
+							local slotNum = tonumber(name:match("%d+"))
+							if slotNum then
+								local slotData = activeSlots[slotNum]
+								if not slotData or slotData.isEmpty then
+									needsRebuild = true
+									break
+								elseif tostring(slotData.value) ~= label.Text then
+									label.Text = tostring(slotData.value)
+								end
+							end
+						end
+
+						if not needsRebuild then
+							for i = 1, slotCount do
+								local slotData = activeSlots[i]
+								if slotData and not slotData.isEmpty then
+									if not existingLabels["Slot" .. i] then
+										needsRebuild = true
+										break
+									end
+								end
+							end
+						end
+
+						if needsRebuild then
+							for _, child in ipairs(slotContainer:GetChildren()) do
+								if child:IsA("TextLabel") then
+									child:Destroy()
+								end
+							end
+							for i = 1, slotCount do
+								local slotData = activeSlots[i]
+								if slotData and not slotData.isEmpty then
+									local slotLabel = Instance.new("TextLabel")
+									slotLabel.Name = "Slot" .. i
+									slotLabel.Size = UDim2.new(0, 28, 1, 0)
+									slotLabel.LayoutOrder = i
+									slotLabel.BackgroundTransparency = 1
+									slotLabel.Text = tostring(slotData.value)
+									slotLabel.TextColor3 = Color3.fromRGB(180, 220, 130)
+									slotLabel.TextSize = 11
+									slotLabel.Font = Enum.Font.Gotham
+									slotLabel.TextXAlignment = Enum.TextXAlignment.Center
+									slotLabel.TextTruncate = Enum.TextTruncate.AtEnd
+									slotLabel.Parent = slotContainer
+								end
+							end
+						end
+					end
+				end
+			end
+			task.wait(0.5)
+		end
+	end)
+end
+
+-- ============================================================
+-- EVENTS
+-- ============================================================
+Players.PlayerAdded:Connect(function(plr)
+	refresh()
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+	local row = innerFrame:FindFirstChild(plr.Name)
+	if row then
+		row:Destroy()
+	end
+end)
+
+refresh()
+startLiveUpdate()
+
+-- ============================================================
+-- MOBILE TOUCH SUPPORT
+-- ============================================================
+if UserInputService.TouchEnabled then
+	collapsedSize = 40
+	expandedWidth = 300
+	expandedHeight = 240
+baseY = -100
+	mainFrame.Size = UDim2.new(0, collapsedSize, 0, collapsedSize)
+mainFrame.Position = UDim2.new(0, 16, 1, baseY)
+	header.Size = UDim2.new(0, collapsedSize, 0, collapsedSize)
+	titleLabel.Size = UDim2.new(0, 16, 0, collapsedSize)
+	titleLabel.Position = UDim2.new(0, 6, 0, 0)
+	titleLabel.TextSize = 15
+	arrowLabel.Size = UDim2.new(0, 16, 0, collapsedSize)
+	arrowLabel.Position = UDim2.new(0, 22, 0, 0)
+	arrowLabel.TextSize = 12
+	contentFrame.Size = UDim2.new(1, -8, 1, -(collapsedSize + 4))
+	contentFrame.Position = UDim2.new(0, 4, 0, collapsedSize + 2)
+	rowHeight = 32
+	scrollFrame.ScrollBarThickness = 10
+end
+
+print("ShowSlotPlayerGui loaded!")

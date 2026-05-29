@@ -1,0 +1,238 @@
+-- ScreenGui Script
+
+local textColorNone = Color3.fromRGB(255, 255, 255) -- White color for "None" text with slight transparency
+local textColorHunting = Color3.fromRGB(255, 255, 0) -- Yellow color for "Hunting" text
+local isTracking = false -- Flag to control the tracking loop
+
+-- Function to create the permanent news screen GUI
+local function createNewsScreen()
+    local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    local newsScreen = Instance.new("ScreenGui")
+    newsScreen.Name = "GhostNewsScreen"
+    newsScreen.Parent = playerGui
+    newsScreen.ResetOnSpawn = false
+
+    local displayFrame = Instance.new("Frame")
+    displayFrame.Name = "GhostDisplayFrame"
+    displayFrame.Size = UDim2.new(1, -20, 0, 20)  -- Full width with 10 pixels padding on each side, height of 50 pixels
+    displayFrame.Position = UDim2.new(0, 10, 0, 10)  -- Positioned at the top with a small margin
+    displayFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- Black color for background
+    displayFrame.BackgroundTransparency = 0.8  -- Semi-transparent background
+    displayFrame.BorderSizePixel = 0  -- No border
+    displayFrame.Parent = newsScreen
+
+    local ghostLabel = Instance.new("TextLabel")
+    ghostLabel.Name = "GhostLabel"
+    ghostLabel.Size = UDim2.new(1, 0, 1, 0)
+    ghostLabel.BackgroundTransparency = 1
+    ghostLabel.Font = Enum.Font.SourceSansBold -- Bold font for visibility
+    ghostLabel.TextSize = 24 -- Increased text size for readability
+    ghostLabel.Text = "Ghost: None" -- Default text
+    ghostLabel.TextColor3 = textColorNone
+    ghostLabel.TextTransparency = 0.3  -- Slight transparency for "None" text
+    ghostLabel.TextStrokeTransparency = 0
+    ghostLabel.TextXAlignment = Enum.TextXAlignment.Center
+    ghostLabel.TextYAlignment = Enum.TextYAlignment.Center
+    ghostLabel.Parent = displayFrame
+
+    return ghostLabel, displayFrame -- Return both the ghostLabel and displayFrame
+end
+
+-- Start creating the news screen
+local ghostLabel, displayFrame = createNewsScreen()
+
+-- Tracking Ghost Script
+
+-- Function to continuously check for the Ghost's presence
+local function trackGhost()
+    while true do
+        local ghost = workspace:FindFirstChild("Ghost")
+        
+        if ghost then
+            if not isTracking then
+                print("Ghost detected. Starting ESP.")
+                isTracking = true
+
+                -- Reset the ghost label and background
+                ghostLabel.Text = "Ghost: Hunting"
+                ghostLabel.TextColor3 = textColorHunting  -- Yellow color when ghost is detected
+                ghostLabel.TextTransparency = 0  -- No transparency for "Hunting" text
+
+                -- Start smoother fade effect between colors
+                spawn(function()
+                    while isTracking do
+                        -- Fade in to red
+                        for i = 0, 1, 0.05 do
+                            displayFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                            displayFrame.BackgroundTransparency = 1 - i
+                            wait(0.03)
+                        end
+
+                        -- Fade out from red to transparent
+                        for i = 0, 1, 0.05 do
+                            displayFrame.BackgroundTransparency = i
+                            wait(0.03)
+                        end
+
+                        -- Fade in to black
+                        for i = 0, 1, 0.05 do
+                            displayFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                            displayFrame.BackgroundTransparency = 1 - i
+                            wait(0.03)
+                        end
+
+                        -- Fade out from black to transparent
+                        for i = 0, 1, 0.05 do
+                            displayFrame.BackgroundTransparency = i
+                            wait(0.03)
+                        end
+                    end
+                end)
+            end
+        else
+            if isTracking then
+                print("Ghost disappeared. Stopping ESP.")
+                isTracking = false
+
+                -- Reset ghost label and background when ghost disappears
+                ghostLabel.Text = "Ghost: None"
+                ghostLabel.TextColor3 = textColorNone  -- White color when no ghost is detected
+                ghostLabel.TextTransparency = 0.3  -- Slight transparency for "None" text
+                displayFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- Reset background to black when no ghost is detected
+                displayFrame.BackgroundTransparency = 0.8 -- Reset to original transparency
+            end
+        end
+
+        wait(0.2) -- Check every 0.2 seconds
+    end
+end
+
+-- Start the ghost tracking function
+spawn(trackGhost)
+
+-- End
+
+
+
+
+
+
+
+-- Automatically create ESP for "HumanoidRootPart" parts
+local espTransparency = 0.8 -- Change this for transparency level (0 = fully opaque, 1 = fully transparent)
+
+-- Function to create ESP adornment
+function createEsp(part)
+    -- Check if the part is a "HumanoidRootPart" and NOT under "workspace.Ghost"
+    if part:IsA("BasePart") and part.Name == "HumanoidRootPart" then
+        local parentModel = part:FindFirstAncestorOfClass("Model")
+        
+        -- Ensure that the HumanoidRootPart is NOT under "workspace.Ghost"
+        if not (parentModel and parentModel.Name == "Ghost" and parentModel.Parent == workspace) then
+            -- Create ESP for eligible HumanoidRootPart
+            local espBox = Instance.new("BoxHandleAdornment")
+            espBox.Name = part.Name .. "_ESP"
+            espBox.Parent = part
+            espBox.Adornee = part
+            espBox.AlwaysOnTop = true
+            espBox.ZIndex = 0
+            espBox.Size = part.Size
+            espBox.Transparency = espTransparency
+            espBox.Color = BrickColor.new("Lime green")
+        end
+    end
+end
+
+-- Loop through existing parts to add ESP on execution
+for _, part in pairs(workspace:GetDescendants()) do
+    createEsp(part)
+end
+
+-- Connect to new parts being added to the workspace
+workspace.DescendantAdded:Connect(function(part)
+    createEsp(part)
+end)
+
+-- End
+
+
+
+
+
+
+
+
+-- Create a Billboard GUI to display the WalkSpeed
+local function createBillboardGui(bot)
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Size = UDim2.new(6, 0, 3, 0) -- Adjust the size as needed
+    billboardGui.StudsOffset = Vector3.new(0, 2, 0) -- Position above the bot's feet
+    billboardGui.AlwaysOnTop = true
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1) -- White color
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSansBold -- Use a bold font
+
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Color = Color3.new(0, 0, 0) -- Black color for better visibility
+    uiStroke.Thickness = 2
+    uiStroke.Parent = textLabel
+
+    textLabel.Parent = billboardGui
+    billboardGui.Parent = bot:FindFirstChild("LeftFoot") or bot:FindFirstChild("RightFoot") or bot:FindFirstChild("HumanoidRootPart") -- Parent to foot or root part if available
+    return textLabel
+end
+
+-- Function to update the WalkSpeed on the Billboard GUI
+local function updateWalkSpeed(humanoid, textLabel)
+    local previousSpeed = humanoid.WalkSpeed
+    while true do
+        if humanoid and textLabel then
+            local walkSpeed = math.floor(humanoid.WalkSpeed * 10) / 10 -- Round to one decimal place
+            textLabel.Text = tostring(walkSpeed)
+
+            if walkSpeed > previousSpeed then
+                textLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Yellow color if speed increased
+            elseif walkSpeed < previousSpeed then
+                textLabel.TextColor3 = Color3.fromRGB(0, 0, 255) -- Blue color if speed decreased
+            end
+
+            previousSpeed = walkSpeed
+        end
+        wait(0.1) -- Update every 0.1 seconds
+    end
+end
+
+-- Main function to detect the bot and update the WalkSpeed
+local function monitorGhost()
+    if _G.monitoringGhost then
+        _G.monitoringGhost:Destroy() -- Destroy the old one if already running
+    end
+
+    local monitorPart = Instance.new("Folder")
+    monitorPart.Name = "MonitorGhostFolder"
+    monitorPart.Parent = workspace
+    _G.monitoringGhost = monitorPart
+
+    task.spawn(function()
+        while true do
+            if not monitorPart.Parent then return end -- Stop if the monitorPart is destroyed
+            local bot = workspace:FindFirstChild("Ghost")
+            if bot then
+                local humanoid = bot:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    local textLabel = createBillboardGui(bot)
+                    task.spawn(updateWalkSpeed, humanoid, textLabel)
+                end
+            end
+            wait(1) -- Check every 1 second for the Ghost
+        end
+    end)
+end
+
+task.spawn(monitorGhost)
+

@@ -1,0 +1,56 @@
+--[[
+    NightVision Bypass for Mobile
+    - Enables NightVision ownership
+    - Removes the noLights challenge blocker
+    - Makes the NightVisionButton visible and functional
+    - Sets up the NVG battery UI
+]]
+local Player = game:GetService("Players").LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local MobileUI = PlayerGui:WaitForChild("MobileUI")
+
+-- Step 1: Set NightVision ownership to true
+local NV = Player:FindFirstChild("NightVision")
+if NV then
+    NV.Value = true
+else
+    local newNV = Instance.new("BoolValue")
+    newNV.Name = "NightVision"
+    newNV.Value = true
+    newNV.Parent = Player
+end
+
+-- Step 2: Remove the noLights challenge that blocks NV
+local challenges = ReplicatedStorage:FindFirstChild("ActiveChallenges")
+if challenges then
+    local noLights = challenges:FindFirstChild("noLights")
+    if noLights then
+        noLights:Destroy()
+    end
+end
+
+-- Step 3: Make NightVisionButton visible
+local NVButton = MobileUI:FindFirstChild("NightVisionButton")
+if NVButton then
+    NVButton.Visible = true
+end
+
+-- Step 4: Enable the NVG battery GUI
+local NVGBattery = PlayerGui:FindFirstChild("NVGBattery")
+if NVGBattery then
+    NVGBattery.Enabled = true
+end
+
+-- Step 5: Toggle NightVision value to force .Changed event
+-- so the NightVisionHandler re-runs CheckOwned() and MobileCheck()
+task.defer(function()
+    local nv = Player:FindFirstChild("NightVision")
+    if nv and nv.Value == true then
+        nv.Value = false
+        task.wait(0.1)
+        nv.Value = true
+    end
+end)
+
+print("Nv")

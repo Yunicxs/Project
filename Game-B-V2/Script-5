@@ -1,0 +1,212 @@
+-- Services
+local Players = game:GetService("Players")
+
+-- Function to create ESP with BillboardGui
+local function createESP(player)
+    -- Exclude the local player
+    if player == Players.LocalPlayer then return end
+
+    -- Function to add ESP when the character is fully loaded
+    local function addESP(character)
+        -- Ensure HumanoidRootPart exists
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 10) -- Wait up to 10 seconds
+        if not humanoidRootPart then return end
+
+        -- Check if the player already has a BillboardGui
+        local existingBillboard = humanoidRootPart:FindFirstChild(player.Name .. "_ESP")
+        if existingBillboard then
+            -- If the BillboardGui already exists, remove the previous one
+            existingBillboard:Destroy()
+        end
+
+        -- Create a new BillboardGui
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = player.Name .. "_ESP"
+        billboard.Adornee = humanoidRootPart
+        billboard.Size = UDim2.new(0, 200, 0, 50) -- Set the size of the BillboardGui
+        billboard.StudsOffset = Vector3.new(0, 3, 0)  -- Position above the character
+        billboard.AlwaysOnTop = true
+        billboard.Parent = humanoidRootPart
+
+        -- Create a frame to hold text labels
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, 0, 1, 0)  -- Full size of the BillboardGui
+        frame.BackgroundTransparency = 1
+        frame.Parent = billboard
+
+        -- Create Username TextLabel at the top
+        local usernameLabel = Instance.new("TextLabel")
+        usernameLabel.Size = UDim2.new(1, 0, 0.5, -5)  -- Top half of the frame, reduce height to reduce distance
+        usernameLabel.Position = UDim2.new(0, 0, 0, 0)
+        usernameLabel.BackgroundTransparency = 1
+        usernameLabel.Font = Enum.Font.GothamBold
+        usernameLabel.Text = "@" .. player.Name
+        usernameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White color for the username
+        usernameLabel.TextSize = 14  -- Small text size
+        usernameLabel.TextStrokeTransparency = 0.7  -- Slight text outline for visibility
+        usernameLabel.TextXAlignment = Enum.TextXAlignment.Center
+        usernameLabel.TextYAlignment = Enum.TextYAlignment.Bottom  -- Move closer to the bottom
+        usernameLabel.Parent = frame
+
+        -- Create DisplayName TextLabel at the bottom
+        local displayNameLabel = Instance.new("TextLabel")
+        displayNameLabel.Size = UDim2.new(1, 0, 0.5, -5)  -- Bottom half of the frame, reduce height to reduce distance
+        displayNameLabel.Position = UDim2.new(0, 0, 0.5, 0)
+        displayNameLabel.BackgroundTransparency = 1
+        displayNameLabel.Font = Enum.Font.GothamBold
+        displayNameLabel.Text = player.DisplayName
+        displayNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White color for the display name
+        displayNameLabel.TextSize = 12  -- Small text size
+        displayNameLabel.TextStrokeTransparency = 0.7  -- Slight text outline for visibility
+        displayNameLabel.TextXAlignment = Enum.TextXAlignment.Center
+        displayNameLabel.TextYAlignment = Enum.TextYAlignment.Top  -- Align towards the top to bring closer to the username
+        displayNameLabel.Parent = frame
+
+        -- Add UIGradient animation for shiny white effect
+        local uiGradient = Instance.new("UIGradient")
+        uiGradient.Parent = usernameLabel
+        uiGradient.Offset = Vector2.new(-1, 0)  -- Start position of the gradient at the beginning
+        uiGradient.Rotation = 0  -- Horizontal gradient
+        uiGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),  -- Starting color (white)
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 200, 200)), -- Intermediate color (lighter white)
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))   -- Ending color (white)
+        })
+        uiGradient.Enabled = true
+
+        -- Add UIGradient animation for the bottom label as well
+        local uiGradientBottom = Instance.new("UIGradient")
+        uiGradientBottom.Parent = displayNameLabel
+        uiGradientBottom.Offset = Vector2.new(-1, 0)  -- Start position of the gradient at the beginning
+        uiGradientBottom.Rotation = 0  -- Horizontal gradient
+        uiGradientBottom.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),  -- Starting color (white)
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 200, 200)), -- Intermediate color (lighter white)
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))   -- Ending color (white)
+        })
+        uiGradientBottom.Enabled = true
+
+        -- Create a loop to animate the shiny gradient effect
+        local function animateShinyEffect()
+            while billboard.Parent do
+                for i = -1, 1, 0.02 do
+                    if billboard.Parent == nil then return end  -- Stop animation if BillboardGui is removed
+                    uiGradient.Offset = Vector2.new(i, 0)  -- Move the gradient smoothly
+                    uiGradientBottom.Offset = Vector2.new(i, 0)
+                    wait(0.05)  -- Slower speed for smooth animation
+                end
+            end
+        end
+
+        -- Start the animation loop for shiny effect
+        spawn(animateShinyEffect)
+
+        -- Listen for character being removed to also remove the ESP
+        player.CharacterRemoving:Connect(function()
+            if billboard then
+                billboard:Destroy()
+            end
+        end)
+    end
+
+    -- If the player already has a character, add ESP
+    if player.Character then
+        addESP(player.Character)
+    end
+
+    -- Listen for CharacterAdded to ensure we catch respawns and players joining
+    player.CharacterAdded:Connect(addESP)
+end
+
+-- Create ESP for players already in-game
+for _, player in pairs(Players:GetPlayers()) do
+    createESP(player)
+end
+
+-- Listen for new players joining
+Players.PlayerAdded:Connect(function(player)
+    createESP(player)
+end)
+
+-- Listen for players leaving and remove ESP if exists
+Players.PlayerRemoving:Connect(function(player)
+    if player.Character then
+        local billboard = player.Character:FindFirstChild(player.Name .. "_ESP")
+        if billboard then
+            billboard:Destroy()
+        end
+    end
+end)
+
+
+-- End
+
+
+
+
+
+
+
+
+
+
+
+
+
+local FillColor = Color3.fromRGB(175, 25, 255)
+local DepthMode = "AlwaysOnTop"
+local FillTransparency = 0.5
+local OutlineColor = Color3.fromRGB(255, 255, 255)
+local OutlineTransparency = 0.7
+
+local CoreGui = game:FindService("CoreGui")
+local Storage = Instance.new("Folder")
+Storage.Parent = CoreGui
+Storage.Name = "Ghost_Highlight_Storage"
+
+local function HighlightGhost()
+    -- Check if the ghost exists in the workspace
+    local ghost = workspace:FindFirstChild("Ghost")
+    if ghost then
+        -- Iterate through all the ghost parts
+        for _, part in ipairs(ghost:GetChildren()) do
+            if part:IsA("BasePart") then
+                -- Create a highlight for the ghost part
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "GhostHighlight_" .. part.Name
+                highlight.FillColor = FillColor
+                highlight.DepthMode = DepthMode
+                highlight.FillTransparency = FillTransparency
+                highlight.OutlineColor = OutlineColor
+                highlight.OutlineTransparency = OutlineTransparency
+                highlight.Adornee = part
+                highlight.Parent = Storage
+            end
+        end
+    end
+end
+
+-- Function to clear highlights when the ghost is no longer detected
+local function ClearGhostHighlight()
+    for _, highlight in ipairs(Storage:GetChildren()) do
+        if highlight:IsA("Highlight") then
+            highlight:Destroy()
+        end
+    end
+end
+
+-- Continuously check for the ghost and apply ESP
+while true do
+    -- Clear previous highlights to prevent duplicates
+    ClearGhostHighlight()
+    
+    -- Highlight the ghost if it exists
+    HighlightGhost()
+    
+    -- Wait for a short interval before checking again
+    wait(1)
+end
+
+-- End
+
+

@@ -1,0 +1,307 @@
+-- Create ScreenGui
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ShortcutScreenGui"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Create Frame
+local frame = Instance.new("Frame")
+frame.Name = "ShortcutFrame"
+frame.Parent = screenGui
+frame.Position = UDim2.new(0.699, 0, 0.1, 50) -- Updated position for frame
+frame.Size = UDim2.new(0, 75, 0, 300)
+frame.BackgroundTransparency = 0.8
+frame.BackgroundColor3 = Color3.fromRGB(127, 127, 127) -- Frame background color
+frame.Visible = false -- Initially invisible
+
+-- Add UICorner for rounded edges
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = frame
+
+-- Add UIStroke for frame outline
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(255, 255, 255) -- White color for the stroke
+uiStroke.Transparency = 0.5
+uiStroke.Thickness = 4 -- Set the thickness of the UIStroke
+uiStroke.Parent = frame
+
+-- Add UIGradient to the UIStroke
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),  -- Main color (dark brown)
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)), -- Shiny color (light yellow) at middle
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))   -- Main color again
+})
+uiGradient.Parent = uiStroke
+
+-- Add UIAspectRatioConstraint to Frame only
+local aspectRatioConstraintFrame = Instance.new("UIAspectRatioConstraint")
+aspectRatioConstraintFrame.AspectRatio = 0.25
+aspectRatioConstraintFrame.Parent = frame
+
+-- Function to animate shiny effect for UIStroke (dual-phase: main hold + shiny pass)
+local function animateShinyEffect(uiGradient)
+    while uiGradient.Parent do
+        -- Phase 1: Hold the main color for a moment
+        uiGradient.Offset = Vector2.new(-1, 0) -- Start with full main color
+        wait(1) -- Hold the main color for a second
+
+        -- Phase 2: Smooth shiny line pass
+        for i = -1, 1, 0.02 do
+            uiGradient.Offset = Vector2.new(i, 0) -- Move the shiny line smoothly across
+            wait(0.05) -- Control the speed for a smooth animation
+        end
+    end
+end
+
+-- Start the animation loop for shiny effect for the frame
+spawn(function()
+    animateShinyEffect(uiGradient)
+end)
+
+-- Function to create shortcut ImageButtons (inside the frame)
+local function createShortcutButton(parent, name, position, imageAssetId)
+    local imageButton = Instance.new("ImageButton")
+    imageButton.Name = name
+    imageButton.Parent = parent
+    imageButton.Position = position
+    imageButton.Size = UDim2.new(0, 60, 0, 60)
+    imageButton.BackgroundTransparency = 0.4
+    imageButton.BackgroundColor3 = Color3.fromRGB(98, 97, 97) -- Button background color
+    imageButton.Image = imageAssetId -- Assign the ImageAsset ID
+
+    -- Add UICorner for ImageButton rounded edges (0, 8 for shortcut buttons)
+    local buttonUICorner = Instance.new("UICorner")
+    buttonUICorner.CornerRadius = UDim.new(0, 8)
+    buttonUICorner.Parent = imageButton
+
+    -- Add UIStroke for ImageButton
+    local buttonUIStroke = Instance.new("UIStroke")
+    buttonUIStroke.Color = Color3.fromRGB(255, 255, 255) -- White color for the stroke
+    buttonUIStroke.Transparency = 0.5
+    buttonUIStroke.Thickness = 4 -- Set the thickness of the UIStroke
+    buttonUIStroke.Parent = imageButton
+
+    -- Add UIGradient to the ImageButton's UIStroke
+    local buttonUIGradient = Instance.new("UIGradient")
+    buttonUIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),  -- Main color (dark brown)
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)), -- Shiny color (light yellow) at middle
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))   -- Main color again
+    })
+    buttonUIGradient.Parent = buttonUIStroke
+
+    -- Function to animate shiny effect for ImageButton UIStroke (dual-phase: main hold + shiny pass)
+    spawn(function()
+        animateShinyEffect(buttonUIGradient)
+    end)
+
+    return imageButton
+end
+
+-- Create Shortcut Buttons inside the Frame
+-- ImageButton 1
+local imageButton1 = createShortcutButton(frame, "ShortcutButton1", UDim2.new(0, 8, 0, 10), "rbxassetid://122012192346825")
+-- Add functionality to ImageButton 1 (similar as before)
+imageButton1.MouseButton1Click:Connect(function()
+    print("Button 1 clicked")
+
+    local args = {
+        [1] = "Capture a photo of the Ghost"
+    }
+
+    game:GetService("Players").LocalPlayer.Character:FindFirstChild("Photo Camera").Remote.CompleteObjective:FireServer(unpack(args))
+end)
+
+-- ImageButton 2
+local imageButton2 = createShortcutButton(frame, "ShortcutButton2", UDim2.new(0, 8, 0.2, 20), "rbxassetid://{YourAssetID2}")
+
+-- Playlist and variables
+local playlist = {
+    "rbxassetid://1848354536",
+    "rbxassetid://1845341094"
+}
+local soundPlaying = nil
+local isButtonHeld = false
+local holdTime = 0
+local skipTime = 2  -- Time in seconds to skip song when button is held
+
+-- Add a TextLabel inside the ImageButton to show text (like "♫", "∎", "►")
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, 0, 1, 0)  -- Make the TextLabel take up the whole button
+textLabel.BackgroundTransparency = 1  -- No background
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text
+textLabel.Font = Enum.Font.GothamBold
+textLabel.TextSize = 18  -- Adjust the text size to fit well
+textLabel.Text = "♫"  -- Set the initial text to "♫" (play icon)
+textLabel.Parent = imageButton2  -- Parent the TextLabel to the ImageButton
+
+-- Create Sound instance
+local function playMusic()
+    -- Stop any previous song if it's playing
+    if soundPlaying then
+        soundPlaying:Stop()
+    end
+
+    -- Choose a random song from the playlist
+    local randomSong = playlist[math.random(1, #playlist)]
+    
+    -- Create a new sound
+    soundPlaying = Instance.new("Sound")
+    soundPlaying.SoundId = randomSong
+    soundPlaying.Volume = 1
+    soundPlaying.Looped = true  -- Loop the music
+    soundPlaying.Parent = game.Workspace
+    
+    -- Play the song
+    soundPlaying:Play()
+    
+    -- Change the button text to stop
+    textLabel.Text = "∎"
+end
+
+-- Function to stop music
+local function stopMusic()
+    if soundPlaying then
+        soundPlaying:Stop()
+        textLabel.Text = "♫"  -- Change text back to play
+    end
+end
+
+-- Function to skip music (change song)
+local function skipMusic()
+    if soundPlaying then
+        soundPlaying:Stop()  -- Stop the current song
+        textLabel.Text = "►"  -- Show skip icon
+        wait(0.5)  -- Wait for a moment before playing next song
+        playMusic()  -- Play the next random song
+    end
+end
+
+-- Add functionality to ImageButton 2
+imageButton2.MouseButton1Click:Connect(function()
+    print("Button 2 clicked")
+    if soundPlaying and soundPlaying.IsPlaying then
+        stopMusic()  -- If music is playing, stop it
+    else
+        playMusic()  -- If no music is playing, start a new track
+    end
+end)
+
+-- Detect holding the button to skip music
+imageButton2.MouseButton1Down:Connect(function()
+    isButtonHeld = true
+    holdTime = 0  -- Reset hold time
+    while isButtonHeld and holdTime < skipTime do
+        wait(0.1)  -- Check every 0.1 seconds
+        holdTime = holdTime + 0.1  -- Increase hold time
+    end
+    if holdTime >= skipTime then
+        skipMusic()  -- Skip the song after holding for 2 seconds
+    end
+end)
+
+-- Reset when the mouse button is released
+imageButton2.MouseButton1Up:Connect(function()
+    isButtonHeld = false  -- Stop holding
+end)
+
+-- ImageButton 3
+local imageButton3 = createShortcutButton(frame, "ShortcutButton3", UDim2.new(0, 8, 0.4, 30), "rbxassetid://113988655320004")
+-- Add functionality to ImageButton 3
+imageButton3.MouseButton1Click:Connect(function()
+    print("Button 3 clicked")
+    
+    -- Define the path to the temperature
+    local temperaturePath = workspace:FindFirstChild("Map")
+        and workspace.Map:FindFirstChild("Zones")
+        and workspace.Map.Zones:FindFirstChild("Outside")
+        and workspace.Map.Zones.Outside:FindFirstChild("_____Temperature")
+    
+    if temperaturePath and temperaturePath:IsA("NumberValue") then
+        -- Get the current value of temperature
+        local currentTemperature = temperaturePath.Value
+        
+        -- Print the detected value
+        print("Value Detected: _____Temperature = " .. tostring(currentTemperature))
+        
+        -- Update the value to 0.1 in a loop for 3 seconds
+        local startTime = tick()  -- Get the current time
+        while tick() - startTime < 3 do  -- Loop for 3 seconds
+            temperaturePath.Value = 0.1  -- Set value to 0.1
+            wait(0.01)  -- Wait for 0.01 seconds before updating again
+        end
+        
+        -- Print the final value to confirm the change
+        print("Value of _____Temperature has been maintained at 0.1 for 3 seconds")
+    else
+        -- Print if the path or value does not exist
+        print("Temperature path not found or value is not a NumberValue.")
+    end
+end)
+
+-- Function to create the toggle button (separate from the shortcut buttons)
+local function createToggleButton(parent, name, position, imageAssetId)
+    local toggleButton = Instance.new("ImageButton")
+    toggleButton.Name = name
+    toggleButton.Parent = parent
+    toggleButton.Position = UDim2.new(0.699, 8, 0.819, 0) -- Updated position for toggle button
+    toggleButton.Size = UDim2.new(0, 60, 0, 60)
+    toggleButton.BackgroundTransparency = 0.4
+    toggleButton.BackgroundColor3 = Color3.fromRGB(98, 97, 97) -- Button background color
+    toggleButton.Image = imageAssetId -- Assign the ImageAsset ID
+
+    -- Add UICorner with larger rounded edges for toggle button
+    local buttonUICorner = Instance.new("UICorner")
+    buttonUICorner.CornerRadius = UDim.new(10, 10)  -- Set to 10, 10 for toggle button
+    buttonUICorner.Parent = toggleButton
+
+    -- Add UIStroke for Toggle Button
+    local buttonUIStroke = Instance.new("UIStroke")
+    buttonUIStroke.Color = Color3.fromRGB(255, 255, 255) -- White color for the stroke
+    buttonUIStroke.Transparency = 0.5
+    buttonUIStroke.Thickness = 4 -- Set the thickness of the UIStroke
+    buttonUIStroke.Parent = toggleButton
+
+    -- Add UIGradient to the Toggle Button's UIStroke
+    local buttonUIGradient = Instance.new("UIGradient")
+    buttonUIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),  -- Main color (dark brown)
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)), -- Shiny color (light yellow) at middle
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))   -- Main color again
+    })
+    buttonUIGradient.Parent = buttonUIStroke
+
+    -- Function to animate shiny effect for Toggle Button UIStroke
+    spawn(function()
+        animateShinyEffect(buttonUIGradient)
+    end)
+
+    return toggleButton
+end
+
+-- Create the Toggle Button (Open/Close Shortcut Frame)
+local toggleButton = createToggleButton(screenGui, "ToggleShortcutButton", UDim2.new(0.699, 8, 0.819, 0), "rbxthumb://type=Asset&id=82368756505515&w=420&h=420")
+
+toggleButton.MouseButton1Click:Connect(function()
+    -- Toggle the visibility of the Shortcut Frame with sliding animation
+    if not frame.Visible then
+        frame.Visible = true
+        -- Slide up animation (slow and smooth)
+        for i = 1.5, 0.1, -0.05 do
+            frame.Position = UDim2.new(0.699, 0, i, 50)
+            wait(0.05) -- Smooth and slow
+        end
+    else
+        -- Slide down animation (slow and smooth)
+        for i = 0.1, 1.5, 0.05 do
+            frame.Position = UDim2.new(0.699, 0, i, 50)
+            wait(0.05) -- Smooth and slow
+        end
+        frame.Visible = false -- Hide the frame once out of the screen
+    end
+end)

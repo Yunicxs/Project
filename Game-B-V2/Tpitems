@@ -1,0 +1,466 @@
+-- Bring Items Script with Dropdown UI
+-- Scans all items in Workspace.Map.Items, lets you pick which ones to teleport
+local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ActionRemote = ReplicatedStorage.Remotes.InventoryRemotes.Action
+
+local autoDropRunning = false
+
+local running = false
+
+-- Scan unique item names
+local function getItemNames()
+    local names = {}
+    local seen = {}
+    for _, item in ipairs(itemsFolder:GetChildren()) do
+        if not seen[item.Name] then
+            seen[item.Name] = true
+            table.insert(names, item.Name)
+        end
+    end
+    table.sort(names)
+    return names
+end
+
+-- Create UI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BringItemsGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Main frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 220, 0, 300)
+mainFrame.Position = UDim2.new(1, -230, 0, 10)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.Parent = mainFrame
+
+-- Minimize Button
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Size = UDim2.new(0, 22, 0, 22)
+minimizeButton.Position = UDim2.new(1, -58, 0, 7)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+minimizeButton.BorderSizePixel = 0
+minimizeButton.Text = "-"
+minimizeButton.TextSize = 18
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.Parent = mainFrame
+
+local minimizeCorner = Instance.new("UICorner")
+minimizeCorner.CornerRadius = UDim.new(0, 4)
+minimizeCorner.Parent = minimizeButton
+
+-- Auto Drop Toggle Button
+local autoDropButton = Instance.new("TextButton")
+autoDropButton.Name = "AutoDropButton"
+autoDropButton.Size = UDim2.new(0, 22, 0, 22)
+autoDropButton.Position = UDim2.new(1, -84, 0, 7)
+autoDropButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+autoDropButton.BorderSizePixel = 0
+autoDropButton.Text = ""
+autoDropButton.Parent = mainFrame
+
+local autoDropCorner = Instance.new("UICorner")
+autoDropCorner.CornerRadius = UDim.new(0, 4)
+autoDropCorner.Parent = autoDropButton
+
+-- Open Button
+local openButton = Instance.new("TextButton")
+openButton.Name = "OpenButton"
+openButton.Size = UDim2.new(0, 40, 0, 40)
+openButton.Position = UDim2.new(1, -50, 0, 80)
+openButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+openButton.BorderSizePixel = 0
+openButton.Text = "+"
+openButton.TextSize = 22
+openButton.Font = Enum.Font.GothamBold
+openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButton.Visible = false
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(1, 0)
+openCorner.Parent = openButton
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 35)
+title.BackgroundTransparency = 1
+title.Text = "Bring Items"
+title.TextSize = 16
+title.Font = Enum.Font.GothamBold
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Parent = mainFrame
+
+-- Divider
+local divider = Instance.new("Frame")
+divider.Size = UDim2.new(1, -20, 0, 1)
+divider.Position = UDim2.new(0, 10, 0, 35)
+divider.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+divider.BorderSizePixel = 0
+divider.Parent = mainFrame
+
+-- Scrolling frame for item list
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Name = "ItemList"
+scrollFrame.Size = UDim2.new(1, -20, 1, -85)
+scrollFrame.Position = UDim2.new(0, 10, 0, 42)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.Parent = mainFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 4)
+listLayout.Parent = scrollFrame
+
+-- Selected items tracking
+local selectedItems = {}
+
+-- Create toggle buttons for each item
+local function refreshList()
+    -- Clear existing
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    selectedItems = {}
+
+    local names = getItemNames()
+
+    for i, name in ipairs(names) do
+        local itemFrame = Instance.new("Frame")
+        itemFrame.Name = name
+        itemFrame.Size = UDim2.new(1, 0, 0, 32)
+        itemFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        itemFrame.BorderSizePixel = 0
+        itemFrame.LayoutOrder = i
+        itemFrame.Parent = scrollFrame
+
+        local itemCorner = Instance.new("UICorner")
+        itemCorner.CornerRadius = UDim.new(0, 6)
+        itemCorner.Parent = itemFrame
+
+        local checkBox = Instance.new("TextButton")
+        checkBox.Name = "CheckBox"
+        checkBox.Size = UDim2.new(0, 22, 0, 22)
+        checkBox.Position = UDim2.new(0, 6, 0, 5)
+        checkBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        checkBox.BorderSizePixel = 0
+        checkBox.Text = ""
+        checkBox.TextSize = 14
+        checkBox.Font = Enum.Font.GothamBold
+        checkBox.TextColor3 = Color3.fromRGB(0, 200, 0)
+        checkBox.Parent = itemFrame
+
+        local checkCorner = Instance.new("UICorner")
+        checkCorner.CornerRadius = UDim.new(0, 4)
+        checkCorner.Parent = checkBox
+
+        local itemLabel = Instance.new("TextLabel")
+        itemLabel.Name = "Label"
+        itemLabel.Size = UDim2.new(1, -40, 1, 0)
+        itemLabel.Position = UDim2.new(0, 34, 0, 0)
+        itemLabel.BackgroundTransparency = 1
+        itemLabel.Text = name
+        itemLabel.TextSize = 13
+        itemLabel.Font = Enum.Font.Gotham
+        itemLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        itemLabel.TextXAlignment = Enum.TextXAlignment.Left
+        itemLabel.Parent = itemFrame
+
+        local toggled = false
+
+        checkBox.MouseButton1Click:Connect(function()
+            toggled = not toggled
+            if toggled then
+                checkBox.Text = "✓"
+                selectedItems[name] = true
+            else
+                checkBox.Text = ""
+                selectedItems[name] = nil
+            end
+        end)
+
+        -- Also toggle by tapping the whole row
+        itemFrame.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                checkBox.MouseButton1Click:Fire()
+            end
+        end)
+    end
+end
+
+-- Bring button
+local bringButton = Instance.new("TextButton")
+bringButton.Name = "BringButton"
+bringButton.Size = UDim2.new(1, -20, 0, 35)
+bringButton.Position = UDim2.new(0, 10, 1, -45)
+bringButton.BackgroundColor3 = Color3.fromRGB(0, 170, 85)
+bringButton.BorderSizePixel = 0
+bringButton.Text = "Bring Selected"
+bringButton.TextSize = 14
+bringButton.Font = Enum.Font.GothamBold
+bringButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+bringButton.Parent = mainFrame
+
+local bringCorner = Instance.new("UICorner")
+bringCorner.CornerRadius = UDim.new(0, 8)
+bringCorner.Parent = bringButton
+
+-- Refresh button
+local refreshButton = Instance.new("TextButton")
+refreshButton.Name = "RefreshButton"
+refreshButton.Size = UDim2.new(0, 22, 0, 22)
+refreshButton.Position = UDim2.new(1, -32, 0, 7)
+refreshButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+refreshButton.BorderSizePixel = 0
+refreshButton.Text = "↻"
+refreshButton.TextSize = 14
+refreshButton.Font = Enum.Font.GothamBold
+refreshButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+refreshButton.Parent = mainFrame
+
+local refreshCorner = Instance.new("UICorner")
+refreshCorner.CornerRadius = UDim.new(0, 4)
+refreshCorner.Parent = refreshButton
+
+refreshButton.MouseButton1Click:Connect(function()
+    refreshList()
+end)
+
+-- Minimize UI
+minimizeButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    openButton.Visible = true
+end)
+
+-- Restore UI
+openButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    openButton.Visible = false
+end)
+
+-- Bring function
+local function bringSelectedItems()
+    if running then return end
+
+    local count = 0
+    for _ in pairs(selectedItems) do count = count + 1 end
+    if count == 0 then
+        print("No items selected!")
+        return
+    end
+
+    running = true
+    bringButton.Text = "Bringing..."
+    bringButton.BackgroundColor3 = Color3.fromRGB(170, 130, 0)
+
+    local character = player.Character
+    if not character then
+        running = false
+        bringButton.Text = "Bring Selected"
+        bringButton.BackgroundColor3 = Color3.fromRGB(0, 170, 85)
+        return
+    end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        running = false
+        bringButton.Text = "Bring Selected"
+        bringButton.BackgroundColor3 = Color3.fromRGB(0, 170, 85)
+        return
+    end
+
+    -- Phase 1: Anchor and teleport
+    for i = 1, 50 do
+        for _, item in ipairs(itemsFolder:GetChildren()) do
+            if selectedItems[item.Name] then
+                local handle = item:FindFirstChild("Handle")
+                if handle then
+                    handle.Anchored = true
+                    handle.CFrame = hrp.CFrame + Vector3.new(
+                        math.random(-5, 5), 3, math.random(-5, 5)
+                    )
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+
+    -- Phase 2: Unanchor and keep teleporting for 5 seconds
+    local startTime = tick()
+    while tick() - startTime < 5 do
+        for _, item in ipairs(itemsFolder:GetChildren()) do
+            if selectedItems[item.Name] then
+                local handle = item:FindFirstChild("Handle")
+                if handle then
+                    handle.Anchored = false
+                    handle.CFrame = hrp.CFrame + Vector3.new(
+                        math.random(-5, 5), 3, math.random(-5, 5)
+                    )
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+
+    print("Done! Selected items teleported.")
+    bringButton.Text = "Bring Selected"
+    bringButton.BackgroundColor3 = Color3.fromRGB(0, 170, 85)
+    running = false
+end
+
+bringButton.MouseButton1Click:Connect(function()
+    bringSelectedItems()
+end)
+
+-- Auto Drop Toggle
+local function updateAutoDropButton()
+    if autoDropRunning then
+        autoDropButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        autoDropButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    end
+end
+
+autoDropButton.MouseButton1Click:Connect(function()
+    autoDropRunning = not autoDropRunning
+    updateAutoDropButton()
+end)
+
+-- PC KEYBIND (RightShift)
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        autoDropRunning = not autoDropRunning
+        updateAutoDropButton()
+    end
+end)
+
+-- PC keybind (comma) brings all items
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Comma then
+        -- Select all and bring
+        local names = getItemNames()
+        for _, name in ipairs(names) do
+            selectedItems[name] = true
+        end
+        -- Update checkboxes
+        for _, child in ipairs(scrollFrame:GetChildren()) do
+            if child:IsA("Frame") then
+                local cb = child:FindFirstChild("CheckBox")
+                if cb then cb.Text = "✓" end
+            end
+        end
+        bringSelectedItems()
+    end
+end)
+
+-- Initial scan
+refreshList()
+
+-- Drag Support PC + Mobile
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updateDrag(input)
+    end
+end)
+
+-- Safe Auto Drop Loop
+function Scriptloop()
+    if ScriptloopRunning then
+    return
+end
+
+ScriptloopRunning = true
+
+    task.spawn(function()
+        while task.wait(0.1) do
+
+            if autoDropRunning then
+
+                local maxSlots = player:FindFirstChild("MaxSlots")
+
+                if maxSlots then
+
+                    local anySlotFilled = false
+
+                    for i = 1, maxSlots.Value do
+                        if slotHasItem(i) then
+                            anySlotFilled = true
+                            break
+                        end
+                    end
+
+                    if anySlotFilled then
+                        dropAll()
+                        task.wait(0.2)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local ScriptloopRunning = false
+
+Scriptloop()
+
+print("UI loaded! Select items and tap 'Bring Selected' or press ',' for all")

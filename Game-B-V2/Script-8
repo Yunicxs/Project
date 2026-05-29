@@ -1,0 +1,358 @@
+-- Create ScreenGui
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "NewsScreenGui"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Create LogUpdate Frame
+local logUpdateFrame = Instance.new("Frame")
+logUpdateFrame.Name = "LogUpdateFrame"
+logUpdateFrame.Parent = screenGui
+logUpdateFrame.Position = UDim2.new(0.2, 0, 0.5, 30)
+logUpdateFrame.Size = UDim2.new(0, 200, 0, 300)
+logUpdateFrame.BackgroundTransparency = 0.8
+logUpdateFrame.BackgroundColor3 = Color3.fromRGB(148, 73, 0)
+
+-- Add UICorner for rounded edges to LogUpdateFrame
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = logUpdateFrame
+
+-- Add UIStroke for frame outline
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(255, 255, 255) -- White color for the stroke
+uiStroke.Transparency = 0.5
+uiStroke.Thickness = 3
+uiStroke.Parent = logUpdateFrame
+
+-- Add UIGradient to the UIStroke
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),  -- Main color (dark brown)
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)), -- Shiny color (light yellow) at middle
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))   -- Main color again
+})
+uiGradient.Parent = uiStroke
+
+-- Function to animate shiny effect for UIStroke
+local function animateShinyEffect(uiGradient)
+    while uiGradient.Parent do
+        -- Phase 1: Hold the main color for a moment
+        uiGradient.Offset = Vector2.new(-1, 0) -- Start with full main color
+        wait(1) -- Hold the main color for a second
+
+        -- Phase 2: Smooth shiny line pass
+        for i = -1, 1, 0.02 do
+            uiGradient.Offset = Vector2.new(i, 0) -- Move the shiny line smoothly across
+            wait(0.05) -- Control the speed for a smooth animation
+        end
+    end
+end
+
+-- Start the animation loop for shiny effect for the frame
+spawn(function()
+    animateShinyEffect(uiGradient)
+end)
+
+-- Create CloseImageButton inside LogUpdateFrame
+local imageButton = Instance.new("ImageButton")
+imageButton.Name = "CloseImageButton"
+imageButton.Parent = logUpdateFrame
+imageButton.Position = UDim2.new(0.8, 15, 0, 5)  -- Position specified
+imageButton.Size = UDim2.new(0, 20, 0, 20)  -- Size specified
+imageButton.BackgroundTransparency = 1
+imageButton.Image = "rbxthumb://type=Asset&id=75307452820537&w=420&h=420"
+
+-- Function to fade between two images
+local image1 = "rbxthumb://type=Asset&id=75307452820537&w=420&h=420"
+local image2 = "rbxthumb://type=Asset&id=106327254270115&w=420&h=420"
+
+local function fadeImages(button)
+    while button.Parent do
+        -- Fade out current image
+        for transparency = 0, 1, 0.1 do
+            button.ImageTransparency = transparency
+            wait(0.05) -- Slightly fast animation tempo
+        end
+        -- Switch to the next image
+        button.Image = (button.Image == image1) and image2 or image1
+        -- Fade in the new image
+        for transparency = 1, 0, -0.1 do
+            button.ImageTransparency = transparency
+            wait(0.05) -- Slightly fast animation tempo
+        end
+    end
+end
+
+-- Start fade in/fade out animation for the ImageButton
+spawn(function()
+    fadeImages(imageButton)
+end)
+
+-- Function to destroy all frames
+local function destroyAllFrames()
+    for _, child in pairs(screenGui:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+end
+
+-- Connect the click event to the destroy function
+imageButton.MouseButton1Click:Connect(destroyAllFrames)
+
+-- Folder to store system data
+local codeUpdate = "V-3.3" -- Current code version in the script
+local logSystemUpdate = game:GetService("ReplicatedStorage"):FindFirstChild("LogSystemUpdate")
+
+if not logSystemUpdate then
+    logSystemUpdate = Instance.new("Folder")
+    logSystemUpdate.Name = "LogSystemUpdate"
+    logSystemUpdate.Parent = game:GetService("ReplicatedStorage")
+end
+
+-- Create or get ToggleValue and CodeUpdate value in the LogSystemUpdate folder
+local toggleValue = logSystemUpdate:FindFirstChild("ToggleValue")
+local savedCodeUpdate = logSystemUpdate:FindFirstChild("CodeUpdate")
+
+if not toggleValue then
+    toggleValue = Instance.new("BoolValue")
+    toggleValue.Name = "ToggleValue"
+    toggleValue.Value = false  -- Default to showing the frame
+    toggleValue.Parent = logSystemUpdate
+end
+
+if not savedCodeUpdate then
+    savedCodeUpdate = Instance.new("StringValue")
+    savedCodeUpdate.Name = "CodeUpdate"
+    savedCodeUpdate.Value = codeUpdate -- Initialize with current code version
+    savedCodeUpdate.Parent = logSystemUpdate
+end
+
+-- Check if there's a new update version
+if savedCodeUpdate.Value ~= codeUpdate then
+    toggleValue.Value = false  -- Force showing the frame for new updates
+    savedCodeUpdate.Value = codeUpdate  -- Update to the latest code version
+end
+
+-- Create and configure the audio element for popup
+local popupSound = Instance.new("Sound")
+popupSound.Name = "PopupSound"
+popupSound.SoundId = "rbxassetid://8486683243"
+popupSound.Volume = 1
+popupSound.Parent = logUpdateFrame
+
+-- Determine if LogUpdateFrame should be displayed based on toggle value
+if toggleValue.Value then
+    logUpdateFrame.Visible = false
+else
+    logUpdateFrame.Visible = true
+    popupSound:Play()  -- Play audio when frame becomes visible
+end
+
+-- Create TextLabel inside the LogUpdate Frame
+local textLabel = Instance.new("TextLabel")
+textLabel.Name = "LogTextLabel"
+textLabel.Parent = logUpdateFrame
+textLabel.BackgroundTransparency = 0.8
+textLabel.BackgroundColor3 = Color3.fromRGB(255, 215, 177)  -- Light background color
+textLabel.BorderSizePixel = 0
+textLabel.Position = UDim2.new(0, 0, 0, 0)  -- Position at the top of the frame
+textLabel.Size = UDim2.new(0, 200, 0, 30)
+textLabel.Text = "Log Update"
+textLabel.TextColor3 = Color3.fromRGB(242, 220, 183)  -- Light text color
+textLabel.Font = Enum.Font.GothamBold
+textLabel.TextSize = 18
+
+-- Add UICorner for rounded edges to LogTextLabel
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = textLabel
+
+-- Add UIStroke to TextLabel (same as frame)
+local textLabelUIStroke = Instance.new("UIStroke")
+textLabelUIStroke.Color = Color3.fromRGB(255, 255, 255) -- White color for the stroke
+textLabelUIStroke.Transparency = 0.5
+textLabelUIStroke.Thickness = 2
+textLabelUIStroke.Parent = textLabel
+
+-- Add UIGradient to TextLabel's UIStroke (same as frame)
+local textLabelUIGradient = Instance.new("UIGradient")
+textLabelUIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),  -- Main color (dark brown)
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)), -- Shiny color (light yellow) at middle
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))   -- Main color again
+})
+textLabelUIGradient.Parent = textLabelUIStroke
+
+-- Function to animate shiny effect for TextLabel UIStroke (dual-phase: main hold + shiny pass)
+local function animateShinyEffectForTextLabel(uiGradient)
+    while uiGradient.Parent do
+        -- Phase 1: Hold the main color for a moment
+        uiGradient.Offset = Vector2.new(-1, 0) -- Start with full main color
+        wait(1) -- Hold the main color for a second
+
+        -- Phase 2: Smooth shiny line pass
+        for i = -1, 1, 0.02 do
+            uiGradient.Offset = Vector2.new(i, 0) -- Move the shiny line smoothly across
+            wait(0.05) -- Control the speed for a smooth animation
+        end
+    end
+end
+
+-- Start the animation loop for shiny effect for the TextLabel
+spawn(function()
+    animateShinyEffectForTextLabel(textLabelUIGradient)
+end)
+
+-- Duplicate the LogTextLabel and modify its properties
+local dontShowLabel = textLabel:Clone()
+dontShowLabel.Name = "DontShowLabel"
+dontShowLabel.Text = "Don't Show It's Again"
+dontShowLabel.BackgroundTransparency = 1
+dontShowLabel.Position = UDim2.new(0, 10, 0.4, 13)
+dontShowLabel.TextSize = 14
+dontShowLabel.Parent = logUpdateFrame
+
+-- Add UICorner, UIStroke, UIGradient, and shiny animation to DontShowLabel
+local dontShowLabelUICorner = Instance.new("UICorner")
+dontShowLabelUICorner.CornerRadius = UDim.new(0, 8)
+dontShowLabelUICorner.Parent = dontShowLabel
+
+local dontShowLabelUIStroke = Instance.new("UIStroke")
+dontShowLabelUIStroke.Color = Color3.fromRGB(255, 255, 255) -- White color for the stroke
+dontShowLabelUIStroke.Transparency = 0.5
+dontShowLabelUIStroke.Thickness = 1.50
+dontShowLabelUIStroke.Parent = dontShowLabel
+
+local dontShowLabelUIGradient = Instance.new("UIGradient")
+dontShowLabelUIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),  -- Main color (dark brown)
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)), -- Shiny color (light yellow) at middle
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))   -- Main color again
+})
+dontShowLabelUIGradient.Parent = dontShowLabelUIStroke
+
+local function animateShinyEffectForDontShowLabel(uiGradient)
+    while uiGradient.Parent do
+        -- Phase 1: Hold the main color for a moment
+        uiGradient.Offset = Vector2.new(-1, 0) -- Start with full main color
+        wait(1) -- Hold the main color for a second
+
+        -- Phase 2: Smooth shiny line pass
+        for i = -1, 1, 0.02 do
+            uiGradient.Offset = Vector2.new(i, 0) -- Move the shiny line smoothly across
+            wait(0.05) -- Control the speed for a smooth animation
+        end
+    end
+end
+
+-- Start the animation loop for shiny effect for the DontShowLabel
+spawn(function()
+    animateShinyEffectForDontShowLabel(dontShowLabelUIGradient)
+end)
+
+-- Create an ImageButton inside LogUpdateFrame (Toggle Button)
+local toggleImageButton = Instance.new("ImageButton")
+toggleImageButton.Name = "ToggleImageButton"
+toggleImageButton.Parent = logUpdateFrame
+toggleImageButton.Position = UDim2.new(0, 10, 0.4, 12)  -- Position specified
+toggleImageButton.Size = UDim2.new(0, 30, 0, 30)  -- Size specified
+toggleImageButton.BackgroundTransparency = 1
+
+-- Update toggle button state from stored value
+local function updateToggleImage()
+    if toggleValue.Value then
+        toggleImageButton.Image = "rbxthumb://type=Asset&id=130656342279402&w=420&h=420"
+    else
+        toggleImageButton.Image = "rbxthumb://type=Asset&id=84435465445746&w=420&h=420"
+    end
+end
+
+-- Initial state of the button
+updateToggleImage()
+
+-- Connect the click event to toggle the value and update the image
+toggleImageButton.MouseButton1Click:Connect(function()
+    toggleValue.Value = not toggleValue.Value
+    updateToggleImage()
+end)
+
+-- Create the ScrollingFrame inside the LogUpdate Frame
+local scrollingFrame = Instance.new("ScrollingFrame")
+scrollingFrame.Name = "LogUpdatesScrollingFrame"
+scrollingFrame.Parent = logUpdateFrame
+scrollingFrame.BackgroundTransparency = 0.8
+scrollingFrame.BackgroundColor3 = Color3.fromRGB(127, 127, 127)
+scrollingFrame.BorderSizePixel = 0
+scrollingFrame.CanvasSize = UDim2.new(0, 0, 2, 0)  -- Makes the canvas scrollable vertically
+scrollingFrame.Position = UDim2.new(0, 0, 0.1, 0)
+scrollingFrame.Size = UDim2.new(0, 200, 0, 100)
+scrollingFrame.ClipsDescendants = true
+
+-- Add UIListLayout to the ScrollingFrame to arrange elements vertically
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Parent = scrollingFrame
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding = UDim.new(0, 5)  -- Space between each log update
+
+-- Function to create a new log update TextLabel
+local function createLogUpdateText(updateText, isLatest)
+    local logUpdateText = Instance.new("TextLabel")
+    logUpdateText.Name = "LogUpdateText"
+    logUpdateText.Parent = scrollingFrame
+    logUpdateText.BackgroundTransparency = 0.949
+    logUpdateText.BackgroundColor3 = isLatest and Color3.fromRGB(0, 127, 0) or Color3.fromRGB(255, 0, 0)  -- Green for latest, Red for removed
+    logUpdateText.BorderSizePixel = 0
+    logUpdateText.Size = UDim2.new(1, 0, 0, 50)  -- Full width of ScrollingFrame, height of 50
+    logUpdateText.Text = updateText
+    logUpdateText.TextScaled = true  -- Automatically scale text to fit within the label
+    logUpdateText.Font = Enum.Font.GothamBold
+    logUpdateText.TextSize = 14
+    logUpdateText.TextColor3 = Color3.fromRGB(0, 0, 0)  -- Black text color
+
+    -- Add UICorner, UIStroke, and UIGradient to LogUpdateText
+    local logUpdateTextUICorner = Instance.new("UICorner")
+    logUpdateTextUICorner.CornerRadius = UDim.new(0, 8)
+    logUpdateTextUICorner.Parent = logUpdateText
+
+    local logUpdateTextUIStroke = Instance.new("UIStroke")
+    logUpdateTextUIStroke.Color = Color3.fromRGB(255, 255, 255)
+    logUpdateTextUIStroke.Transparency = 0.5
+    logUpdateTextUIStroke.Thickness = 1.5
+    logUpdateTextUIStroke.Parent = logUpdateText
+
+    local logUpdateTextUIGradient = Instance.new("UIGradient")
+    logUpdateTextUIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))
+    })
+    logUpdateTextUIGradient.Parent = logUpdateTextUIStroke
+end
+
+-- Test with some log updates
+-- createLogUpdateText("", true/false)
+
+createLogUpdateText("V-4\n(Coming Soon)\n- Re-work UI\n- Ugrade Ghost Room Detected\n- Ghost Hunt Time", true)  -- Latest update, green
+
+createLogUpdateText("V-3.2\n- Add New Activity Detector\n- Anti Ghost hunt you(OnlyDev)\n- Bypass Teleport(Progress) ", true)  -- Latest update, green
+
+createLogUpdateText("V-3.1\n- Add New Log Update System", true)  -- Latest update, green
+
+createLogUpdateText("V-3\n(Beta)(OnlyDev)\n- Bypass Ghost Guess(Still Progres)\n- Bypass Ghost Anti Hunt you(Still Progres)\n- Bypass Candle Object (Still Progres)", true)  -- Removed update, red
+
+createLogUpdateText("V-2.1\n- Add Temperature Bypass\n- Musix\n- Fix Gui", true)
+
+createLogUpdateText("V-2\n- New GUI System\n- Add Picture Ghost Bypass\n- Upgrade Sanity Detector\n- Upgrade Temp Detector\n- Open to Public\n (Exclusive for close friends\n- Re-work Delete Doors To Noclip Doors", true)
+
+createLogUpdateText("V-1.2\n- Remove Teleport To Rooms\n- Remove Teleport To Items\n- Remove Teleport To Van\n- Remove Noclip\n[DETECTED]", false)
+
+createLogUpdateText("V-1.1\n- Add Teleport To Rooms\n- Add Teleport To Items\n- Add Teleport To Van\n- Add Auto Collect Items\n- Insanity Detector\n- Delete All Doors", true)
+
+createLogUpdateText("V-1\n- Add Auto Detect Temp\n- Ghost Speed Detect\n- Ghost Hunt Billboard\n- Ghost Hunt Warn Sign\n- Ghost Room Detect\n- Halloween Update Items Detector\n- Mods in your Server Detector [U WILL GOT BAN WITHOUT EXCEPTION]\n- Speed Bypas", true)
+
+createLogUpdateText("V-1 (Beta)\n- Add Van Billboard\n- Orb Detection\n- Finggerprint Detection\n- Fullbright Bypass\n- Ghost Billboard\n- Ghost HumanoidPartEsp\n- Crused Items Billboard\n- Noclip", true)

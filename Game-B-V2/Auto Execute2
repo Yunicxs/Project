@@ -1,0 +1,61 @@
+if game.PlaceId ~= 6348640020 then return end
+
+local urls = {
+    "https://raw.githubusercontent.com/Shipwuu/Blair-V2/refs/heads/main/freecam.txt",
+    "https://raw.githubusercontent.com/Shipwuu/Random/refs/heads/main/Speedsc",
+    "https://raw.githubusercontent.com/Shipwuu/Blair-V2/refs/heads/main/Tpitems",
+    "https://raw.githubusercontent.com/Shipwuu/Blair-V2/refs/heads/main/SlotUI",
+    "https://raw.githubusercontent.com/Shipwuu/Blair-V2/refs/heads/main/NightVision"
+}
+
+local maxRetries = 10  -- Maximum number of retries for each URL
+
+-- Function to load a script from a URL with retries
+local function loadScript(url)
+    local numRetries = 0
+    local success = false
+    local result = nil
+
+    repeat
+        numRetries = numRetries + 1
+        success, result = pcall(function()
+            return game:HttpGet(url)  -- Fetch the script content from the URL
+        end)
+
+        if not success then
+            warn("Failed to fetch script from URL: " .. url .. ", retrying... (" .. numRetries .. "/" .. maxRetries .. ")")
+            wait(0.5)  -- Reduced wait time before retrying
+        end
+    until success or numRetries >= maxRetries
+
+    return success, result
+end
+
+-- Function to execute scripts sequentially
+local function executeScriptsSequentially(urls)
+    for _, url in ipairs(urls) do
+        local success, scriptContent = loadScript(url)
+        
+        if success then
+            print("URL: " .. url .. " ✅")  -- Successfully fetched the script
+            -- Execute the script after it's loaded
+            local executeSuccess, executeError = pcall(function()
+                loadstring(scriptContent)()  -- Run the script
+            end)
+            
+            if executeSuccess then
+                print("Executed: " .. url)
+            else
+                warn("Failed to execute script from URL: " .. url .. " - " .. executeError)
+            end
+        else
+            warn("Failed to fetch script from URL: " .. url .. " ❌")
+        end
+
+        -- Optional: Wait between script executions (adjust as needed)
+        wait(0.01)
+    end
+end
+
+-- Start executing scripts sequentially
+executeScriptsSequentially(urls)

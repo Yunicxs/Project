@@ -1,0 +1,194 @@
+-- Services
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+-- Variables
+local currentSpeed = 14 -- Default WalkSpeed
+local speedStep = 2 -- Increment/Decrement step for speed
+local speedOnDuration = 7 -- Time after which button color changes to orange
+local speedToggleState = false -- State of the toggle button
+
+-- Function to set WalkSpeed
+local function setWalkSpeed(speed)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = speed
+    end
+end
+
+-- Create GUI
+local sanityGui = Instance.new("ScreenGui")
+sanityGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+sanityGui.ResetOnSpawn = false
+
+-- Create Speed Frame
+local speedFrame = Instance.new("Frame")
+speedFrame.Name = "SpeedFrame"
+speedFrame.Parent = sanityGui
+speedFrame.AnchorPoint = Vector2.new(0, 0.5)
+speedFrame.Position = UDim2.new(1, -400, 0, 150)  -- Adjust X and Y positions as needed
+speedFrame.Size = UDim2.new(0, 140, 0, 60)  -- Height adjusted for buttons
+speedFrame.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+speedFrame.BackgroundTransparency = 1 -- Make the background transparent
+speedFrame.BorderSizePixel = 0
+
+-- Create Buttons for Speed Control
+local buttonSize = UDim2.new(0, 40, 0, 30)  -- Size of each button
+local buttonSpacing = 5  -- Space between buttons
+
+-- Decrease Button
+local decreaseButton = Instance.new("TextButton")
+decreaseButton.Name = "DecreaseButton"
+decreaseButton.Parent = speedFrame
+decreaseButton.AnchorPoint = Vector2.new(0, 0.5)
+decreaseButton.Position = UDim2.new(0, 0, 0.5, 0)
+decreaseButton.Size = buttonSize
+decreaseButton.Font = Enum.Font.SourceSansBold
+decreaseButton.TextSize = 18
+decreaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+decreaseButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Set to black
+decreaseButton.BackgroundTransparency = 0.7 -- Make the background more transparent
+decreaseButton.TextStrokeTransparency = 0
+decreaseButton.Text = "-"
+
+-- Speed Display
+local speedDisplay = Instance.new("TextLabel")
+speedDisplay.Name = "SpeedDisplay"
+speedDisplay.Parent = speedFrame
+speedDisplay.AnchorPoint = Vector2.new(0.5, 0.5)
+speedDisplay.Position = UDim2.new(0.5, 0, 0.5, 0)
+speedDisplay.Size = UDim2.new(0, 60, 0, 30)
+speedDisplay.Font = Enum.Font.SourceSansBold
+speedDisplay.TextSize = 18
+speedDisplay.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedDisplay.BackgroundTransparency = 1 -- Keep the background transparent
+speedDisplay.TextStrokeTransparency = 0
+speedDisplay.Text = tostring(currentSpeed) -- Display only the speed number
+
+-- Increase Button
+local increaseButton = Instance.new("TextButton")
+increaseButton.Name = "IncreaseButton"
+increaseButton.Parent = speedFrame
+increaseButton.AnchorPoint = Vector2.new(1, 0.5)
+increaseButton.Position = UDim2.new(1, 0, 0.5, 0)
+increaseButton.Size = buttonSize
+increaseButton.Font = Enum.Font.SourceSansBold
+increaseButton.TextSize = 18
+increaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+increaseButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Set to black
+increaseButton.BackgroundTransparency = 0.7 -- Make the background more transparent
+increaseButton.TextStrokeTransparency = 0
+increaseButton.Text = "+"
+
+-- Function to update speed label
+local function updateSpeedLabel()
+    speedDisplay.Text = tostring(currentSpeed)
+end
+
+-- Initial label update
+updateSpeedLabel()
+
+-- Increase Button Functionality
+increaseButton.MouseButton1Click:Connect(function()
+    currentSpeed = currentSpeed + speedStep
+    if speedToggleState then
+        setWalkSpeed(currentSpeed)
+    end
+    updateSpeedLabel()
+end)
+
+-- Decrease Button Functionality
+decreaseButton.MouseButton1Click:Connect(function()
+    currentSpeed = math.max(0, currentSpeed - speedStep)  -- Ensure speed doesn't go below 0
+    if speedToggleState then
+        setWalkSpeed(currentSpeed)
+    end
+    updateSpeedLabel()
+end)
+
+-- Create Toggle Button
+local toggleButton = Instance.new("TextButton")
+toggleButton.Parent = sanityGui
+toggleButton.Position = UDim2.new(1, -400, 1, -350) -- Bottom right but slightly towards the middle
+toggleButton.Size = UDim2.new(0, 80, 0, 80)
+toggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.BackgroundTransparency = 0.8
+toggleButton.Text = "â­•"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextSize = 18
+
+-- Add UICorner for circular edges
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 50) -- Circular corner
+uiCorner.Parent = toggleButton
+
+-- Dragging functionality for mobile devices
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    toggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+toggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = toggleButton.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+toggleButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        update(input)
+    end
+end)
+
+-- Function to handle the toggle action
+local function toggleSpeed()
+    speedToggleState = not speedToggleState
+    if speedToggleState then
+        toggleButton.Text = ""
+        toggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Yellow
+        setWalkSpeed(currentSpeed)
+
+        -- Change to orange after 7 seconds
+        wait(speedOnDuration)
+        if speedToggleState then
+            toggleButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0) -- Orange
+        end
+    else
+        toggleButton.Text = ""
+        toggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Black transparent
+        setWalkSpeed(8) -- Reset speed to default when OFF
+    end
+end
+
+-- Connect toggle to button press
+toggleButton.MouseButton1Click:Connect(function()
+    toggleSpeed()
+end)
+
+-- Ensure the speed is set continuously when toggle is ON
+while true do
+    if speedToggleState then
+        setWalkSpeed(currentSpeed)
+    end
+    wait(0.01) -- Updated wait time
+end

@@ -1,0 +1,402 @@
+
+--[[
+    Complete MobileUI Fix
+    Handles ALL buttons in the MobileUI with proper touch input
+]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local MobileUI = PlayerGui:WaitForChild("MobileUI")
+
+-- Enable MobileUI
+MobileUI.Enabled = true
+
+-- Get all buttons
+local Frame = MobileUI:WaitForChild("Frame")
+local CycleButton = Frame:WaitForChild("CycleButton")
+local DropButton = Frame:WaitForChild("DropButton")
+local JournalButton = Frame:WaitForChild("JournalButton")
+local SprintButton = MobileUI:WaitForChild("SprintButton")
+local CrouchButton = MobileUI:WaitForChild("CrouchButton")
+local FlashlightButton = MobileUI:WaitForChild("FlashlightButton")
+local NightVisionButton = MobileUI:WaitForChild("NightVisionButton")
+local PictureButton = MobileUI:WaitForChild("PictureButton")
+local TabletButton = MobileUI:WaitForChild("TabletButton")
+local QuickChatButton = MobileUI:WaitForChild("QuickChatButton")
+local MobileCmdrButton = MobileUI:WaitForChild("MobileCmdrButton")
+local EventboardButton = MobileUI:WaitForChild("EventboardButton")
+local IncenseButton = MobileUI:WaitForChild("IncenseButton")
+
+-- Services and modules
+local Action = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InventoryRemotes"):WaitForChild("Action")
+local Journal = PlayerGui:WaitForChild("Journal")
+local ToggleQuickChat = require(PlayerGui:WaitForChild("Radio"):WaitForChild("QuickChatClient"):WaitForChild("ToggleQuickChat"))
+local PhotoCameraService = require(ReplicatedStorage:WaitForChild("PhotoCameraService"))
+
+-- Debounce flags
+local cycleDebounce = true
+local dropDebounce = true
+
+-- ============================================================
+-- BUTTON 1: Cycle Item
+-- ============================================================
+CycleButton.Activated:Connect(function()
+    if not cycleDebounce then return end
+    cycleDebounce = false
+    Action:FireServer("Cycle")
+    task.wait(0.25)
+    cycleDebounce = true
+end)
+
+-- ============================================================
+-- BUTTON 2: Drop Item
+-- ============================================================
+DropButton.Activated:Connect(function()
+    if not dropDebounce then return end
+    dropDebounce = false
+    Action:FireServer("Drop")
+    task.wait(0.25)
+    dropDebounce = true
+end)
+
+-- ============================================================
+-- BUTTON 3: Journal Toggle
+-- ============================================================
+JournalButton.Activated:Connect(function()
+    Journal.Enabled = not Journal.Enabled
+end)
+
+-- ============================================================
+-- BUTTON 4: Quick Chat
+-- ============================================================
+QuickChatButton.Activated:Connect(function()
+    ToggleQuickChat:Toggle()
+end)
+
+-- ============================================================
+-- BUTTON 5: Mobile Cmdr (only for specific game ID)
+-- ============================================================
+MobileCmdrButton.Visible = game.GameId == 2796598948
+local cmdrClient = nil
+MobileCmdrButton.Activated:Connect(function()
+    if game.GameId ~= 2796598948 then return end
+    if not cmdrClient then
+        cmdrClient = game.ReplicatedStorage:FindFirstChild("CmdrClient", true)
+    end
+    if not cmdrClient then return end
+    local Window = cmdrClient:FindFirstChild("Window", true)
+    if Window then
+        require(Window):Show()
+    end
+end)
+
+-- ============================================================
+-- BUTTON 6: Eventboard (only for specific game ID)
+-- ============================================================
+EventboardButton.Visible = game.GameId == 2796598948
+EventboardButton.Activated:Connect(function()
+    if game.GameId ~= 2796598948 then return end
+    local EventboardGui = PlayerGui:FindFirstChild("EventboardGui")
+    if EventboardGui then
+        EventboardGui.Enabled = not EventboardGui.Enabled
+    end
+end)
+
+-- ============================================================
+-- BUTTON 7: Flashlight
+-- ============================================================
+FlashlightButton.Activated:Connect(function()
+    Action:FireServer("Flashlight")
+end)
+
+-- ============================================================
+-- BUTTON 8: Night Vision (handled by NightVisionHandler script)
+-- The NightVisionHandler already connects this button via Activated event
+-- when the player owns NightVision. No additional handling needed here.
+-- ============================================================
+
+-- ============================================================
+-- BUTTON 9: Picture (take photo)
+-- ============================================================
+local pictureDebounce = true
+PictureButton.Activated:Connect(function()
+    if not pictureDebounce then return end
+    pictureDebounce = false
+    -- Use the PhotoCameraService to take a photo
+    local camera = workspace.CurrentCamera
+    if camera then
+        PhotoCameraService.TakePhoto(nil, camera.CFrame, camera.FieldOfView)
+    end
+    task.wait(0.5)
+    pictureDebounce = true
+end)
+
+-- ============================================================
+-- BUTTON 10: Tablet (toggle video camera)
+-- The VideoCameraHandler already connects this button via MouseButton1Down
+-- when the player owns the Tablet. We add touch support here.
+-- ============================================================
+local tabletDebounce = true
+TabletButton.InputBegan:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.Touch then return end
+    if not tabletDebounce then return end
+    tabletDebounce = false
+    -- Fire the ToggleVideoCamera bindable
+    ReplicatedStorage:WaitForChild("Bindables"):WaitForChild("ToggleVideoCamera"):Fire(true)
+    task.wait(0.5)
+    tabletDebounce = true
+end)
+
+-- ============================================================
+-- BUTTON 11: Incense (use incense item from inventory)
+-- ============================================================
+local incenseDebounce = true
+IncenseButton.Activated:Connect(function()
+    if not incenseDebounce then return end
+    incenseDebounce = false
+    Action:FireServer("Incense")
+    task.wait(0.5)
+    incenseDebounce = true
+end)
+
+-- ============================================================
+-- BUTTON 12: Sprint (hold to sprint) - TOUCH EVENTS
+-- ============================================================
+local function setupSprintCrouch(Character)
+    local Humanoid = Character:WaitForChild("Humanoid")
+    local Animator = Humanoid:WaitForChild("Animator")
+    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+    
+    -- Load crouch animations
+    local Animations = ReplicatedStorage:WaitForChild("Animations")
+    local crouchAnims = {}
+    local crouchMeta = {}
+    setmetatable(crouchAnims, crouchMeta)
+    for _, v in pairs(Animations.CrouchAnimations:GetChildren()) do
+        crouchAnims[v.Name] = Animator:LoadAnimation(v)
+        crouchMeta[v.Name] = false
+    end
+    
+    local function playCrouchAnim(name, play)
+        if play and crouchMeta[name] ~= true then
+            if string.match(name, "CrouchWalk") then
+                for k, v in pairs(crouchAnims) do
+                    if v.IsPlaying and k ~= name then
+                        v:Stop()
+                        crouchMeta[k] = false
+                    end
+                end
+            end
+            crouchAnims[name]:Play()
+            crouchMeta[name] = true
+        elseif not play then
+            crouchAnims[name]:Stop()
+            crouchMeta[name] = false
+        end
+    end
+    
+    local function stopAllCrouchAnims()
+        for k, v in pairs(crouchAnims) do
+            if v.IsPlaying then
+                v:Stop()
+                crouchMeta[k] = false
+            end
+        end
+    end
+    
+    -- State
+    local isCrouching = false
+    local sprinting = false
+    local stamina = 24
+    local maxStamina = 24
+    
+    local walkSpeed = 6.5
+    local crouchSpeed = 3
+    local runSpeed = 13
+    
+    local StaminaGui = PlayerGui:WaitForChild("Stamina")
+    local StaminaBar = StaminaGui:WaitForChild("Background"):WaitForChild("Bar")
+    local Dead = Player:WaitForChild("Dead")
+    
+    local function lerp(a, b, t)
+        return a * (1 - t) + b * t
+    end
+    
+    -- Sprint button - InputBegan/InputEnded for touch hold
+    local sprintBeganConn = SprintButton.InputBegan:Connect(function(input)
+        if input.UserInputType ~= Enum.UserInputType.Touch then return end
+        if isCrouching then return end
+        sprinting = true
+    end)
+    
+    local sprintEndedConn = SprintButton.InputEnded:Connect(function(input)
+        if input.UserInputType ~= Enum.UserInputType.Touch then return end
+        sprinting = false
+    end)
+    
+    -- Crouch button - InputBegan/InputEnded for touch hold
+    local crouchBeganConn = CrouchButton.InputBegan:Connect(function(input)
+        if input.UserInputType ~= Enum.UserInputType.Touch then return end
+        if sprinting then return end
+        isCrouching = true
+        ReplicatedStorage.Remotes.SetCrouching:FireServer(true)
+        playCrouchAnim("CrouchIdle", true)
+    end)
+    
+    local crouchEndedConn = CrouchButton.InputEnded:Connect(function(input)
+        if input.UserInputType ~= Enum.UserInputType.Touch then return end
+        isCrouching = false
+        ReplicatedStorage.Remotes.SetCrouching:FireServer(false)
+        stopAllCrouchAnims()
+    end)
+    
+    -- Heartbeat for stamina, speed, and crouch animations
+    local hbConn = RunService.Heartbeat:Connect(function(dt)
+        if Dead.Value then return end
+        
+        if sprinting and stamina > 0 then
+            stamina = math.max(0, stamina - dt)
+            if Humanoid then
+                Humanoid.WalkSpeed = lerp(Humanoid.WalkSpeed, runSpeed, 0.1)
+            end
+        elseif sprinting and stamina <= 0 then
+            if Humanoid and not isCrouching then
+                Humanoid.WalkSpeed = lerp(Humanoid.WalkSpeed, walkSpeed, 0.1)
+            end
+        elseif not sprinting then
+            if stamina < maxStamina then
+                stamina = math.min(maxStamina, stamina + dt / 1.05 * maxStamina)
+            end
+            if Humanoid and not isCrouching then
+                Humanoid.WalkSpeed = lerp(Humanoid.WalkSpeed, walkSpeed, 0.1)
+            end
+        end
+        
+        if isCrouching and Humanoid then
+            Humanoid.WalkSpeed = lerp(Humanoid.WalkSpeed, crouchSpeed, 0.1)
+        end
+        
+        StaminaBar.Size = UDim2.new(math.clamp(stamina / maxStamina, 0, 1), 0, 1, 0)
+        
+        -- Crouch walk animations
+        if isCrouching and Humanoid then
+            local moveDir = Humanoid.MoveDirection
+            if moveDir.Magnitude > 0.1 then
+                local forward = moveDir:Dot(HumanoidRootPart.CFrame.LookVector)
+                local right = moveDir:Dot(HumanoidRootPart.CFrame.RightVector)
+                local dir = nil
+                if forward > 0.5 then dir = "Forward"
+                elseif forward < -0.5 then dir = "Backwards"
+                elseif right > 0.5 then dir = "Right"
+                elseif right < -0.5 then dir = "Left"
+                end
+                if dir then
+                    playCrouchAnim("CrouchWalk" .. dir, true)
+                else
+                    for k, v in pairs(crouchAnims) do
+                        if string.match(k, "CrouchWalk") and v.IsPlaying then
+                            v:Stop()
+                            crouchMeta[k] = false
+                        end
+                    end
+                    playCrouchAnim("CrouchIdle", true)
+                end
+            else
+                for k, v in pairs(crouchAnims) do
+                    if string.match(k, "CrouchWalk") and v.IsPlaying then
+                        v:Stop()
+                        crouchMeta[k] = false
+                    end
+                end
+                playCrouchAnim("CrouchIdle", true)
+            end
+        end
+    end)
+    
+    -- Cleanup on death/respawn
+    local deadConn
+    deadConn = Dead.Changed:Connect(function()
+        if Dead.Value then
+            sprinting = false
+            isCrouching = false
+            sprintBeganConn:Disconnect()
+            sprintEndedConn:Disconnect()
+            crouchBeganConn:Disconnect()
+            crouchEndedConn:Disconnect()
+            hbConn:Disconnect()
+            deadConn:Disconnect()
+        end
+    end)
+end
+
+-- Setup for current character
+if Player.Character then
+    setupSprintCrouch(Player.Character)
+end
+
+-- Setup for future characters (respawn)
+Player.CharacterAdded:Connect(setupSprintCrouch)
+
+print("MobileUI fully configured - all 13 buttons active!")
+
+
+
+--[[
+    NightVision Bypass for Mobile
+    - Enables NightVision ownership
+    - Removes the noLights challenge blocker
+    - Makes the NightVisionButton visible and functional
+    - Sets up the NVG battery UI
+]]
+local Player = game:GetService("Players").LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local MobileUI = PlayerGui:WaitForChild("MobileUI")
+
+-- Step 1: Set NightVision ownership to true
+local NV = Player:FindFirstChild("NightVision")
+if NV then
+    NV.Value = true
+else
+    local newNV = Instance.new("BoolValue")
+    newNV.Name = "NightVision"
+    newNV.Value = true
+    newNV.Parent = Player
+end
+
+-- Step 2: Remove the noLights challenge that blocks NV
+local challenges = ReplicatedStorage:FindFirstChild("ActiveChallenges")
+if challenges then
+    local noLights = challenges:FindFirstChild("noLights")
+    if noLights then
+        noLights:Destroy()
+    end
+end
+
+-- Step 3: Make NightVisionButton visible
+local NVButton = MobileUI:FindFirstChild("NightVisionButton")
+if NVButton then
+    NVButton.Visible = true
+end
+
+-- Step 4: Enable the NVG battery GUI
+local NVGBattery = PlayerGui:FindFirstChild("NVGBattery")
+if NVGBattery then
+    NVGBattery.Enabled = true
+end
+
+-- Step 5: Toggle NightVision value to force .Changed event
+-- so the NightVisionHandler re-runs CheckOwned() and MobileCheck()
+task.defer(function()
+    local nv = Player:FindFirstChild("NightVision")
+    if nv and nv.Value == true then
+        nv.Value = false
+        task.wait(0.1)
+        nv.Value = true
+    end
+end)
+
+print("NightVision bypass active!")

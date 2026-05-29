@@ -1,0 +1,649 @@
+-- Create ScreenGui
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ShortcutScreenGui"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Create Frame
+local frame = Instance.new("Frame")
+frame.Name = "ShortcutFrame"
+frame.Parent = screenGui
+frame.Position = UDim2.new(0.699, 0, 1.5, 30) -- Start position is below the screen
+frame.Size = UDim2.new(0.1, 0, 0, 300)
+frame.BackgroundTransparency = 0.8
+frame.BackgroundColor3 = Color3.fromRGB(127, 127, 127) -- Frame background color
+frame.Visible = false -- Initially invisible
+
+-- Add UICorner for rounded edges
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = frame
+
+-- Add UIStroke for frame outline
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(255, 255, 255) -- White color for the stroke
+uiStroke.Transparency = 0.5
+uiStroke.Thickness = 4 -- Set the thickness of the UIStroke
+uiStroke.Parent = frame
+
+-- Add UIGradient to the UIStroke
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),  -- Main color (dark brown)
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)), -- Shiny color (light yellow) at middle
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))   -- Main color again
+})
+uiGradient.Parent = uiStroke
+
+-- Function to animate shiny effect for UIStroke (dual-phase: main hold + shiny pass)
+local function animateShinyEffect(uiGradient)
+    while uiGradient.Parent do
+        -- Phase 1: Hold the main color for a moment
+        uiGradient.Offset = Vector2.new(-1, 0) -- Start with full main color
+        wait(1) -- Hold the main color for a second
+
+        -- Phase 2: Smooth shiny line pass
+        for i = -1, 1, 0.02 do
+            uiGradient.Offset = Vector2.new(i, 0) -- Move the shiny line smoothly across
+            wait(0.05) -- Control the speed for a smooth animation
+        end
+    end
+end
+
+-- Start the animation loop for shiny effect for the frame
+spawn(function()
+    animateShinyEffect(uiGradient)
+end)
+
+-- Function to create shortcut ImageButtons (inside the frame)
+local function createShortcutButton(parent, name, position, imageAssetId)
+    local imageButton = Instance.new("ImageButton")
+    imageButton.Name = name
+    imageButton.Parent = parent
+    imageButton.Position = position
+    imageButton.Size = UDim2.new(0, 60, 0, 60)
+    imageButton.BackgroundTransparency = 0.4
+    imageButton.BackgroundColor3 = Color3.fromRGB(98, 97, 97) -- Button background color
+    imageButton.Image = imageAssetId -- Assign the ImageAsset ID
+
+    -- Add UICorner for ImageButton rounded edges (0, 8 for shortcut buttons)
+    local buttonUICorner = Instance.new("UICorner")
+    buttonUICorner.CornerRadius = UDim.new(0, 8)
+    buttonUICorner.Parent = imageButton
+
+    -- Add UIStroke for ImageButton
+    local buttonUIStroke = Instance.new("UIStroke")
+    buttonUIStroke.Color = Color3.fromRGB(255, 255, 255) -- White color for the stroke
+    buttonUIStroke.Transparency = 0.5
+    buttonUIStroke.Thickness = 4 -- Set the thickness of the UIStroke
+    buttonUIStroke.Parent = imageButton
+
+    -- Add UIGradient to the ImageButton's UIStroke
+    local buttonUIGradient = Instance.new("UIGradient")
+    buttonUIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),  -- Main color (dark brown)
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)), -- Shiny color (light yellow) at middle
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))   -- Main color again
+    })
+    buttonUIGradient.Parent = buttonUIStroke
+
+    -- Function to animate shiny effect for ImageButton UIStroke (dual-phase: main hold + shiny pass)
+    spawn(function()
+        animateShinyEffect(buttonUIGradient)
+    end)
+
+    return imageButton
+end
+
+
+
+-- Image button1
+-- Create Shortcut Buttons inside the Frame
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+
+-- Toggle state
+local FullBrightEnabled = false
+
+-- Store original settings
+local OriginalSettings = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+    OutdoorAmbient = Lighting.OutdoorAmbient
+}
+
+-- Store Atmosphere instances
+local SavedAtmospheres = {}
+
+-- APPLY FULLBRIGHT
+local function enableFullBright()
+
+    -- Remove Atmosphere safely
+    SavedAtmospheres = {}
+
+    for _, v in pairs(Lighting:GetDescendants()) do
+        if v:IsA("Atmosphere") then
+            table.insert(SavedAtmospheres, v:Clone())
+            v:Destroy()
+        end
+    end
+
+    Lighting.Brightness = 1
+    Lighting.ClockTime = 14
+    Lighting.FogEnd = 100000
+    Lighting.GlobalShadows = false
+    Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+
+    print("FullBright ON")
+end
+
+-- RESTORE SETTINGS
+local function disableFullBright()
+
+    Lighting.Brightness = OriginalSettings.Brightness
+    Lighting.ClockTime = OriginalSettings.ClockTime
+    Lighting.FogEnd = OriginalSettings.FogEnd
+    Lighting.GlobalShadows = OriginalSettings.GlobalShadows
+    Lighting.OutdoorAmbient = OriginalSettings.OutdoorAmbient
+
+    -- Restore Atmosphere
+    for _, v in pairs(SavedAtmospheres) do
+        if v and not v.Parent then
+            v.Parent = Lighting
+        end
+    end
+
+    print("FullBright OFF")
+end
+
+-- TOGGLE FUNCTION
+local function toggleFullBright()
+
+    FullBrightEnabled = not FullBrightEnabled
+
+    if FullBrightEnabled then
+        enableFullBright()
+    else
+        disableFullBright()
+    end
+end
+
+-- ImageButton 1
+local imageButton1 = createShortcutButton(
+    frame,
+    "ShortcutButton1",
+    UDim2.new(0, 8, 0, 10),
+    "rbxassetid://122012192346825"
+)
+
+-- MOBILE BUTTON TOGGLE
+imageButton1.MouseButton1Click:Connect(function()
+
+    toggleFullBright()
+
+end)
+
+-- PC KEYBIND (T)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+
+    if gameProcessed then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.T then
+        toggleFullBright()
+    end
+
+end)
+
+-- END ----------------------------------------------------------------------------------------------------------
+
+
+
+
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local targetNames = {
+    Briefcase = true,
+    Soap = true,
+    Plate = true
+}
+
+local running = false
+
+-- TELEPORT FUNCTION
+local function TeleportPart()
+    if running then
+        return
+    end
+
+    running = true
+    local character = player.Character
+    if not character then
+        running = false
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        running = false
+        return
+    end
+
+    -- Teleport loop
+    for i = 1, 50 do
+        for _, item in ipairs(itemsFolder:GetChildren()) do
+            if targetNames[item.Name] then
+                local handle = item:FindFirstChild("Handle")
+                if handle then
+                    handle.Anchored = true
+                    handle.CFrame = hrp.CFrame + Vector3.new(
+                        math.random(-5, 5),
+                        3,
+                        math.random(-5, 5)
+                    )
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+
+    task.wait(0.5)
+
+    -- Unanchor items
+    for _, item in ipairs(itemsFolder:GetChildren()) do
+        if targetNames[item.Name] then
+            local handle = item:FindFirstChild("Handle")
+            if handle then
+                handle.Anchored = false
+            end
+        end
+    end
+    running = false
+end
+
+-- ImageButton 2
+local imageButton2 = createShortcutButton(
+    frame,
+    "ShortcutButton2",
+    UDim2.new(0, 8, 0.2, 20),
+    "rbxassetid://122012192346825"
+)
+
+-- MOBILE BUTTON
+imageButton2.MouseButton1Click:Connect(function()
+    TeleportPart()
+end)
+
+-- PC KEYBIND (,)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+    if input.KeyCode == Enum.KeyCode.Comma then
+        TeleportPart()
+    end
+end)
+
+-- END ----------------------------------------------------------------------------------------------------------
+
+
+-- ImageButton 3
+local imageButton3 = createShortcutButton(frame, "ShortcutButton3", UDim2.new(0, 8, 0.4, 30), "rbxassetid://113988655320004")
+-- Add functionality to ImageButton 3
+imageButton3.MouseButton1Click:Connect(function()
+    print("Button 3 clicked")
+    
+    -- Define the path to the temperature
+    local temperaturePath = workspace:FindFirstChild("Map")
+        and workspace.Map:FindFirstChild("Zones")
+        and workspace.Map.Zones:FindFirstChild("Outside")
+        and workspace.Map.Zones.Outside:FindFirstChild("_____Temperature")
+    
+    if temperaturePath and temperaturePath:IsA("NumberValue") then
+        -- Get the current value of temperature
+        local currentTemperature = temperaturePath.Value
+        
+        -- Print the detected value
+        print("Value Detected: _____Temperature = " .. tostring(currentTemperature))
+        
+        -- Update the value to 0.1 in a loop for 3 seconds
+        local startTime = tick()  -- Get the current time
+        while tick() - startTime < 3 do  -- Loop for 3 seconds
+            temperaturePath.Value = 0.1  -- Set value to 0.1
+            wait(0.01)  -- Wait for 0.01 seconds before updating again
+        end
+        
+        -- Print the final value to confirm the change
+        print("Value of _____Temperature has been maintained at 0.1 for 3 seconds")
+    else
+        -- Print if the path or value does not exist
+        print("Temperature path not found or value is not a NumberValue.")
+    end
+end)
+
+
+
+-- END ----------------------------------------------------------------------------------------------------------
+
+
+
+
+
+-- ImageButton 4
+local workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- 🔁 LOOP CONTROL
+local LoopEnabled = false
+local LoopThread = nil
+
+-- =========================
+-- 🎨 STATUS GUI (BOTTOM RIGHT)
+-- =========================
+local gui = Instance.new("ScreenGui")
+gui.Name = "TouchLoopStatus"
+gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+
+local status = Instance.new("Frame")
+status.Parent = gui
+status.Size = UDim2.new(0, 30, 0, 30)
+status.Position = UDim2.new(1, -40, 1, -40)
+status.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- OFF = RED
+status.BackgroundTransparency = 0.5
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = status
+
+local function updateUI()
+    if LoopEnabled then
+        status.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- ON = GREEN
+    else
+        status.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- OFF = RED
+    end
+end
+
+-- Detect if the TouchInterest exists
+local touchInterestPath = workspace:FindFirstChild("Map")
+if touchInterestPath then
+    local zones = touchInterestPath:FindFirstChild("Zones")
+    if zones then
+        local outside = zones:FindFirstChild("Outside")
+        if outside and outside:FindFirstChild("TouchInterest") then
+
+            -- Create mobile button (original)
+            local imageButton1 = createShortcutButton(
+                frame,
+                "ShortcutButton4",
+                UDim2.new(0.5, 5, 0, 10),
+                "rbxthumb://type=Asset&id=71625940511015&w=420&h=420"
+            )
+
+            -- 🔁 TOUCH FUNCTION
+            local function triggerTouch()
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    firetouchinterest(char.HumanoidRootPart, outside, 0)
+                    firetouchinterest(char.HumanoidRootPart, outside, 1)
+                end
+            end
+
+            -- 🔁 SAFE LOOP FUNCTION
+            local function startLoop()
+                if LoopThread then return end -- prevent stacking loops
+
+                LoopThread = task.spawn(function()
+                    while LoopEnabled do
+                        triggerTouch()
+                        task.wait(0.8)
+                    end
+                    LoopThread = nil -- clean up
+                end)
+            end
+
+            -- 🔁 TOGGLE FUNCTION
+            local function toggleLoop()
+                LoopEnabled = not LoopEnabled
+                updateUI()
+
+                if LoopEnabled then
+                    print("Loop ON")
+                    startLoop()
+                else
+                    print("Loop OFF")
+                end
+            end
+
+            -- =========================
+            -- 📱 MOBILE BUTTON
+            -- =========================
+            imageButton1.MouseButton1Click:Connect(function()
+                toggleLoop()
+            end)
+
+            -- =========================
+            -- 💻 PC KEY (X)
+            -- =========================
+            UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                if gameProcessed then return end
+
+                if input.KeyCode == Enum.KeyCode.X then
+                    toggleLoop()
+                end
+            end)
+
+        else
+            print("TouchInterest not found in Outside.")
+        end
+    else
+        print("Zones not found in Map.")
+    end
+else
+    print("Map not found in workspace.")
+end
+
+
+-- END ----------------------------------------------------------------------------------------------------------
+
+
+
+-- ImageButton 5
+local imageButton5 = createShortcutButton(frame, "ShortcutButton5", UDim2.new(0.5, 5, 0.2, 20), "rbxassetid://122012192346825")
+
+-- Bring UsedCrucifix Function
+local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local crucifixRunning = false
+
+local function BringCrucifix()
+    if crucifixRunning then
+        return
+    end
+
+    crucifixRunning = true
+
+    local character = player.Character
+
+    if not character then
+        crucifixRunning = false
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+
+    if not hrp then
+        crucifixRunning = false
+        return
+    end
+
+    local item = itemsFolder:FindFirstChild("UsedCrucifix")
+
+    if item then
+
+        local handle = item:FindFirstChild("Handle")
+
+        if handle then
+
+            for i = 1, 50 do
+                handle.Anchored = true
+                handle.CFrame = hrp.CFrame + Vector3.new(0, 3, 0)
+                task.wait(0.1)
+            end
+
+            task.wait(0.5)
+
+            handle.Anchored = false
+
+            print("Done! UsedCrucifix teleported to you.")
+
+        else
+            print("No Handle found on UsedCrucifix")
+        end
+
+    else
+        print("UsedCrucifix not found in Items")
+    end
+
+    crucifixRunning = false
+end
+
+-- MOBILE BUTTON
+imageButton5.MouseButton1Click:Connect(function()
+    BringCrucifix()
+end)
+
+-- PC KEYBIND (L)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.L then
+        BringCrucifix()
+    end
+end)
+
+print("Press 'L' or tap Button 5 to bring UsedCrucifix")
+
+
+-- END ----------------------------------------------------------------------------------------------------------
+
+
+
+
+
+-- ImageButton 6
+local imageButton1 = createShortcutButton(frame, "ShortcutButton5", UDim2.new(0.5, 5, 0.4, 30), "rbxassetid://122012192346825")
+-- Add functionality to ImageButton 1 (similar as before)
+imageButton1.MouseButton1Click:Connect(function()
+    print("Button 1 clicked")
+
+local args = {
+    [1] = "Capture a photo of the Ghost"
+}
+
+game:GetService("Players").LocalPlayer.Character:FindFirstChild("Photo Camera").Remote.CompleteObjective:FireServer(unpack(args))
+
+end)
+
+
+
+-- ImageButton 6
+local imageButton1 = createShortcutButton(frame, "ShortcutButton5", UDim2.new(0.5, 5, 0.7, 10), "rbxassetid://122012192346825")
+-- Add functionality to ImageButton 1 (similar as before)
+imageButton1.MouseButton1Click:Connect(function()
+    print("Button 1 clicked")
+
+local args = {
+    [1] = "Capture a photo of the Ghost"
+}
+
+game:GetService("Players").LocalPlayer.Character:FindFirstChild("Photo Camera").Remote.CompleteObjective:FireServer(unpack(args))
+
+end)
+
+
+
+
+-- Function to create the toggle button (separate from the shortcut buttons)
+local function createToggleButton(parent, name, position, imageAssetId)
+    local toggleButton = Instance.new("ImageButton")
+    toggleButton.Name = name
+    toggleButton.Parent = parent
+    toggleButton.Position = position
+    toggleButton.Size = UDim2.new(0, 60, 0, 60)
+    toggleButton.BackgroundTransparency = 0.4
+    toggleButton.BackgroundColor3 = Color3.fromRGB(98, 97, 97) -- Button background color
+    toggleButton.Image = imageAssetId -- Assign the ImageAsset ID
+
+    -- Add UICorner with larger rounded edges for toggle button
+    local buttonUICorner = Instance.new("UICorner")
+    buttonUICorner.CornerRadius = UDim.new(10, 10)  -- Set to 10, 10 for toggle button
+    buttonUICorner.Parent = toggleButton
+
+    -- Add UIStroke for Toggle Button
+    local buttonUIStroke = Instance.new("UIStroke")
+    buttonUIStroke.Color = Color3.fromRGB(255, 255, 255) -- White color for the stroke
+    buttonUIStroke.Transparency = 0.5
+    buttonUIStroke.Thickness = 4 -- Set the thickness of the UIStroke
+    buttonUIStroke.Parent = toggleButton
+
+    -- Add UIGradient to the Toggle Button's UIStroke
+    local buttonUIGradient = Instance.new("UIGradient")
+    buttonUIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(73, 54, 40)),  -- Main color (dark brown)
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(214, 192, 179)), -- Shiny color (light yellow) at middle
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(73, 54, 40))   -- Main color again
+    })
+    buttonUIGradient.Parent = buttonUIStroke
+
+    -- Function to animate shiny effect for Toggle Button UIStroke
+    spawn(function()
+        animateShinyEffect(buttonUIGradient)
+    end)
+
+    return toggleButton
+end
+
+-- Create the Toggle Button (Open/Close Shortcut Frame)
+-- This button is outside of the frame, so it doesn't disappear when the frame is hidden
+local toggleButton = createToggleButton(screenGui, "ToggleShortcutButton", UDim2.new(0.699, 8, 0.890, 0), "rbxthumb://type=Asset&id=82368756505515&w=420&h=420")
+toggleButton.MouseButton1Click:Connect(function()
+    -- Toggle the visibility of the Shortcut Frame with sliding animation
+    if not frame.Visible then
+        frame.Visible = true
+        -- Slide up animation (fast at first, slow at end)
+        for i = 1.5, 0.5, -0.1 do
+            frame.Position = UDim2.new(0.699, 0, i, 30)
+            wait(0.03) -- Faster initially
+        end
+        for i = 0.5, 0.5, -0.01 do
+            frame.Position = UDim2.new(0.699, 0, i, 30)
+            wait(0.05) -- Slow and smooth at the end
+        end
+    else
+        -- Slide down animation (fast at first, slow at end)
+        for i = 0.5, 1.5, 0.1 do
+            frame.Position = UDim2.new(0.699, 0, i, 30)
+            wait(0.03) -- Faster initially
+        end
+        frame.Visible = false -- Hide the frame once out of the screen
+    end
+end)

@@ -1,0 +1,584 @@
+print("Load Script ShipuHub")
+
+-- Step 1: Create the ScreenGui
+local existingScreenGui = game:GetService("CoreGui"):FindFirstChild("ShipuHub")
+if existingScreenGui then
+    existingScreenGui:Destroy() -- Destroy the previous ScreenGui if it exists
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ShipuHub"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Step 2: Create the MainFrame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0.4, 0, 0, 47)  -- Updated size
+MainFrame.Position = UDim2.new(0.6, 0, 0, -46)  -- Updated position
+MainFrame.BackgroundTransparency = 1
+MainFrame.Parent = ScreenGui
+
+local SecondMainUICorner = Instance.new("UICorner")
+SecondMainUICorner.CornerRadius = UDim.new(10, 10)
+SecondMainUICorner.Parent = MainFrame
+
+local ButtonLayout = Instance.new("UIListLayout")
+ButtonLayout.FillDirection = Enum.FillDirection.Horizontal
+ButtonLayout.Padding = UDim.new(0, 9)
+ButtonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+ButtonLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+ButtonLayout.Parent = MainFrame
+
+-- Step 3: Create SecondMainFrame and Parent it to MainFrame
+local SecondMainFrame = Instance.new("Frame")
+SecondMainFrame.Name = "Script File"
+SecondMainFrame.Size = UDim2.new(0.5, 60, 0, 48)  -- Updated size
+SecondMainFrame.Position = UDim2.new(0, 0, 0, 0)  -- Updated position
+SecondMainFrame.BackgroundColor3 = Color3.fromRGB(85, 255, 255)
+SecondMainFrame.BackgroundTransparency = 0.4
+SecondMainFrame.Parent = MainFrame  -- Now parent to MainFrame
+
+local SecondMainUICorner = Instance.new("UICorner")
+SecondMainUICorner.CornerRadius = UDim.new(10, 10)
+SecondMainUICorner.Parent = SecondMainFrame
+
+local SecondMainUIGradient = Instance.new("UIGradient")
+SecondMainUIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 50, 50))  -- A softer gradient
+})
+SecondMainUIGradient.Rotation = 0 -- Initial rotation
+SecondMainUIGradient.Parent = SecondMainFrame
+
+-- Step 4: Layout for Script Buttons (Horizontal Layout)
+local SecondButtonLayout = Instance.new("UIListLayout")
+SecondButtonLayout.FillDirection = Enum.FillDirection.Horizontal
+SecondButtonLayout.Padding = UDim.new(0, 5)
+SecondButtonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+SecondButtonLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+SecondButtonLayout.Parent = SecondMainFrame
+
+-- Step 5: Draggable Functionality for MainFrame (Mobile Only)
+local dragToggle = nil
+local dragSpeed = 0.1
+local dragStart = nil
+local startPos = nil
+local isDragging = false
+local dragDelayTime = 1 -- Time in seconds to press and hold before dragging starts
+local holdTime = 0.5  -- Time in seconds to change the color to yellow
+local touchStartTime = nil
+
+local function updateFrameAppearance()
+    if touchStartTime then
+        local elapsedTime = tick() - touchStartTime
+        
+        if elapsedTime >= 1 then
+            -- 1 second hold: Change background to green, allow dragging
+            MainFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green
+            MainFrame.BackgroundTransparency = 0.9
+        elseif elapsedTime >= holdTime then
+            -- 0.5 second hold: Change background to yellow
+            MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 0)  -- Yellow
+            MainFrame.BackgroundTransparency = 0.9
+        else
+            -- Reset to original appearance if less than 0.5 second
+            MainFrame.BackgroundColor3 = Color3.fromRGB(85, 255, 255)  -- Original color
+            MainFrame.BackgroundTransparency = 1
+        end
+    end
+end
+
+local function isMobileDevice()
+    return game:GetService("UserInputService").TouchEnabled
+end
+
+if isMobileDevice() then
+    MainFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            -- Start the touch timer when the user first touches the frame
+            touchStartTime = tick()
+        end
+    end)
+
+    MainFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            -- Update the frame's appearance based on the hold time
+            updateFrameAppearance()
+
+            -- If touch has been held long enough (1 second), unlock dragging
+            if touchStartTime and tick() - touchStartTime >= dragDelayTime then
+                if not isDragging then
+                    dragToggle = true
+                    dragStart = input.Position
+                    startPos = MainFrame.Position
+                    isDragging = true
+                end
+                -- Move only along the X-axis
+                local delta = input.Position - dragStart
+                MainFrame.Position = UDim2.new(startPos.X.Scale, delta.X, startPos.Y.Scale, startPos.Y.Offset)
+            end
+        end
+    end)
+
+    MainFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            -- End the dragging and reset if touch ends
+            dragToggle = false
+            isDragging = false
+
+            -- Reset frame transparency and color after the touch ends
+            MainFrame.BackgroundColor3 = Color3.fromRGB(85, 255, 255)  -- Original color
+            MainFrame.BackgroundTransparency = 1
+        end
+    end)
+end
+
+-- Step 6: Continuous rotation animation for UIGradient
+local TweenService = game:GetService("TweenService")
+local rotationTween = TweenService:Create(
+    SecondMainUIGradient,
+    TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true),
+    {Rotation = 360}
+)
+
+rotationTween:Play()
+
+-- Create SettingUIFrame
+local SettingUIFrame = Instance.new("Frame")
+SettingUIFrame.Name = "UISetting"
+SettingUIFrame.Size = UDim2.new(0, 58, 0, 48)
+SettingUIFrame.Position = UDim2.new(0, 0, 0, 0)
+SettingUIFrame.BackgroundColor3 = Color3.fromRGB(85, 255, 255)
+SettingUIFrame.BackgroundTransparency = 0.4
+SettingUIFrame.Parent = MainFrame  -- Parent to MainFrame
+
+local SecondMainUICorner = Instance.new("UICorner")
+SecondMainUICorner.CornerRadius = UDim.new(10, 10)
+SecondMainUICorner.Parent = SettingUIFrame
+
+local SettingUIFrameUIGradient = Instance.new("UIGradient")
+SettingUIFrameUIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 50, 50)) -- A softer gradient
+})
+SettingUIFrameUIGradient.Rotation = 0
+SettingUIFrameUIGradient.Parent = SettingUIFrame
+
+-- Layout for Script Buttons
+local SecondButtonLayout = Instance.new("UIListLayout")
+SecondButtonLayout.FillDirection = Enum.FillDirection.Horizontal
+SecondButtonLayout.Padding = UDim.new(0, 5)
+SecondButtonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+SecondButtonLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+SecondButtonLayout.Parent = SettingUIFrame
+
+-- Continuous rotation animation for UIGradient
+local TweenService = game:GetService("TweenService")
+local rotationTween = TweenService:Create(
+    SettingUIFrameUIGradient,
+    TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true),
+    {Rotation = 360}
+)
+
+rotationTween:Play()
+
+-- Create HiddenFrame (for adjusting button position)
+local HiddenFrame = Instance.new("Frame")
+HiddenFrame.Name = "ZFrame"
+HiddenFrame.Size = UDim2.new(0, 5, 0, 30)
+HiddenFrame.Position = UDim2.new(0, 0, 0, 0)
+HiddenFrame.BackgroundTransparency = 1
+HiddenFrame.Parent = SettingUIFrame
+
+-- Create HiddenFrame (for adjusting button position)
+local HiddenFrame = Instance.new("Frame")
+HiddenFrame.Name = "AFrame"
+HiddenFrame.Size = UDim2.new(0, 5, 0, 30)
+HiddenFrame.Position = UDim2.new(0, 0, 0, 0)
+HiddenFrame.BackgroundTransparency = 1
+HiddenFrame.Parent = SecondMainFrame
+
+-- Create the ToggleUISetting ImageButton
+local ToggleUISetting = Instance.new("ImageButton")
+ToggleUISetting.Name = "ToggleUISetting"
+ToggleUISetting.Size = UDim2.new(0, 37, 0, 37)
+ToggleUISetting.Position = UDim2.new(0, 0, 0, HiddenFrame.Size.Y.Offset)  -- Position based on HiddenFrame height
+ToggleUISetting.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ToggleUISetting.BackgroundTransparency = 0.8
+ToggleUISetting.Image = "rbxthumb://type=Asset&id=81494025675609&w=420&h=420" -- The arrow pointing to the right
+ToggleUISetting.Parent = SettingUIFrame
+
+local ToggleUISettingUICorner = Instance.new("UICorner")
+ToggleUISettingUICorner.CornerRadius = UDim.new(10, 10)
+ToggleUISettingUICorner.Parent = ToggleUISetting
+
+-- Tweening for expanding SettingUIFrame and changing image with fade-in and fade-out
+local isOpen = false -- Track the toggle state
+local TweenService = game:GetService("TweenService")
+
+local function toggleUI()
+    if isOpen then
+        -- Close the SettingUIFrame
+        local closeTween = TweenService:Create(
+            SettingUIFrame,
+            TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0, 58, 0, 48)}
+        )
+        closeTween:Play()
+
+        -- Fade out and change the image back to the right arrow
+        local closeImageTween = TweenService:Create(
+            ToggleUISetting,
+            TweenInfo.new(0.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),
+            {ImageTransparency = 1}
+        )
+        closeImageTween:Play()
+        
+        -- Wait for the fade-out to finish, then change the image
+        closeImageTween.Completed:Connect(function()
+            ToggleUISetting.Image = "rbxthumb://type=Asset&id=81494025675609&w=420&h=420" -- Arrow pointing to the right
+            -- Fade in the new image
+            local fadeInTween = TweenService:Create(
+                ToggleUISetting,
+                TweenInfo.new(0.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),
+                {ImageTransparency = 0}
+            )
+            fadeInTween:Play()
+        end)
+    else
+        -- Open the SettingUIFrame
+        local openTween = TweenService:Create(
+            SettingUIFrame,
+            TweenInfo.new(0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0.2, 25, 0, 48)}
+        )
+        openTween:Play()
+
+        -- Fade out and change the image to the left arrow
+        local openImageTween = TweenService:Create(
+            ToggleUISetting,
+            TweenInfo.new(0.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),
+            {ImageTransparency = 1}
+        )
+        openImageTween:Play()
+
+        -- Wait for the fade-out to finish, then change the image
+        openImageTween.Completed:Connect(function()
+            ToggleUISetting.Image = "rbxthumb://type=Asset&id=117802441000023&w=420&h=420" -- Arrow pointing to the left
+            -- Fade in the new image
+            local fadeInTween = TweenService:Create(
+                ToggleUISetting,
+                TweenInfo.new(0.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),
+                {ImageTransparency = 0}
+            )
+            fadeInTween:Play()
+        end)
+    end
+
+    -- Toggle the open state
+    isOpen = not isOpen
+end
+
+-- Connect the ToggleUISetting button to toggle functionality
+ToggleUISetting.MouseButton1Click:Connect(toggleUI)
+
+-- Create the AddScript ImageButton
+local ImageButton2 = Instance.new("ImageButton")
+ImageButton2.Name = "AddScript"
+ImageButton2.Size = UDim2.new(0, 37, 0, 37)
+ImageButton2.Position = UDim2.new(0, 0, 0, ToggleUISetting.Position.Y.Offset + ToggleUISetting.Size.Y.Offset)  -- Positioned after ToggleUISetting
+ImageButton2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ImageButton2.BackgroundTransparency = 0.8
+ImageButton2.Image = "rbxthumb://type=Asset&id=110719997714211&w=420&h=420" -- Default image
+ImageButton2.PressedImage = "rbxthumb://type=Asset&id=129960511211863&w=420&h=420" -- Pressed image
+ImageButton2.Parent = SettingUIFrame
+
+-- Apply UICorner to AddScript button
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(10, 10)
+UICorner2.Parent = ImageButton2
+
+
+-- Create the InputFrame
+local InputFrame = Instance.new("Frame")
+InputFrame.Name = "InputFrame"
+InputFrame.Size = UDim2.new(0.4, 0, 0.49, 0)
+InputFrame.Position = UDim2.new(0.3, 0, 0.2, 0)
+InputFrame.BackgroundColor3 = Color3.fromRGB(38, 41, 49)
+InputFrame.Visible = false
+InputFrame.BackgroundTransparency = 0.2
+InputFrame.Parent = ScreenGui
+
+-- Apply UICorner to InputFrame
+local UICornerFrame = Instance.new("UICorner")
+UICornerFrame.CornerRadius = UDim.new(0.05, 0)
+UICornerFrame.Parent = InputFrame
+
+-- Create TitleFrame in InputFrame
+local TitleFrame = Instance.new("TextLabel")
+TitleFrame.Name = "TitleFrame"
+TitleFrame.Text = "Enter Details\nComplete all the rules and use ImageID to upload your script."
+TitleFrame.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleFrame.TextSize = 16
+TitleFrame.Font = Enum.Font.GothamBold
+TitleFrame.TextWrapped = true
+TitleFrame.BackgroundTransparency = 1
+TitleFrame.Size = UDim2.new(0.9, 35, 0, 50)
+TitleFrame.Position = UDim2.new(0, 10, 0, 10)
+TitleFrame.Parent = InputFrame
+
+
+-- Create InputNameFrame in InputFrame
+local InputNameFrame = Instance.new("Frame")
+InputNameFrame.Name = "InputNameFrame"
+InputNameFrame.Size = UDim2.new(1, -20, 0, 60)
+InputNameFrame.Position = UDim2.new(0, 10, 0, 60)
+InputNameFrame.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputNameFrame.BorderColor3 = Color3.fromRGB(91, 92, 121)
+InputNameFrame.Parent = InputFrame
+
+-- Apply UICorner to InputNameFrame
+local UICornerName = Instance.new("UICorner")
+UICornerName.CornerRadius = UDim.new(0.2, 0)
+UICornerName.Parent = InputNameFrame
+
+-- TextLabel in InputNameFrame
+local InputNameLabel = Instance.new("TextLabel")
+InputNameLabel.Text = "Enter Script Name"
+InputNameLabel.Size = UDim2.new(0.9, 35, 0, 20)
+InputNameLabel.Position = UDim2.new(0, 10, 0, 5)
+InputNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputNameLabel.Font = Enum.Font.GothamBold
+InputNameLabel.TextSize = 14
+InputNameLabel.BackgroundTransparency = 1
+InputNameLabel.Parent = InputNameFrame
+
+-- TextBox in InputNameBox
+local InputNameBox = Instance.new("TextBox")
+InputNameBox.PlaceholderText = "Paste Name Script"
+InputNameBox.Text = "Paste Name Script"
+InputNameBox.Size = UDim2.new(0.9, 35, 0, 30)
+InputNameBox.Position = UDim2.new(0, 10, 0, 25)
+InputNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputNameBox.BackgroundTransparency = 1
+InputNameBox.TextTransparency = 0.5
+InputNameBox.TextSize = 14
+InputNameBox.TextScaled = true
+InputNameBox.Font = Enum.Font.GothamBold
+InputNameBox.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputNameBox.ClearTextOnFocus = true
+InputNameBox.Parent = InputNameFrame
+
+
+-- Create InputIDFrame in InputFrame
+local InputIDFrame = Instance.new("Frame")
+InputIDFrame.Name = "InputIDFrame"
+InputIDFrame.Size = UDim2.new(1, -20, 0, 60)
+InputIDFrame.Position = UDim2.new(0, 10, 0, 125)
+InputIDFrame.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputIDFrame.BorderColor3 = Color3.fromRGB(91, 92, 121)
+InputIDFrame.Parent = InputFrame
+
+-- Apply UICorner to InputIDFrame
+local UICornerID = Instance.new("UICorner")
+UICornerID.CornerRadius = UDim.new(0.2, 0)
+UICornerID.Parent = InputIDFrame
+
+-- TextLabel in InputIDFrame
+local InputIDLabel = Instance.new("TextLabel")
+InputIDLabel.Text = "Enter ImageID"
+InputIDLabel.Size = UDim2.new(0.9, 35, 0, 20)
+InputIDLabel.Position = UDim2.new(0, 10, 0, 5)
+InputIDLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputIDLabel.Font = Enum.Font.GothamBold
+InputIDLabel.TextSize = 14
+InputIDLabel.BackgroundTransparency = 1
+InputIDLabel.Parent = InputIDFrame
+
+-- TextBox in InputIDFrame
+local InputIDTextBox = Instance.new("TextBox")
+InputIDTextBox.PlaceholderText = "Paste Here\nRequired (rbxassetid:// or rbxthumb://type=Asset&id)"
+InputIDTextBox.Text = "Paste Here\nRequired (rbxassetid:// or rbxthumb://type=Asset&id)"
+InputIDTextBox.Size = UDim2.new(0.9, 35, 0, 30)
+InputIDTextBox.Position = UDim2.new(0, 10, 0, 25)
+InputIDTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputIDTextBox.BackgroundTransparency = 1
+InputIDTextBox.TextTransparency = 0.5
+InputIDTextBox.TextSize = 14
+InputIDTextBox.TextScaled = true
+InputIDTextBox.Font = Enum.Font.GothamBold
+InputIDTextBox.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputIDTextBox.ClearTextOnFocus = true
+InputIDTextBox.Parent = InputIDFrame
+
+-- Create InputScript frame
+local InputScriptFrame = Instance.new("Frame")
+InputScriptFrame.Name = "InputScript"
+InputScriptFrame.Size = UDim2.new(1, -20, 0, 60)
+InputScriptFrame.Position = UDim2.new(0, 10, 0, 190)
+InputScriptFrame.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputScriptFrame.BorderColor3 = Color3.fromRGB(91, 92, 121)
+InputScriptFrame.Parent = InputFrame
+
+-- Apply UICorner to InputScriptFrame
+local UICornerScript = Instance.new("UICorner")
+UICornerScript.CornerRadius = UDim.new(0.2, 0)
+UICornerScript.Parent = InputScriptFrame
+
+-- TextLabel in InputScriptFrame
+local InputScriptLabel = Instance.new("TextLabel")
+InputScriptLabel.Text = "Enter Script"
+InputScriptLabel.Size = UDim2.new(0.9, 35, 0, 20)
+InputScriptLabel.Position = UDim2.new(0, 10, 0, 5)
+InputScriptLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputScriptLabel.Font = Enum.Font.GothamBold
+InputScriptLabel.TextSize = 14
+InputScriptLabel.BackgroundTransparency = 1
+InputScriptLabel.Parent = InputScriptFrame
+
+-- TextBox in InputScriptFrame
+local InputScriptTextBox = Instance.new("TextBox")
+InputScriptTextBox.PlaceholderText = "Paste Script Here"
+InputScriptTextBox.Text = "Paste Script Here"
+InputScriptTextBox.Size = UDim2.new(0.9, 35, 0, 30)
+InputScriptTextBox.Position = UDim2.new(0, 10, 0, 25)
+InputScriptTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputScriptTextBox.BackgroundTransparency = 1
+InputScriptTextBox.TextTransparency = 0.5
+InputScriptTextBox.TextSize = 14
+InputScriptTextBox.Font = Enum.Font.GothamBold
+InputScriptTextBox.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputScriptTextBox.ClearTextOnFocus = true
+InputScriptTextBox.TextScaled = true
+InputScriptTextBox.Parent = InputScriptFrame
+
+-- Create AddScriptButton
+local AddScriptButton = Instance.new("TextButton")
+AddScriptButton.Name = "AddScriptButton"
+AddScriptButton.Size = UDim2.new(1, -20, 0, 40)
+AddScriptButton.Position = UDim2.new(0, 10, 0, 260)
+AddScriptButton.BackgroundColor3 = Color3.fromRGB(59, 139, 254)
+AddScriptButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AddScriptButton.Text = "Add Script"
+AddScriptButton.TextSize = 14
+AddScriptButton.Font = Enum.Font.GothamBold
+AddScriptButton.Parent = InputFrame
+
+-- Apply UICorner to AddScriptButton
+local UICornerButton = Instance.new("UICorner")
+UICornerButton.CornerRadius = UDim.new(0.2, 0)
+UICornerButton.Parent = AddScriptButton
+
+-- Create Close Button for InputFrame
+local CloseButton = Instance.new("ImageButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 20, 0, 20)
+CloseButton.Position = UDim2.new(0.9, 20, 0, 15)
+CloseButton.BackgroundTransparency = 1
+CloseButton.Image = "rbxassetid://13363121645"
+CloseButton.Parent = InputFrame
+
+-- When the AddScript button is pressed, InputFrame appears
+ImageButton2.MouseButton1Click:Connect(function()
+    InputFrame.Visible = true
+end)
+
+-- When the Close button is pressed, InputFrame is hidden
+CloseButton.MouseButton1Click:Connect(function()
+    InputFrame.Visible = false
+end)
+
+
+
+
+
+
+
+AddScriptButton.MouseButton1Click:Connect(function()
+    local buttonText = InputIDTextBox.Text  -- The text for the button
+    local scriptContent = InputScriptTextBox.Text
+    local scriptName = InputNameBox.Text  -- Assuming you want a custom file name
+
+    if buttonText ~= "" and scriptContent ~= "" and scriptName ~= "" then
+        -- Create a new TextButton for the script
+        local NewScriptButton = Instance.new("TextButton")
+        NewScriptButton.Size = UDim2.new(0, 150, 0, 40)
+        NewScriptButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        NewScriptButton.BackgroundTransparency = 0.8
+        NewScriptButton.Text = buttonText
+        NewScriptButton.Visible = true
+        NewScriptButton.Parent = SecondMainFrame
+
+        -- Apply UICorner to the new button
+        local NewScriptButtonUICorner = Instance.new("UICorner")
+        NewScriptButtonUICorner.CornerRadius = UDim.new(10, 10)
+        NewScriptButtonUICorner.Parent = NewScriptButton
+
+        -- Ensure "Shipu_Script" folder exists
+        if not isfolder("Shipu_Script") then
+            makefolder("Shipu_Script")
+        end
+
+        -- Save the button text and script content to a new txt file in the Shipu_Script folder
+        local scriptFilePath = "Shipu_Script/" .. scriptName .. ".txt"
+        writefile(scriptFilePath, buttonText .. "\n" .. scriptContent)
+
+        -- Execute the script when the new button is clicked
+        NewScriptButton.MouseButton1Click:Connect(function()
+            local success, err = pcall(function()
+                loadstring(scriptContent)()
+            end)
+            if not success then
+                warn("Error executing script: " .. err)
+            end
+        end)
+    else
+        warn("Please provide a Name, Button Text, and script content.")
+    end
+end)
+
+-- Load Scripts from Shipu_Script folder
+local function loadScripts()
+    local scriptCount = 0
+    if isfolder("Shipu_Script") then
+        for _, fileName in pairs(listfiles("Shipu_Script")) do
+            if fileName:match(".txt$") then
+                local fileContent = readfile(fileName)
+                local buttonText, scriptContent = fileContent:match("([^\n]+)\n([^\n]+)\n?(.*)")  -- Read Button Text and script content
+
+                if buttonText and scriptContent then
+                    -- Create a new TextButton for each script
+                    local NewScriptButton = Instance.new("TextButton")
+                    NewScriptButton.Size = UDim2.new(0, 150, 0, 40)
+                    NewScriptButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    NewScriptButton.BackgroundTransparency = 0.8
+                    NewScriptButton.Text = buttonText
+                    NewScriptButton.Visible = true
+                    NewScriptButton.Parent = SecondMainFrame
+
+                    -- Apply UICorner to the new button
+                    local NewScriptButtonUICorner = Instance.new("UICorner")
+                    NewScriptButtonUICorner.CornerRadius = UDim.new(10, 10)
+                    NewScriptButtonUICorner.Parent = NewScriptButton
+
+                    -- Reconnect the MouseButton1Click event to execute the saved script
+                    NewScriptButton.MouseButton1Click:Connect(function()
+                        local success, err = pcall(function()
+                            loadstring(scriptContent)()
+                        end)
+                        if not success then
+                            warn("Error executing saved script: " .. err)
+                        end
+                    end)
+
+                    scriptCount = scriptCount + 1
+                end
+            end
+        end
+    end
+    print("Loaded " .. scriptCount .. " scripts.")
+end
+
+-- Call the function to load scripts when the UI initializes
+loadScripts()
+
+print("Success")

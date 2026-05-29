@@ -1,0 +1,242 @@
+-- Create the InputFrame
+local InputFrame = Instance.new("Frame")
+InputFrame.Name = "InputFrame"
+InputFrame.Size = UDim2.new(0.4, 0, 0.42, 0)
+InputFrame.Position = UDim2.new(0.3, 0, 0.2, 35)
+InputFrame.BackgroundColor3 = Color3.fromRGB(38, 41, 49)
+InputFrame.Visible = false
+InputFrame.BackgroundTransparency = 0.2
+InputFrame.Parent = ScreenGui
+
+-- Apply UICorner to InputFrame
+local UICornerFrame = Instance.new("UICorner")
+UICornerFrame.CornerRadius = UDim.new(0.05, 0)
+UICornerFrame.Parent = InputFrame
+
+-- Create TitleFrame in InputFrame
+local TitleFrame = Instance.new("TextLabel")
+TitleFrame.Name = "TitleFrame"
+TitleFrame.Text = "Enter Details\nComplete all the rules and use ImageID to upload your script."
+TitleFrame.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleFrame.TextSize = 16
+TitleFrame.Font = Enum.Font.GothamBold
+TitleFrame.TextWrapped = true
+TitleFrame.BackgroundTransparency = 1
+TitleFrame.Size = UDim2.new(0.9, 35, 0, 50)
+TitleFrame.Position = UDim2.new(0, 10, 0, 10)
+TitleFrame.Parent = InputFrame
+
+-- Create InputIDFrame in InputFrame
+local InputIDFrame = Instance.new("Frame")
+InputIDFrame.Name = "InputIDFrame"
+InputIDFrame.Size = UDim2.new(1, -20, 0, 60)
+InputIDFrame.Position = UDim2.new(0, 10, 0, 70)
+InputIDFrame.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputIDFrame.BorderColor3 = Color3.fromRGB(91, 92, 121)
+InputIDFrame.Parent = InputFrame
+
+-- Apply UICorner to InputIDFrame
+local UICornerID = Instance.new("UICorner")
+UICornerID.CornerRadius = UDim.new(0.2, 0)
+UICornerID.Parent = InputIDFrame
+
+-- TextLabel in InputIDFrame
+local InputIDLabel = Instance.new("TextLabel")
+InputIDLabel.Text = "Enter ImageID"
+InputIDLabel.Size = UDim2.new(0.9, 35, 0, 20)
+InputIDLabel.Position = UDim2.new(0, 10, 0, 5)
+InputIDLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputIDLabel.Font = Enum.Font.GothamBold
+InputIDLabel.TextSize = 14
+InputIDLabel.BackgroundTransparency = 1
+InputIDLabel.Parent = InputIDFrame
+
+-- TextBox in InputIDFrame
+local InputIDTextBox = Instance.new("TextBox")
+InputIDTextBox.PlaceholderText = "Paste Here\nRequired (rbxassetid:// or rbxthumb://type=Asset&id)"
+InputIDTextBox.Text = "Paste Here\nRequired (rbxassetid:// or rbxthumb://type=Asset&id)"
+InputIDTextBox.Size = UDim2.new(0.9, 35, 0, 30)
+InputIDTextBox.Position = UDim2.new(0, 10, 0, 25)
+InputIDTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputIDTextBox.BackgroundTransparency = 1
+InputIDTextBox.TextTransparency = 0.5
+InputIDTextBox.TextSize = 14
+InputIDTextBox.TextScaled = true
+InputIDTextBox.Font = Enum.Font.GothamBold
+InputIDTextBox.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputIDTextBox.ClearTextOnFocus = true
+InputIDTextBox.Parent = InputIDFrame
+
+-- Create InputScript frame
+local InputScriptFrame = Instance.new("Frame")
+InputScriptFrame.Name = "InputScript"
+InputScriptFrame.Size = UDim2.new(1, -20, 0, 60)
+InputScriptFrame.Position = UDim2.new(0, 10, 0, 140)
+InputScriptFrame.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputScriptFrame.BorderColor3 = Color3.fromRGB(91, 92, 121)
+InputScriptFrame.Parent = InputFrame
+
+-- Apply UICorner to InputScriptFrame
+local UICornerScript = Instance.new("UICorner")
+UICornerScript.CornerRadius = UDim.new(0.2, 0)
+UICornerScript.Parent = InputScriptFrame
+
+-- TextLabel in InputScriptFrame
+local InputScriptLabel = Instance.new("TextLabel")
+InputScriptLabel.Text = "Enter Script"
+InputScriptLabel.Size = UDim2.new(0.9, 35, 0, 20)
+InputScriptLabel.Position = UDim2.new(0, 10, 0, 5)
+InputScriptLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputScriptLabel.Font = Enum.Font.GothamBold
+InputScriptLabel.TextSize = 14
+InputScriptLabel.BackgroundTransparency = 1
+InputScriptLabel.Parent = InputScriptFrame
+
+-- TextBox in InputScriptFrame
+local InputScriptTextBox = Instance.new("TextBox")
+InputScriptTextBox.PlaceholderText = "Paste Here"
+InputScriptTextBox.Text = "Paste Here"
+InputScriptTextBox.Size = UDim2.new(0.9, 35, 0, 30)
+InputScriptTextBox.Position = UDim2.new(0, 10, 0, 25)
+InputScriptTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputScriptTextBox.BackgroundTransparency = 1
+InputScriptTextBox.TextTransparency = 0.5
+InputScriptTextBox.TextSize = 14
+InputScriptTextBox.Font = Enum.Font.GothamBold
+InputScriptTextBox.BackgroundColor3 = Color3.fromRGB(45, 50, 62)
+InputScriptTextBox.ClearTextOnFocus = true
+InputScriptTextBox.TextScaled = true
+InputScriptTextBox.Parent = InputScriptFrame
+
+-- Create AddScriptButton
+local AddScriptButton = Instance.new("TextButton")
+AddScriptButton.Name = "AddScriptButton"
+AddScriptButton.Size = UDim2.new(1, -20, 0, 40)
+AddScriptButton.Position = UDim2.new(0, 10, 0, 210)
+AddScriptButton.BackgroundColor3 = Color3.fromRGB(59, 139, 254)
+AddScriptButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AddScriptButton.Text = "Add Script"
+AddScriptButton.TextSize = 14
+AddScriptButton.Font = Enum.Font.GothamBold
+AddScriptButton.Parent = InputFrame
+
+-- Apply UICorner to AddScriptButton
+local UICornerButton = Instance.new("UICorner")
+UICornerButton.CornerRadius = UDim.new(0.2, 0)
+UICornerButton.Parent = AddScriptButton
+
+-- Create Close Button for InputFrame
+local CloseButton = Instance.new("ImageButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 20, 0, 20)
+CloseButton.Position = UDim2.new(0.9, 20, 0, 15)
+CloseButton.BackgroundTransparency = 1
+CloseButton.Image = "rbxassetid://13363121645"
+CloseButton.Parent = InputFrame
+
+-- When the AddScript button is pressed, InputFrame appears
+ImageButton2.MouseButton1Click:Connect(function()
+    InputFrame.Visible = true
+end)
+
+-- When the Close button is pressed, InputFrame is hidden
+CloseButton.MouseButton1Click:Connect(function()
+    InputFrame.Visible = false
+end)
+
+-- Check if the "scripts.txt" file exists, if not create it
+if not isfile("scripts.txt") then
+    writefile("scripts.txt", "")
+end
+
+-- Function to update the Confirm Button state (if both fields are filled)
+local function updateConfirmButtonState()
+    if InputIDTextBox.Text == "" or InputScriptTextBox.Text == "" then
+        AddScriptButton.BackgroundColor3 = Color3.fromRGB(128, 128, 128)  -- Disable button
+        AddScriptButton.Active = false
+    else
+        AddScriptButton.BackgroundColor3 = Color3.fromRGB(59, 139, 254)  -- Enable button
+        AddScriptButton.Active = true
+    end
+end
+
+InputIDTextBox:GetPropertyChangedSignal("Text"):Connect(updateConfirmButtonState)
+InputScriptTextBox:GetPropertyChangedSignal("Text"):Connect(updateConfirmButtonState)
+updateConfirmButtonState()  -- Check initially if inputs are valid
+
+-- When the "AddScriptButton" is clicked, save the script and ImageID to the file
+AddScriptButton.MouseButton1Click:Connect(function()
+    local imageID = InputIDTextBox.Text
+    local scriptContent = InputScriptTextBox.Text
+
+    if imageID ~= "" and scriptContent ~= "" then
+        -- Create a new button for the script
+        local NewScriptButton = TemplateButton:Clone()  -- Assuming TemplateButton is a predefined button template
+        NewScriptButton.Text = "Script: " .. imageID  -- Optionally set the button text to something descriptive
+        NewScriptButton.Visible = true
+        NewScriptButton.Parent = SecondMainFrame
+
+        -- Apply UICorner to NewScriptButton
+        local ButtonUICorner = Instance.new("UICorner")
+        ButtonUICorner.CornerRadius = UDim.new(0.1, 0)
+        ButtonUICorner.Parent = NewScriptButton
+
+        -- Set the ImageID and PressedImage
+        NewScriptButton.Image = imageID
+        NewScriptButton.PressedImage = "rbxthumb://type=Asset&id=129960511211863&w=420&h=420"  -- Example pressed image
+
+        -- Store the script and image ID in scripts.txt
+        appendfile("scripts.txt", "CreateNewScript" .. #SecondMainFrame:GetChildren() .. " " .. imageID .. "\n" .. scriptContent .. "\n")
+
+        -- When the button is clicked, execute the stored script
+        NewScriptButton.MouseButton1Click:Connect(function()
+            -- Safely load and run the script content
+            local func, err = load(scriptContent)
+            if func then
+                pcall(func)
+            else
+                print("Error loading script: " .. err)
+            end
+        end)
+    end
+end)
+
+
+-- Function to create a new script button and add it to the UI
+AddScriptButton.MouseButton1Click:Connect(function()
+    local imageID = InputIDTextBox.Text
+    local scriptContent = InputScriptTextBox.Text
+    
+    if imageID ~= "" and scriptContent ~= "" then
+        -- Create new script button
+        local newScriptButton = Instance.new("ImageButton")
+        newScriptButton.Name = "CreateNewScript" .. #SecondMainFrame:GetChildren() + 1  -- Dynamically name it
+        newScriptButton.Size = UDim2.new(0, 37, 0, 37)
+        newScriptButton.Position = UDim2.new(0, 0, 0, 0)  -- Position as needed
+        newScriptButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        newScriptButton.BackgroundTransparency = 0.8
+        newScriptButton.Image = imageID  -- Set the ImageID input by the user
+        newScriptButton.PressedImage = "rbxthumb://type=Asset&id=129960511211863&w=420&h=420"  -- Example pressed image
+        newScriptButton.Parent = SecondMainFrame  -- Parent it to the SecondMainFrame
+
+        local buttonUICorner = Instance.new("UICorner")
+        buttonUICorner.CornerRadius = UDim.new(10, 10)
+        buttonUICorner.Parent = newScriptButton
+
+        -- Store the script in the file
+        if not isfile("scripts.txt") then
+            writefile("scripts.txt", "")
+        end
+        appendfile("scripts.txt", newScriptButton.Name .. "\n" .. imageID .. "\n" .. scriptContent .. "\n")
+
+        -- Set up the button click to run the script (placeholder for actual script)
+        newScriptButton.MouseButton1Click:Connect(function()
+            -- Here we would run the script using loadstring() or other methods
+            -- Example: loadstring(scriptContent)() 
+        end)
+
+        -- Clear the input fields after adding the script
+        InputIDTextBox.Text = ""
+        InputScriptTextBox.Text = ""
+    end
+end)

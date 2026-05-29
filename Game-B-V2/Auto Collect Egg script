@@ -1,0 +1,144 @@
+-- Create ScreenGui and TextLabel
+local player = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "EggCounterGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0, 200, 0, 50)
+label.Position = UDim2.new(1, -210, 1, -60) -- Bottom-right corner with padding
+label.AnchorPoint = Vector2.new(0, 0)
+label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.TextScaled = true
+label.Font = Enum.Font.SourceSansBold
+label.Text = "Scanning..."
+label.Parent = gui
+
+-- Recursive scan function
+local function findEggs(parent)
+	local eggs = {}
+	for _, child in ipairs(parent:GetChildren()) do
+		if child:IsA("Instance") then
+			if child.Name == "Egg" then
+				table.insert(eggs, child)
+			end
+			-- Recursively search children
+			local foundInChild = findEggs(child)
+			for _, egg in ipairs(foundInChild) do
+				table.insert(eggs, egg)
+			end
+		end
+	end
+	return eggs
+end
+
+-- Run the scan
+local eggsFound = findEggs(workspace)
+label.Text = "Eggs found: " .. tostring(#eggsFound)
+
+-- Wait 5 seconds then remove GUI
+task.wait(5)
+gui:Destroy()
+
+-------------------------------------------------------
+
+local player = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "TouchPromptGui"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 150)
+frame.Position = UDim2.new(1, -310, 1, -160) -- Bottom right corner
+frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+
+local label = Instance.new("TextLabel", frame)
+label.Size = UDim2.new(1, 0, 0.5, 0)
+label.Text = "Scanning for objects to touch..."
+label.TextColor3 = Color3.new(1, 1, 1)
+label.TextScaled = true
+label.BackgroundTransparency = 1
+
+-- Yes Button (user interaction to continue)
+local yesButton = Instance.new("TextButton", frame)
+yesButton.Size = UDim2.new(0.5, -5, 0.5, -10)
+yesButton.Position = UDim2.new(0, 5, 0.5, 5)
+yesButton.Text = "Yes"
+yesButton.TextScaled = true
+yesButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+
+-- No Button (close GUI)
+local noButton = Instance.new("TextButton", frame)
+noButton.Size = UDim2.new(0.5, -5, 0.5, -10)
+noButton.Position = UDim2.new(0.5, 5, 0.5, 5)
+noButton.Text = "No"
+noButton.TextScaled = true
+noButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+
+-- Function to simulate touch event on any object with TouchInterest
+local function simulateTouch(part)
+    if not part then return end
+    local touchInterest = part:FindFirstChild("TouchInterest")
+    
+    -- Check if part has a TouchInterest
+    if touchInterest and part:IsA("BasePart") then
+        local char = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
+        
+        -- Ensure valid part is found for simulation
+        if humanoidRootPart then
+            -- Fire touch events
+            firetouchinterest(humanoidRootPart, part, 0) -- Touch begin
+            task.wait(0.1) -- Short delay before touch ends
+            firetouchinterest(humanoidRootPart, part, 1) -- Touch end
+            print("Touched: " .. part:GetFullName())
+        end
+    end
+end
+
+-- Function to continuously scan for objects with TouchInterest
+local function findAndTouchObjects()
+    local objectsToTouch = {}
+
+    -- Collect all objects in workspace with TouchInterest
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("BasePart") and obj:FindFirstChild("TouchInterest") then
+            table.insert(objectsToTouch, obj)
+        end
+    end
+
+    -- If there are objects to touch, show the GUI and let the player interact
+    if #objectsToTouch > 0 then
+        label.Text = "Found " .. tostring(#objectsToTouch) .. " objects to touch!"
+        
+        for _, obj in ipairs(objectsToTouch) do
+            yesButton.MouseButton1Click:Connect(function()
+                simulateTouch(obj)
+                
+                -- Wait for 1 second between each firetouchinterest call to prevent freezing
+                task.wait(1)  -- Add a 1-second delay before simulating the next touch
+                
+                -- Remove the touched object from the list and re-check
+                table.remove(objectsToTouch, table.find(objectsToTouch, obj))
+                
+                if #objectsToTouch == 0 then
+                    label.Text = "No objects left to touch!"
+                    task.wait(2) -- Wait for a second before closing
+                    gui:Destroy()
+                end
+            end)
+        end
+    else
+        label.Text = "No objects left with TouchInterest!"
+        task.wait(2)
+        gui:Destroy()
+    end
+end
+
+-- Continuously check for objects with TouchInterest
+while true do
+    findAndTouchObjects()
+    task.wait(1) -- Check every second for remaining objects
+end

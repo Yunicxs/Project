@@ -1,0 +1,130 @@
+115490296909620
+82368756505515
+139470496280151
+121230760948145
+1848354536
+rbxassetid://8486683243
+rbxthumb://type=Asset&id=75307452820537&w=420&h=420
+
+workspace.Map.Zones.Outside._____Temperature
+game.ReplicatedStorage.Remotes.BloodMoonEvent:FireServer()
+
+75307452820537 -- Bell 
+86091808944429 -- Menu
+84435465445746 -- Black c
+130656342279402 -- C
+106327254270115 -- X
+
+loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-KULTHX-RSPY-31193"))()
+loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-BlatantSpy-76951"))()
+
+
+-- Press "," once to run
+local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+local targetNames = {Briefcase = true, Soap = true, Plate = true}
+
+local running = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Comma then
+        if running then return end
+        running = true
+
+        local character = player.Character
+        if not character then
+            running = false
+            return
+        end
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            running = false
+            return
+        end
+
+        -- Teleport in a loop to fight server resets
+        for i = 1, 50 do
+            for _, item in ipairs(itemsFolder:GetChildren()) do
+                if targetNames[item.Name] then
+                    local handle = item:FindFirstChild("Handle")
+                    if handle then
+                        handle.Anchored = true
+                        handle.CFrame = hrp.CFrame + Vector3.new(
+                            math.random(-5, 5), 3, math.random(-5, 5)
+                        )
+                    end
+                end
+            end
+            task.wait(0.1)
+        end
+
+        task.wait(0.5)
+
+        -- Unanchor all
+        for _, item in ipairs(itemsFolder:GetChildren()) do
+            if targetNames[item.Name] then
+                local handle = item:FindFirstChild("Handle")
+                if handle then
+                    handle.Anchored = false
+                end
+            end
+        end
+
+        running = false
+    end
+end)
+
+
+
+
+
+-- Press "L" to run
+local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local running = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.L then
+        if running then return end
+        running = true
+
+        local character = player.Character
+        if not character then
+            running = false
+            return
+        end
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            running = false
+            return
+        end
+
+        local item = itemsFolder:FindFirstChild("UsedCrucifix")
+        if item then
+            local handle = item:FindFirstChild("Handle")
+            if handle then
+                for i = 1, 50 do
+                    handle.Anchored = true
+                    handle.CFrame = hrp.CFrame + Vector3.new(0, 3, 0)
+                    task.wait(0.1)
+                end
+                task.wait(0.5)
+                handle.Anchored = false
+                print("Done! UsedCrucifix teleported to you.")
+            else
+                print("No Handle found on UsedCrucifix")
+            end
+        else
+            print("UsedCrucifix not found in Items")
+        end
+
+        running = false
+    end
+end)
+
+print("Press ',' to bring UsedCrucifix to you")

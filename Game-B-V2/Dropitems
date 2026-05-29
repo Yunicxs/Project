@@ -1,0 +1,125 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local ActionRemote = ReplicatedStorage.Remotes.InventoryRemotes.Action
+
+local running = false
+
+-- Create draggable toggle button
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoDropGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Name = "ToggleButton"
+button.Size = UDim2.new(0, 60, 0, 60)
+button.Position = UDim2.new(0, 20, 0.5, -30)
+button.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+button.Text = "OFF"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.TextSize = 14
+button.Font = Enum.Font.GothamBold
+button.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = button
+
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 2
+stroke.Parent = button
+
+-- Drag
+local dragging, dragStart, startPos = false, nil, nil
+
+button.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = button.Position
+    end
+end)
+
+button.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Toggle
+button.MouseButton1Click:Connect(function()
+    running = not running
+    if running then
+        button.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        button.Text = "ON"
+    else
+        button.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+        button.Text = "OFF"
+    end
+end)
+
+-- Check if a specific slot has an item
+local function slotHasItem(slotIndex)
+    local slot = player:FindFirstChild("Slot" .. slotIndex)
+    return slot ~= nil and slot.Value ~= nil
+end
+
+-- Drop: select each filled slot with small delay, then fire Drop
+local function dropAll()
+    local maxSlots = player:FindFirstChild("MaxSlots")
+    if not maxSlots then return end
+    for i = 1, maxSlots.Value do
+        if slotHasItem(i) then
+            ActionRemote:FireServer("Slot", i)
+            task.wait(0.08)
+        end
+    end
+    task.wait(0.1)
+    ActionRemote:FireServer("Drop")
+end
+
+-- Keyboard toggle
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        running = not running
+        if running then
+            button.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+            button.Text = "ON"
+        else
+            button.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+            button.Text = "OFF"
+        end
+    end
+end)
+
+-- Main loop
+while true do
+    task.wait(0.1)
+    if running then
+        local maxSlots = player:FindFirstChild("MaxSlots")
+        if not maxSlots then continue end
+
+        local anySlotFilled = false
+        for i = 1, maxSlots.Value do
+            if slotHasItem(i) then
+                anySlotFilled = true
+                break
+            end
+        end
+
+        if anySlotFilled then
+            dropAll()
+            task.wait(0.2)
+        end
+    end
+end

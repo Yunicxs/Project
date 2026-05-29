@@ -1,0 +1,88 @@
+-- Function to add billboards to objects
+local function trackObject(object, text, color)
+    if not object:FindFirstChild(text) then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Adornee = object
+        billboard.Name = text
+        billboard.Size = UDim2.new(0, 100, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 2, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = object
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Parent = billboard
+        textLabel.BackgroundTransparency = 1
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.Font = Enum.Font.SourceSansBold
+        textLabel.TextSize = 14
+        textLabel.TextColor3 = color
+        textLabel.TextStrokeTransparency = 0
+        textLabel.TextYAlignment = Enum.TextYAlignment.Center
+        textLabel.Text = text
+        textLabel.ZIndex = 10
+    end
+end
+
+-- Function to continuously track objects and ensure billboards remain intact
+local function continuousTrack()
+    while true do
+        local map = workspace:FindFirstChild("Map")
+        if map then
+            -- Crused Items
+            local crusedItems = {
+                {name = "Ouija Board", path = game:GetService("Workspace"):FindFirstChild("Ouija Board"), color = Color3.fromRGB(0, 128, 0)},
+                {name = "Summoning Circle", path = game:GetService("Workspace"):FindFirstChild("SummoningCircle"), color = Color3.fromRGB(255, 140, 0)},
+                {name = "Tarot Cards", path = game:GetService("Workspace").Map.Items:FindFirstChild("Tarot Cards"), color = Color3.fromRGB(128, 0, 128)}
+            }
+
+            for _, item in pairs(crusedItems) do
+                if item.path then
+                    trackObject(item.path, item.name, item.color)
+                end
+            end
+
+            -- Track Generators
+            if map:FindFirstChild("Generators") then
+                for _, obj in pairs(map.Generators:GetChildren()) do
+                    if obj.Name == "GeneratorMesh" then
+                        trackObject(obj, "Generator", Color3.fromRGB(255, 0, 0))
+                    end
+                end
+            end
+
+            -- Track Van
+            if map:FindFirstChild("Van") then
+                for _, obj in pairs(map.Van:GetChildren()) do
+                    if obj.Name == "SpawnLocation" then
+                        trackObject(obj, "Van", Color3.fromRGB(255, 20, 147))
+                    end
+                end
+            end
+
+            -- Track Orbs
+            if map:FindFirstChild("Orbs") then
+                for _, obj in pairs(map.Orbs:GetChildren()) do
+                    if obj.Name == "OrbPart" then
+                        trackObject(obj, "Orb", Color3.fromRGB(30, 144, 255))
+                    end
+                end
+            end
+
+            -- Track Prints
+            if map:FindFirstChild("Prints") then
+                for _, obj in pairs(map.Prints:GetChildren()) do
+                    if obj.Name == "UV_Hand" then
+                        trackObject(obj, "Fingerprint", Color3.fromRGB(75, 0, 130))
+                    end
+                end
+            end
+        end
+
+        wait(1) -- Check every 1 second to ensure billboards stay intact
+    end
+end
+
+-- Run the continuous track function
+spawn(continuousTrack)
+
+print("Script is running")

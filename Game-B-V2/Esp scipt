@@ -1,0 +1,106 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+ local Players = game:GetService("Players")
+ local RunService = game:GetService("RunService")
+ local LP = Players.LocalPlayer
+ local roles
+ function CreateAllHighlight(p)
+	 for i, v in pairs(game.Players:GetChildren()) do
+		 if v ~= LP and v.Character and not v.Character:FindFirstChild("Highlight") then
+			 Instance.new("Highlight", v.Character)           
+		 end
+	 end
+ end
+ function UpdateAllHighlights()
+	 for _, v in pairs(game.Players:GetChildren()) do
+		 if v ~= LP and v.Character and v.Character:FindFirstChild("Highlight") then
+			 Highlight = v.Character:FindFirstChild("Highlight")
+				 Highlight.FillColor = Color3.fromRGB(0, 225, 0)
+			 end
+		 end
+	 end
+
+	 function CreateHighlight(p)
+		for i, v in pairs(p:GetChildren()) do
+			if v ~= LP and v.Character and not v.Character:FindFirstChild("Highlight") then
+				Instance.new("Highlight", v.Character)           
+			end
+		end
+	end
+	function UpdateHighlights(p)
+		for _, v in pairs(p:GetChildren()) do
+			if v ~= LP and v.Character and v.Character:FindFirstChild("Highlight") then
+				Highlight = v.Character:FindFirstChild("Highlight")
+					Highlight.FillColor = Color3.fromRGB(0, 225, 0)
+				end
+			end
+		end
+
+ function IsAlive(Player)
+	 for i, v in pairs(roles) do
+		 if Player.Name == i then
+			 if not v.Killed and not v.Dead then
+				 return true
+			 else
+				 return false
+			 end
+		 end
+	 end
+ end
+ CreateAllHighlight()
+	 UpdateAllHighlights(game.Players)
+
+	 Players = game.Players
+COREGUI = game.CoreGui
+
+for i,plr in pairs(game.Players:GetChildren()) do
+for i,v in pairs(COREGUI:GetChildren()) do
+			if v.Name == plr.Name..'_ESP' then
+				v:Destroy()
+			end
+if plr.Character and plr.Name ~= Players.LocalPlayer.Name and not COREGUI:FindFirstChild(plr.Name..'_ESP') then
+			local ESPholder = Instance.new("Folder")
+			ESPholder.Name = plr.Name..'_ESP'
+			ESPholder.Parent = COREGUI
+
+			if plr.Character and plr.Character:FindFirstChild('Head') then
+				local BillboardGui = Instance.new("BillboardGui")
+				local TextLabel = Instance.new("TextLabel")
+				BillboardGui.Adornee = plr.Character.Head
+				BillboardGui.Name = plr.Name
+				BillboardGui.Parent = ESPholder
+				BillboardGui.Size = UDim2.new(0, 100, 0, 150)
+				BillboardGui.StudsOffset = Vector3.new(0, 1, 0)
+				BillboardGui.AlwaysOnTop = true
+				TextLabel.Parent = BillboardGui
+				TextLabel.BackgroundTransparency = 1
+				TextLabel.Position = UDim2.new(0, 0, 0, -50)
+				TextLabel.Size = UDim2.new(0, 100, 0, 100)
+				TextLabel.Font = Enum.Font.SourceSansSemibold
+				TextLabel.TextSize = 17
+				TextLabel.TextColor3 = Color3.new(12, 4, 20)
+				TextLabel.TextStrokeTransparency = 0.3
+				TextLabel.TextYAlignment = Enum.TextYAlignment.Bottom
+				TextLabel.Text = '@'..plr.Name .. ' | ' .. plr.DisplayName .. ''
+				TextLabel.ZIndex = 10
+				local espLoopFunc
+				local teamChange
+				local addedFunc
+				end
+end
+end
+
+	addedFunc = plr.CharacterAdded:Connect(function()
+		wait(2)
+		CreateHighlight(plr)
+		UpdateHighlights(plr)
+					if ESPenabled then
+						espLoopFunc:Disconnect()
+						teamChange:Disconnect()
+						ESPholder:Destroy()
+						repeat wait(1) until plr.Character.HumanoidRootPart and plr.Character:FindFirstChildOfClass("Humanoid")
+						ESP(plr)
+					else
+						addedFunc:Disconnect()
+					end
+				end)
+end

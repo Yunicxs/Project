@@ -1,0 +1,81 @@
+-- Creating the Sanity Frame
+-- This script extracts the Sanity frame from the given script and manages its behavior
+
+-- Creating the ScreenGui for the Sanity Frame
+local sanityScreenGui = Instance.new("ScreenGui")
+sanityScreenGui.Name = "SanityScreenGui"
+sanityScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Creating the Sanity Check Frame
+local sanityFrame = Instance.new("Frame")
+sanityFrame.Name = "SanityFrame"
+sanityFrame.Parent = sanityScreenGui
+sanityFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+sanityFrame.Position = UDim2.new(0.5, 0, 0, 70) -- Positioned in the middle of the screen, slightly down
+sanityFrame.Size = UDim2.new(0, 200, 0, 50)
+sanityFrame.BackgroundTransparency = 1 -- Reduced transparency to make it more visible
+sanityFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Added background color for visibility
+sanityFrame.BorderSizePixel = 0
+
+-- Adding Sanity Text
+local sanityLabel = Instance.new("TextLabel")
+sanityLabel.Parent = sanityFrame
+sanityLabel.Size = UDim2.new(1, 0, 1, 0)
+sanityLabel.BackgroundTransparency = 1
+sanityLabel.Font = Enum.Font.SourceSansBold
+sanityLabel.TextSize = 17
+sanityLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- Default to white
+sanityLabel.Text = "Sanity: Loading..."
+sanityLabel.TextStrokeTransparency = 1 -- No outline
+
+-- Function to update Sanity Text continuously
+local player = game:GetService("Players").LocalPlayer
+local sanity = player:WaitForChild("Sanity", 5)
+if sanity then
+    sanity:GetPropertyChangedSignal("Value"):Connect(function()
+        local sanityValue = sanity.Value
+        sanityLabel.Text = "Sanity: " .. sanityValue .. "%"
+
+        -- Change text color based on sanity value
+        if sanityValue >= 100 then
+            sanityLabel.TextColor3 = Color3.new(1, 1, 1) -- White
+        elseif sanityValue >= 50 then
+            sanityLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Orange
+        elseif sanityValue >= 10 then
+            sanityLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+        else
+            sanityLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red for values below 10%
+        end
+    end)
+else
+    sanityLabel.Text = "Sanity: N/A"
+end
+
+-- Detecting "No Sanity" challenge and updating text with animation
+local function detectNoSanityChallenge()
+    local path = workspace:WaitForChild("Map"):WaitForChild("Van"):WaitForChild("Van"):WaitForChild("TimerModel"):WaitForChild("Monitor"):WaitForChild("SurfaceGui"):FindFirstChild("Challenges")
+    if path and path:FindFirstChild("No Sanity") then
+        -- Animate fade in for the text label
+        sanityLabel.Text = "No Sanity Challenges"
+        sanityLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red text
+        for i = 0, 1, 0.05 do
+            sanityLabel.TextTransparency = 1 - i
+            wait(0.05)
+        end
+
+        -- Wait for 10 seconds
+        wait(10)
+
+        -- Animate fade out for the text label
+        for i = 0, 1, 0.05 do
+            sanityLabel.TextTransparency = i
+            wait(0.05)
+        end
+
+        -- Remove the text
+        sanityLabel.Text = ""
+    end
+end
+
+-- Run the detection function
+detectNoSanityChallenge()

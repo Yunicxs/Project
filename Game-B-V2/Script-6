@@ -1,0 +1,631 @@
+-- Creating the Sanity Frame
+-- This script extracts the Sanity frame from the given script and manages its behavior
+
+-- Creating the ScreenGui for the Sanity Frame
+local sanityScreenGui = Instance.new("ScreenGui")
+sanityScreenGui.Name = "SanityScreenGui"
+sanityScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Creating the Sanity Check Frame
+local sanityFrame = Instance.new("Frame")
+sanityFrame.Name = "SanityFrame"
+sanityFrame.Parent = sanityScreenGui
+sanityFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+sanityFrame.Position = UDim2.new(0.5, 0, 0, 70) -- Positioned in the middle of the screen, slightly down
+sanityFrame.Size = UDim2.new(0, 200, 0, 50)
+sanityFrame.BackgroundTransparency = 1 -- Reduced transparency to make it more visible
+sanityFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Added background color for visibility
+sanityFrame.BorderSizePixel = 0
+
+-- Adding Sanity Text
+local sanityLabel = Instance.new("TextLabel")
+sanityLabel.Parent = sanityFrame
+sanityLabel.Size = UDim2.new(1, 0, 1, 0)
+sanityLabel.BackgroundTransparency = 1
+sanityLabel.Font = Enum.Font.SourceSansBold
+sanityLabel.TextSize = 17
+sanityLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- Default to white
+sanityLabel.Text = "Sanity: Loading..."
+sanityLabel.TextStrokeTransparency = 1 -- No outline
+
+-- Function to update Sanity Text continuously
+local player = game:GetService("Players").LocalPlayer
+local sanity = player:WaitForChild("Sanity", 5)
+if sanity then
+    sanity:GetPropertyChangedSignal("Value"):Connect(function()
+        local sanityValue = sanity.Value
+        sanityLabel.Text = "Sanity: " .. sanityValue .. "%"
+
+        -- Change text color based on sanity value
+        if sanityValue >= 100 then
+            sanityLabel.TextColor3 = Color3.new(1, 1, 1) -- White
+        elseif sanityValue >= 50 then
+            sanityLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Orange
+        elseif sanityValue >= 10 then
+            sanityLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+        else
+            sanityLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red for values below 10%
+        end
+    end)
+else
+    sanityLabel.Text = "Sanity: N/A"
+end
+
+-- Detecting "No Sanity" challenge and updating text with animation
+local function detectNoSanityChallenge()
+    local path = workspace:WaitForChild("Map"):WaitForChild("Van"):WaitForChild("Van"):WaitForChild("TimerModel"):WaitForChild("Monitor"):WaitForChild("SurfaceGui"):FindFirstChild("Challenges")
+    if path and path:FindFirstChild("No Sanity") then
+        -- Animate fade in for the text label
+        sanityLabel.Text = "No Sanity Challenges"
+        sanityLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red text
+        for i = 0, 1, 0.05 do
+            sanityLabel.TextTransparency = 1 - i
+            wait(0.05)
+        end
+
+        -- Wait for 10 seconds
+        wait(1)
+
+        -- Animate fade out for the text label
+        for i = 0, 1, 0.05 do
+            sanityLabel.TextTransparency = i
+            wait(0.05)
+        end
+
+        -- Remove the text
+        sanityLabel.Text = ""
+    end
+end
+
+-- Run the detection function
+detectNoSanityChallenge()
+
+-- end
+
+
+
+
+
+
+
+-- Create a new ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TimerDisplayGui"
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Create a TextLabel to display the timer
+local timerLabel = Instance.new("TextLabel")
+timerLabel.Name = "TimerLabel"
+timerLabel.Parent = screenGui
+timerLabel.Size = UDim2.new(0, 110, 0, 30) -- Smaller size (150x40 pixels)
+timerLabel.Position = UDim2.new(0, 10, 1, -60) -- Position in the bottom-right corner
+timerLabel.BackgroundTransparency = 1 -- Fully transparent background
+timerLabel.TextColor3 = Color3.new(1, 1, 1) -- White text
+timerLabel.Font = Enum.Font.SourceSansBold
+timerLabel.TextScaled = true
+timerLabel.Text = "00:00" -- Initial text
+
+-- Define the path to the Timer TextLabel
+local timerTextPath = workspace:WaitForChild("Map"):WaitForChild("Van"):WaitForChild("Van")
+                        :WaitForChild("TimerModel"):WaitForChild("Monitor")
+                        :WaitForChild("SurfaceGui"):WaitForChild("Timer")
+
+-- Function to update the time on the screen
+local function updateTime()
+    while true do
+        if timerTextPath and timerTextPath:IsA("TextLabel") then
+            timerLabel.Text = timerTextPath.Text -- Update the ScreenGui label text with the timer's text
+        else
+            warn("Timer TextLabel not found or is not a TextLabel instance")
+        end
+        wait(1) -- Wait for 1 second before updating again
+    end
+end
+
+-- Start the time update loop without blocking the script
+spawn(updateTime)
+
+-- End
+
+
+
+
+
+
+-- Ghost Hunt Countdown Script
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- =========================
+-- 🎨 GUI
+-- =========================
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "HuntCountdownGui"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+local huntLabel = Instance.new("TextLabel")
+huntLabel.Parent = screenGui
+huntLabel.Size = UDim2.new(0, 120, 0, 30)
+huntLabel.Position = UDim2.new(0, 130, 1, -60)
+huntLabel.BackgroundTransparency = 1
+huntLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+huntLabel.Font = Enum.Font.SourceSansBold
+huntLabel.TextScaled = true
+huntLabel.Text = ""
+huntLabel.Visible = false
+
+-- =========================
+-- 🎬 FADE OUT
+-- =========================
+
+local function fadeOut()
+    local tween = TweenService:Create(
+        huntLabel,
+        TweenInfo.new(0.5),
+        {TextTransparency = 1}
+    )
+    tween:Play()
+    tween.Completed:Wait()
+    huntLabel.Visible = false
+    huntLabel.TextTransparency = 0
+end
+
+-- =========================
+-- 🔁 CONNECTION HANDLER
+-- =========================
+
+local valueConnection = nil
+
+local function connectHunt(hunt)
+    print("✔ HuntDuration detected")
+
+    -- ✅ IMPORTANT FIX: HuntDuration itself is the value
+    if not hunt:IsA("ValueBase") then
+        print("❌ HuntDuration is not a ValueBase")
+        return
+    end
+
+    print("✔ Current Value:", hunt.Value)
+
+    -- Disconnect old connection
+    if valueConnection then
+        valueConnection:Disconnect()
+    end
+
+    -- Listen for value changes
+    valueConnection = hunt:GetPropertyChangedSignal("Value"):Connect(function()
+        local value = hunt.Value
+
+        if value and value > 0 then
+            huntLabel.Visible = true
+            huntLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            huntLabel.Text = "Hunt: " .. tostring(value)
+        else
+            if huntLabel.Visible then
+                huntLabel.Text = "Safe"
+                huntLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                fadeOut()
+            end
+        end
+    end)
+end
+
+-- =========================
+-- 🚀 INITIAL CHECK
+-- =========================
+
+local existing = ReplicatedStorage:FindFirstChild("HuntDuration")
+if existing then
+    connectHunt(existing)
+else
+    print("Waiting for HuntDuration...")
+end
+
+-- =========================
+-- ⚡ INSTANT DETECT
+-- =========================
+
+ReplicatedStorage.ChildAdded:Connect(function(child)
+    if child.Name == "HuntDuration" then
+        connectHunt(child)
+    end
+end)
+
+-- =========================
+-- 🧹 CLEANUP
+-- =========================
+
+ReplicatedStorage.ChildRemoved:Connect(function(child)
+    if child.Name == "HuntDuration" then
+        print("❌ HuntDuration removed")
+
+        huntLabel.Visible = false
+
+        if valueConnection then
+            valueConnection:Disconnect()
+            valueConnection = nil
+        end
+    end
+end)
+
+
+
+
+
+-- Create a ScreenGui for the button
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local UserInputService = game:GetService("UserInputService") -- ✅ ADD THIS
+
+local buttonGui = Instance.new("ScreenGui")
+buttonGui.Name = "NoclipDoorsButtonGui"
+buttonGui.Parent = playerGui
+buttonGui.ResetOnSpawn = false
+
+-- Create the noclip button
+local noclipButton = Instance.new("TextButton")
+noclipButton.Name = "NoclipDoorsButton"
+noclipButton.Parent = buttonGui
+noclipButton.Size = UDim2.new(0, 80, 0, 40)
+noclipButton.Position = UDim2.new(1, -370, 0, 80)
+noclipButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+noclipButton.BackgroundTransparency = 0.8
+noclipButton.Text = "NOCLIP"
+noclipButton.TextColor3 = Color3.new(1, 0, 0)
+noclipButton.Font = Enum.Font.SourceSansBold
+noclipButton.TextScaled = true
+
+local cornerDelete = Instance.new("UICorner")
+cornerDelete.Parent = noclipButton
+
+-- Variables
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Clip = true
+local Noclipping = nil
+local speaker = Players.LocalPlayer
+
+-- Function to toggle noclip
+function toggleNoclip()
+    Clip = not Clip
+
+    if not Clip then
+        print("Noclip activated for workspace.Map.Doors.")
+        noclipButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+
+        local function NoclipLoop()
+            if Clip == false and speaker.Character ~= nil then
+                for _, child in pairs(workspace.Map.Doors:GetDescendants()) do
+                    if child:IsA("BasePart") then
+                        child.CanCollide = false
+                    end
+                end
+            end
+        end
+
+        Noclipping = RunService.Stepped:Connect(NoclipLoop)
+    else
+        print("Noclip deactivated for workspace.Map.Doors.")
+        noclipButton.TextColor3 = Color3.fromRGB(255, 0, 0)
+
+        if Noclipping then
+            Noclipping:Disconnect()
+            Noclipping = nil
+        end
+
+        for _, child in pairs(workspace.Map.Doors:GetDescendants()) do
+            if child:IsA("BasePart") then
+                child.CanCollide = true
+            end
+        end
+    end
+end
+
+noclipButton.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.Touch then
+		toggleNoclip()
+	end
+end)
+
+-- ✅ PC SUPPORT (Press N)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.N then
+            print("N key pressed (PC)")
+            toggleNoclip()
+        end
+    end
+end)
+
+-- Function to animate the button text with fade in and fade out effects
+local function animateButtonText()
+    local texts = {"NOCLIP", "DOORS"}
+    local currentTextIndex = 1
+    while noclipButton.Parent do
+        noclipButton.Text = texts[currentTextIndex]
+        
+        -- Fade in
+        for i = 0, 1, 0.05 do
+            noclipButton.TextTransparency = 1 - i
+            wait(0.05)
+        end
+        
+        wait(0.8) -- Wait for 0.8 seconds
+        
+        -- Fade out
+        for i = 0, 1, 0.05 do
+            noclipButton.TextTransparency = i
+            wait(0.05)
+        end
+        
+        wait(0.1)
+        
+        -- Switch to the next text
+        currentTextIndex = currentTextIndex % #texts + 1
+    end
+end
+
+-- Start the text animation
+spawn(animateButtonText)
+
+-- Connect the button click to toggleNoclip function
+noclipButton.MouseButton1Click:Connect(toggleNoclip)
+
+
+-- End
+
+
+
+
+
+
+
+
+-- Function to add billboards to objects
+local function trackObject(object, text, color)
+    if not object:FindFirstChild(text) then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Adornee = object
+        billboard.Name = text
+        billboard.Size = UDim2.new(0, 100, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 2, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = object
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Parent = billboard
+        textLabel.BackgroundTransparency = 1
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.Font = Enum.Font.SourceSansBold
+        textLabel.TextSize = 14
+        textLabel.TextColor3 = color
+        textLabel.TextStrokeTransparency = 0
+        textLabel.TextYAlignment = Enum.TextYAlignment.Center
+        textLabel.Text = text
+        textLabel.ZIndex = 10
+    end
+end
+
+-- Function to continuously track objects and ensure billboards remain intact
+local function continuousTrack()
+    while true do
+        local map = workspace:FindFirstChild("Map")
+        if map then
+            -- Crused Items
+            local crusedItems = {
+                {name = "Ouija Board", path = game:GetService("Workspace"):FindFirstChild("Spirit Board"), color = Color3.fromRGB(0, 128, 0)},
+                {name = "Music Box", path = game:GetService("Workspace").Map.Items:FindFirstChild("Music Box"), color = Color3.fromRGB(200, 100, 255)},
+                {name = "Summoning Circle", path = game:GetService("Workspace"):FindFirstChild("SummoningCircle"), color = Color3.fromRGB(255, 140, 0)},
+                {name = "Tarot Cards", path = game:GetService("Workspace").Map.Items:FindFirstChild("Tarot Cards"), color = Color3.fromRGB(128, 0, 128)},
+                {name = "Voodoo Doll", path = game:GetService("Workspace"):FindFirstChild("BooBooDoll"), color = Color3.fromRGB(255, 255, 0)}
+            }
+
+            for _, item in pairs(crusedItems) do
+                if item.path then
+                    trackObject(item.path, item.name, item.color)
+                end
+            end
+
+            -- Track Generators
+            if map:FindFirstChild("Generators") then
+                for _, obj in pairs(map.Generators:GetChildren()) do
+                    if obj.Name == "GeneratorMesh" then
+                        trackObject(obj, "Generator", Color3.fromRGB(255, 0, 0))
+                    end
+                end
+            end
+
+            -- Track Van
+            if map:FindFirstChild("Van") then
+                for _, obj in pairs(map.Van:GetChildren()) do
+                    if obj.Name == "SpawnLocation" then
+                        trackObject(obj, "Van", Color3.fromRGB(255, 20, 147))
+                    end
+                end
+            end
+
+            -- Track Orbs
+            if map:FindFirstChild("Orbs") then
+                for _, obj in pairs(map.Orbs:GetChildren()) do
+                    if obj.Name == "OrbPart" then
+                        trackObject(obj, "Orb", Color3.fromRGB(30, 144, 255))
+                    end
+                end
+            end
+
+            -- Track Prints
+            if map:FindFirstChild("Prints") then
+                for _, obj in pairs(map.Prints:GetChildren()) do
+                    if obj.Name == "UV_Hand" then
+                        trackObject(obj, "Fingerprint", Color3.fromRGB(75, 0, 130))
+                    end
+                end
+            end
+        end
+
+        wait(1) -- Check every 1 second to ensure billboards stay intact
+    end
+end
+
+-- Run the continuous track function
+spawn(continuousTrack)
+
+
+-- End
+
+
+
+
+
+
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Create a new ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = PlayerGui
+
+-- Create a new TextLabel
+local textLabel = Instance.new("TextLabel")
+textLabel.Parent = screenGui
+textLabel.TextSize = 18
+textLabel.Font = Enum.Font.GothamBold
+textLabel.TextColor3 = Color3.new(1, 1, 1) -- White color
+textLabel.BackgroundTransparency = 1
+textLabel.Size = UDim2.new(0, 200, 0, 50) -- Adjusted size for better visibility
+textLabel.Position = UDim2.new(0.5, -100, 0, 40) -- Position in the top middle corner of the screen
+
+-- Add UIStroke to the TextLabel
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Thickness = 2
+uiStroke.Color = Color3.fromRGB(101, 67, 33) -- Dark brown color
+uiStroke.Parent = textLabel
+
+-- Function to update the TextLabel with the current value
+local function updateActivityValue()
+    local activity = ReplicatedStorage:FindFirstChild("Activity")
+    if activity and activity:IsA("ValueBase") then
+        textLabel.Text = "Activity\n" .. tostring(activity.Value)
+    else
+        textLabel.Text = "Activity\nNot Found"
+    end
+end
+
+-- Initial update
+updateActivityValue()
+
+-- Connect to the Changed event to update the value dynamically
+local activity = ReplicatedStorage:FindFirstChild("Activity")
+if activity and activity:IsA("ValueBase") then
+    activity:GetPropertyChangedSignal("Value"):Connect(updateActivityValue)
+end
+
+-- Monitor for changes in ReplicatedStorage to detect when "Activity" is added or removed
+ReplicatedStorage.ChildAdded:Connect(function(child)
+    if child.Name == "Activity" and child:IsA("ValueBase") then
+        updateActivityValue()
+        child:GetPropertyChangedSignal("Value"):Connect(updateActivityValue)
+    end
+end)
+
+ReplicatedStorage.ChildRemoved:Connect(function(child)
+    if child.Name == "Activity" then
+        updateActivityValue()
+    end
+end)
+
+
+-- end
+
+
+
+
+
+
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Wait for the MaxSlots property to be added if it doesn't exist yet
+local success, maxSlots = pcall(function()
+    return LocalPlayer:FindFirstChild("MaxSlots")
+end)
+
+if success and maxSlots then
+    -- If MaxSlots exists, change its value to 6
+    maxSlots.Value = 5
+else
+    print("MaxSlots property not found for LocalPlayer.")
+end
+
+-- End
+
+
+
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Function to toggle the value of a given path if it exists
+local function toggleValue(path)
+    local valueObject = ReplicatedStorage:FindFirstChild(path)
+    if valueObject and valueObject:IsA("BoolValue") then
+        valueObject.Value = not valueObject.Value
+    else
+        print(path .. " not found or not a BoolValue.")
+    end
+end
+
+-- Paths to toggle
+local paths = {"GotTeleportData", "Disruption"}
+
+-- Toggle each path
+for _, path in ipairs(paths) do
+    toggleValue(path)
+end
+
+-- Monitor for changes and toggle if needed
+ReplicatedStorage.ChildAdded:Connect(function(child)
+    if child.Name == "GotTeleportData" or child.Name == "Disruption" then
+        if child:IsA("BoolValue") then
+            child.Value = not child.Value
+        end
+    end
+end)
+
+ReplicatedStorage.ChildRemoved:Connect(function(child)
+    if child.Name == "GotTeleportData" or child.Name == "Disruption" then
+        print(child.Name .. " was removed.")
+    end
+end)
+
+-- Continuously monitor and toggle if value becomes true again
+for _, path in ipairs(paths) do
+    local valueObject = ReplicatedStorage:FindFirstChild(path)
+    if valueObject and valueObject:IsA("BoolValue") then
+        valueObject:GetPropertyChangedSignal("Value"):Connect(function()
+            if valueObject.Value == true then
+                valueObject.Value = false
+                print(path .. " was turned off again.")
+            end
+        end)
+    end
+end
+
+
+
+-- End
+

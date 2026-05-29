@@ -1,0 +1,312 @@
+-- Get Player's GUI
+local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Check for existing GUI and destroy if found (to prevent duplication)
+local existingZoneScreenGui = playerGui:FindFirstChild("ZoneDisplayGui")
+if existingZoneScreenGui then
+    existingZoneScreenGui:Destroy()
+end
+
+local existingTempScreenGui = playerGui:FindFirstChild("TempDisplayGui")
+if existingTempScreenGui then
+    existingTempScreenGui:Destroy()
+end
+
+local existingNotifyScreenGui = playerGui:FindFirstChild("FreezingNotifyGui")
+if existingNotifyScreenGui then
+    existingNotifyScreenGui:Destroy()
+end
+
+local existingColdestZoneGui = playerGui:FindFirstChild("ColdestZoneGui")
+if existingColdestZoneGui then
+    existingColdestZoneGui:Destroy()
+end
+
+-- Check for existing billboards in all zones and destroy if found
+local zonesFolder = workspace:WaitForChild("Map"):WaitForChild("Zones")
+for _, zone in pairs(zonesFolder:GetChildren()) do
+    local existingBillboard = zone:FindFirstChild("FreezingBillboard")
+    if existingBillboard then
+        existingBillboard:Destroy()
+    end
+end
+
+-- Create a new ScreenGui for the zone display
+local zoneScreenGui = Instance.new("ScreenGui")
+zoneScreenGui.Name = "ZoneDisplayGui"
+zoneScreenGui.Parent = playerGui
+
+-- Create a TextLabel to display the current zone
+local zoneLabel = Instance.new("TextLabel")
+zoneLabel.Name = "ZoneLabel"
+zoneLabel.Parent = zoneScreenGui
+zoneLabel.Size = UDim2.new(0, 150, 0, 30) -- Reduced size
+zoneLabel.Position = UDim2.new(0, 10, 0.05, 0) -- Moved to the left side
+zoneLabel.BackgroundTransparency = 1 -- Fully transparent background
+zoneLabel.TextColor3 = Color3.new(1, 1, 1) -- White text
+zoneLabel.Font = Enum.Font.SourceSansBold
+zoneLabel.TextScaled = true
+zoneLabel.Text = "Not in any zone" -- Initial text
+
+-- Adding UIAspectRatioConstraint to zoneLabel to keep aspect ratio consistent
+local zoneLabelAspect = Instance.new("UIAspectRatioConstraint")
+zoneLabelAspect.Parent = zoneLabel
+zoneLabelAspect.AspectRatio = 15 -- Adjust as needed for proper scaling
+
+-- Create a new ScreenGui for the temperature display
+local tempScreenGui = Instance.new("ScreenGui")
+tempScreenGui.Name = "TempDisplayGui"
+tempScreenGui.Parent = playerGui
+
+-- Create a TextLabel to display the current temperature
+local tempLabel = Instance.new("TextLabel")
+tempLabel.Name = "TempLabel"
+tempLabel.Parent = tempScreenGui
+tempLabel.Size = UDim2.new(0, 150, 0, 30) -- Reduced size
+tempLabel.Position = UDim2.new(0, 10, 0.1, 0) -- Moved to the left side, below the zone label
+tempLabel.BackgroundTransparency = 1 -- Fully transparent background
+tempLabel.TextColor3 = Color3.new(1, 1, 1) -- White text
+tempLabel.Font = Enum.Font.SourceSansBold
+tempLabel.TextSize = 20 -- Increased text size
+tempLabel.Text = "Temperature: N/A" -- Initial text
+
+-- Adding UIAspectRatioConstraint to tempLabel
+local tempLabelAspect = Instance.new("UIAspectRatioConstraint")
+tempLabelAspect.Parent = tempLabel
+tempLabelAspect.AspectRatio = 15 -- Adjust as needed
+
+-- Create a new ScreenGui for the freezing notification
+local notifyScreenGui = Instance.new("ScreenGui")
+notifyScreenGui.Name = "FreezingNotifyGui"
+notifyScreenGui.Parent = playerGui
+
+-- Create a TextLabel to display the freezing notification
+local notifyLabel = Instance.new("TextLabel")
+notifyLabel.Name = "NotifyLabel"
+notifyLabel.Parent = notifyScreenGui
+notifyLabel.Size = UDim2.new(0, 200, 0, 40) -- Size for the notification
+notifyLabel.Position = UDim2.new(0, 10, 0.15, 0) -- Moved to the left side, below the temperature label
+notifyLabel.BackgroundTransparency = 1 -- Fully transparent background
+notifyLabel.TextColor3 = Color3.new(0.68, 0.85, 1) -- Light blue text
+notifyLabel.Font = Enum.Font.SourceSansBold
+notifyLabel.TextScaled = true
+notifyLabel.Text = "" -- Initial text (empty)
+notifyLabel.Visible = false -- Initially invisible
+
+-- Adding UIAspectRatioConstraint to notifyLabel
+local notifyLabelAspect = Instance.new("UIAspectRatioConstraint")
+notifyLabelAspect.Parent = notifyLabel
+notifyLabelAspect.AspectRatio = 15 -- Adjust as needed
+
+-- Create a new ScreenGui for displaying the coldest zone
+local coldestZoneGui = Instance.new("ScreenGui")
+coldestZoneGui.Name = "ColdestZoneGui"
+coldestZoneGui.Parent = playerGui
+
+-- Create a TextLabel to display the coldest zone and its temperature
+local coldestZoneLabel = Instance.new("TextLabel")
+coldestZoneLabel.Name = "ColdestZoneLabel"
+coldestZoneLabel.Parent = coldestZoneGui
+coldestZoneLabel.Size = UDim2.new(0, 200, 0, 50) -- Adjust the size as needed
+coldestZoneLabel.Position = UDim2.new(0, 10, 0.1, 95) -- Adjust the position on the left side of the screen
+coldestZoneLabel.BackgroundTransparency = 1 -- Fully transparent background
+coldestZoneLabel.TextColor3 = Color3.new(1, 1, 1) -- White text
+coldestZoneLabel.Font = Enum.Font.SourceSansBold
+coldestZoneLabel.TextScaled = true
+coldestZoneLabel.Text = "Coldest Zone: N/A" -- Initial text
+
+-- Adding UIAspectRatioConstraint to coldestZoneLabel
+local coldestZoneLabelAspect = Instance.new("UIAspectRatioConstraint")
+coldestZoneLabelAspect.Parent = coldestZoneLabel
+coldestZoneLabelAspect.AspectRatio = 15 -- Adjust as needed
+
+-- Create a TextLabel for freezing temperature notification
+local freezeNotifyLabel = Instance.new("TextLabel")
+freezeNotifyLabel.Name = "FreezeNotifyLabel"
+freezeNotifyLabel.Parent = coldestZoneGui
+freezeNotifyLabel.Size = UDim2.new(0, 200, 0, 50)
+freezeNotifyLabel.Position = UDim2.new(0, 10, 0.15, 0) -- Adjust the position below the coldest zone label
+freezeNotifyLabel.BackgroundTransparency = 1 -- Fully transparent background
+freezeNotifyLabel.TextColor3 = Color3.new(1, 0, 0) -- Red text for freezing notification
+freezeNotifyLabel.Font = Enum.Font.SourceSansBold
+freezeNotifyLabel.TextScaled = true
+freezeNotifyLabel.Text = "Freeze Temp Detected!" -- Initial text for freezing notification
+freezeNotifyLabel.Visible = false -- Initially hidden
+
+-- Adding UIAspectRatioConstraint to freezeNotifyLabel
+local freezeNotifyLabelAspect = Instance.new("UIAspectRatioConstraint")
+freezeNotifyLabelAspect.Parent = freezeNotifyLabel
+freezeNotifyLabelAspect.AspectRatio = 15 -- Adjust as needed
+
+-- The rest of the script remains unchanged...
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local currentZone = nil
+local monitoring = false
+local freezingDetected = false -- Flag to track freezing evidence detection
+local coldestZone = nil
+local lowestTemperature = math.huge -- Start with a high value
+
+-- Function to update the zone display
+local function updateZoneDisplay(zoneName)
+    if zoneName then
+        zoneLabel.Text = "Current Zone: " .. zoneName
+    else
+        zoneLabel.Text = "Not in any zone"
+    end
+end
+
+-- Function to update the temperature display
+local function updateTemperatureDisplay(temperature)
+    if temperature then
+        tempLabel.Text = "Temperature: " .. tostring(temperature) .. "°C"
+        -- Check if temperature is below freezing and notify
+        if temperature < 0.10 and not freezingDetected then
+            notifyLabel.Text = "Freezing Evidence Detected!"
+            notifyLabel.Visible = true
+            freezingDetected = true -- Set the flag to true to make notification permanent
+        end
+    else
+        tempLabel.Text = "Temperature: N/A"
+    end
+end
+
+-- Function to find the coldest zone and display a billboard
+local function findColdestZone()
+    while true do
+        local lowestTemperature = math.huge
+        local coldestZone = nil
+        local isFreezing = false
+
+        for _, zone in pairs(zonesFolder:GetChildren()) do
+            local temperatureObject = zone:FindFirstChild("_____Temperature")
+            if temperatureObject and temperatureObject:IsA("NumberValue") then
+                local temperature = temperatureObject.Value
+                if temperature < lowestTemperature then
+                    lowestTemperature = temperature
+                    coldestZone = zone
+                end
+                -- Check for freezing temperature
+                if temperature < 0.10 then
+                    isFreezing = true
+                end
+            end
+        end
+
+        if coldestZone then
+            coldestZoneLabel.Text = "Coldest Zone: " .. coldestZone.Name .. " (" .. string.format("%.2f", lowestTemperature) .. "°C)"
+            
+            -- Display or update the billboard for the coldest zone
+            local billboard = coldestZone:FindFirstChild("FreezingBillboard")
+            if not billboard then
+                billboard = Instance.new("BillboardGui")
+                billboard.Name = "FreezingBillboard"
+                billboard.Size = UDim2.new(0, 200, 0, 50)
+                billboard.StudsOffset = Vector3.new(0, 5, 0)
+                billboard.AlwaysOnTop = true
+
+                local textLabel = Instance.new("TextLabel")
+                textLabel.Name = "TextLabel"
+                textLabel.Parent = billboard
+                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                textLabel.BackgroundTransparency = 1
+                textLabel.Font = Enum.Font.SourceSansBold
+                textLabel.TextSize = 20 -- Large text size for visibility
+                textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text
+                textLabel.TextStrokeTransparency = 0
+                textLabel.TextYAlignment = Enum.TextYAlignment.Center
+                textLabel.Text = coldestZone.Name .. " Freezing"
+                textLabel.Parent = billboard
+                billboard.Parent = coldestZone
+            end
+
+            -- Check if zone is a Model and has a PrimaryPart, otherwise use the zone itself
+            local billboardAdornee = coldestZone:IsA("Model") and coldestZone.PrimaryPart or coldestZone:FindFirstChildWhichIsA("BasePart") or coldestZone
+            if not billboard.Adornee or billboard.Adornee ~= billboardAdornee then
+                billboard.Adornee = billboardAdornee
+            end
+        else
+            coldestZoneLabel.Text = "Coldest Zone: N/A"
+        end
+
+        -- Display freeze notification if freezing temperature is detected
+        if isFreezing then
+            freezeNotifyLabel.Visible = true
+        else
+            freezeNotifyLabel.Visible = false
+        end
+
+        -- Reset the billboard every 10 seconds
+        wait(10)
+        for _, zone in pairs(zonesFolder:GetChildren()) do
+            local billboard = zone:FindFirstChild("FreezingBillboard")
+            if billboard then
+                billboard:Destroy()
+            end
+        end
+    end
+end
+
+-- Function to continuously update the temperature while in the zone
+local function monitorTemperature(zone)
+    monitoring = true
+    while currentZone == zone.Name and monitoring do
+        local temperatureObject = zone:FindFirstChild("_____Temperature")
+        local temperature = nil
+        if temperatureObject and temperatureObject:IsA("NumberValue") then
+            temperature = temperatureObject.Value
+        end
+        updateTemperatureDisplay(temperature)
+        wait(1) -- Update temperature every second
+    end
+end
+
+-- Function to handle when the player enters a zone
+local function onZoneTouched(otherPart, zone)
+    if otherPart.Parent == character and currentZone ~= zone.Name then
+        currentZone = zone.Name
+        updateZoneDisplay(currentZone)
+        if not monitoring then
+            spawn(function()
+                monitorTemperature(zone)
+            end)
+        end
+    end
+end
+
+-- Function to handle when the player leaves a zone
+local function onZoneTouchEnded(otherPart, zone)
+    if otherPart.Parent == character and currentZone == zone.Name then
+        monitoring = false -- Stop monitoring temperature
+        currentZone = nil
+        updateZoneDisplay(nil)
+        updateTemperatureDisplay(nil)
+    end
+end
+
+-- Set up touched events for each zone
+for _, zone in pairs(zonesFolder:GetChildren()) do
+    if zone:IsA("Part") then
+        zone.Touched:Connect(function(otherPart)
+            onZoneTouched(otherPart, zone)
+        end)
+        zone.TouchEnded:Connect(function(otherPart)
+            onZoneTouchEnded(otherPart, zone)
+        end)
+    elseif zone:IsA("Model") and zone.PrimaryPart then
+        zone.PrimaryPart.Touched:Connect(function(otherPart)
+            onZoneTouched(otherPart, zone)
+        end)
+        zone.PrimaryPart.TouchEnded:Connect(function(otherPart)
+            onZoneTouchEnded(otherPart, zone)
+        end)
+    end
+end
+
+-- Start finding the coldest zone in a non-blocking loop
+spawn(findColdestZone)
+
+print("Script V ON💚")

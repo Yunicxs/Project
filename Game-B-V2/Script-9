@@ -1,0 +1,312 @@
+-- Destroy previous script instance if duplicated
+if game.CoreGui:FindFirstChild("SpeedToggleUI") then
+    game.CoreGui:FindFirstChild("SpeedToggleUI"):Destroy()
+end
+
+local toggle = false
+local keybindToggle = Enum.KeyCode.LeftShift
+local keybindIncrease = Enum.KeyCode.B
+local keybindDecrease = Enum.KeyCode.C
+local player = game:GetService("Players").LocalPlayer
+local speedLoop = nil
+local defaultSpeed = 6.5 -- Speed when OFF
+local currentSpeed = 12  -- Speed when ON (changeable)
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SpeedToggleUI"
+local TextLabel = Instance.new("TextLabel")
+
+ScreenGui.Parent = game.CoreGui
+TextLabel.Parent = ScreenGui
+TextLabel.Position = UDim2.new(1, -150, 1, -80) -- Bottom right corner
+TextLabel.Size = UDim2.new(0, 140, 0, 25)
+TextLabel.BackgroundTransparency = 1 -- Fully transparent background
+TextLabel.TextScaled = true
+TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Default red (off)
+TextLabel.Text = "Speed: OFF (8)"
+TextLabel.Font = Enum.Font.SourceSansBold
+
+-- Function to start speed loop
+local function startSpeedLoop(speed)
+    -- Stop any existing loop
+    if speedLoop then
+        speedLoop:Disconnect()
+        speedLoop = nil
+    end
+    
+    -- Start new loop
+    speedLoop = game:GetService("RunService").RenderStepped:Connect(function()
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.WalkSpeed = speed
+        end
+    end)
+end
+
+-- Function to update GUI
+local function updateGUI()
+    if toggle then
+        TextLabel.Text = "Speed: ON (" .. currentSpeed .. ")"
+        TextLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+    else
+        TextLabel.Text = "Speed: OFF (" .. defaultSpeed .. ")"
+        TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+    end
+end
+
+-- Toggle function
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    -- Toggle speed on/off
+    if input.KeyCode == keybindToggle then
+        toggle = not toggle
+        if toggle then
+            startSpeedLoop(currentSpeed) -- ON: Uses adjustable speed
+        else
+            startSpeedLoop(defaultSpeed) -- OFF: Stays at 14
+        end
+        updateGUI()
+    end
+
+    -- Increase speed (only when ON)
+    if input.KeyCode == keybindIncrease and toggle then
+        currentSpeed = currentSpeed + 1
+        startSpeedLoop(currentSpeed) -- Apply new speed immediately
+        updateGUI()
+    end
+
+    -- Decrease speed (only when ON)
+    if input.KeyCode == keybindDecrease and toggle then
+        if currentSpeed > 1 then -- Prevents negative speed
+            currentSpeed = currentSpeed - 1
+            startSpeedLoop(currentSpeed) -- Apply new speed immediately
+            updateGUI()
+        end
+    end
+end)
+
+print("Speed ON")
+
+-- Destroy previous script instance if duplicated
+if game.CoreGui:FindFirstChild("StaminaScript") then
+    game.CoreGui:FindFirstChild("StaminaScript"):Destroy()
+end
+
+-- Create a new script instance
+local StaminaScript = Instance.new("ScreenGui")
+StaminaScript.Name = "StaminaScript"
+StaminaScript.Parent = game.CoreGui
+
+local player = game:GetService("Players").LocalPlayer
+local runService = game:GetService("RunService")
+
+-- Function to check and update stamina
+local function updateStamina()
+    while StaminaScript.Parent do
+        local stamina
+
+        -- Try to locate the Stamina path
+        local success, err = pcall(function()
+            stamina = player:FindFirstChild("PlayerGui") and
+                      player.PlayerGui:FindFirstChild("Modules") and
+                      player.PlayerGui.Modules:FindFirstChild("Gameplay") and
+                      player.PlayerGui.Modules.Gameplay:FindFirstChild("Sprint") and
+                      player.PlayerGui.Modules.Gameplay.Sprint:FindFirstChild("Stamina")
+        end)
+
+        -- If found, update the value
+        if success and stamina and stamina:IsA("NumberValue") then
+            stamina.Value = 900000
+        end
+
+        -- Retry detection every 0.5 seconds to handle lobby/gameplay transitions
+        task.wait(0.5)
+    end
+end
+
+-- Start the stamina loop
+task.spawn(updateStamina)
+
+print("Infinite Stamina ON")
+
+
+
+
+
+local ItemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local billboards = {}
+local UserInputService = game:GetService("UserInputService")
+
+local function createESP(item)
+	local handle = item:FindFirstChildWhichIsA("BasePart")
+	if not handle then return end
+	
+	local bb = Instance.new("BillboardGui")
+	bb.Adornee = handle
+	bb.Size = UDim2.new(0, 200, 0, 50)
+	bb.StudsOffset = Vector3.new(0, 3, 0)
+	bb.AlwaysOnTop = true
+	bb.Name = "ESP_" .. item.Name
+	bb.Enabled = false -- Start hidden
+	
+	local frame = Instance.new("Frame", bb)
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundTransparency = 1
+	frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	frame.BorderSizePixel = 0
+	
+	local label = Instance.new("TextLabel", bb)
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextStrokeTransparency = 0
+	label.TextStrokeColor3 = Color3.new(0, 0, 0)
+	label.Text = item.Name
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 10
+	
+	bb.Parent = handle
+	table.insert(billboards, bb)
+end
+
+for _, item in ipairs(ItemsFolder:GetChildren()) do
+	createESP(item)
+end
+
+ItemsFolder.ChildAdded:Connect(function(child)
+	createESP(child)
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	
+	if input.KeyCode == Enum.KeyCode.Equals then
+		for _, bb in ipairs(billboards) do
+			if bb.Parent then bb.Enabled = true end
+		end
+
+	elseif input.KeyCode == Enum.KeyCode.Minus then
+		for _, bb in ipairs(billboards) do
+			if bb.Parent then bb.Enabled = false end
+		end
+	end
+end)
+
+print("ESP loaded (hidden by default). Items: " .. #billboards)
+
+
+
+
+
+local folder = game.Workspace.Map.Candles
+local highlights = {}
+local espEnabled = true
+
+-- Services
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+-- =========================
+-- 🔁 TOGGLE KEYBINDS
+-- =========================
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+
+	-- Disable ESP
+	if input.KeyCode == Enum.KeyCode.LeftBracket then
+		espEnabled = false
+
+		-- Remove all highlights
+		for _, h in ipairs(highlights) do
+			if h and h.Parent then
+				h:Destroy()
+			end
+		end
+
+		highlights = {}
+
+		print("Candle ESP OFF")
+
+	-- Enable ESP
+	elseif input.KeyCode == Enum.KeyCode.RightBracket then
+		espEnabled = true
+		print("Candle ESP ON")
+	end
+end)
+
+-- =========================
+-- 🧹 CLEAR HIGHLIGHTS
+-- =========================
+
+local function clearHighlights()
+	for _, h in ipairs(highlights) do
+		if h and h.Parent then
+			h:Destroy()
+		end
+	end
+
+	highlights = {}
+end
+
+-- =========================
+-- 🔥 MAIN ESP LOOP
+-- =========================
+
+task.spawn(function()
+
+	while task.wait(1) do
+
+		-- Remove old ESP
+		clearHighlights()
+
+		-- Skip if disabled
+		if not espEnabled then
+			continue
+		end
+
+		-- Scan candles
+		for _, child in ipairs(folder:GetChildren()) do
+
+			local isIgnitedVal = child:FindFirstChild("IsIgnited")
+
+			if isIgnitedVal
+				and isIgnitedVal:IsA("BoolValue")
+				and isIgnitedVal.Value then
+
+				-- Find main part
+				local mainPart =
+					child:FindFirstChild("Candle")
+					or child:FindFirstChildWhichIsA("BasePart")
+					or child
+
+				-- Create highlight
+				if mainPart and mainPart:IsA("BasePart") then
+
+					local hl = Instance.new("Highlight")
+
+					hl.Name = "CandleESP"
+					hl.Adornee = mainPart
+
+					hl.FillColor = Color3.fromRGB(255, 100, 0)
+					hl.OutlineColor = Color3.fromRGB(255, 200, 0)
+
+					hl.FillTransparency = 0.8
+					hl.OutlineTransparency = 0
+
+					hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+
+					hl.Parent = CoreGui
+
+					table.insert(highlights, hl)
+				end
+			end
+		end
+	end
+end)
+
+print("Candle ESP Loaded")
