@@ -43,10 +43,10 @@ end)
 -- End of Image Preload
 
 local urls = {
-    "https://raw.githubusercontent.com/Shipwuu/Blair-V3/refs/heads/main/sc1",
-    "https://raw.githubusercontent.com/Shipwuu/Blair-V3/refs/heads/main/sc2",
-    "https://raw.githubusercontent.com/Shipwuu/Blair-V3/refs/heads/main/sc3",
-    "https://raw.githubusercontent.com/Shipwuu/Blair-V3/refs/heads/main/sc5",
+    "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc1",
+	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc2",
+	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc3",
+	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc5",
     "https://raw.githubusercontent.com/Shipwuu/Blair-V2/refs/heads/main/SlotUI"
 }
 
