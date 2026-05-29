@@ -24,7 +24,7 @@ local LocalPlayer = Players.LocalPlayer
 local CONFIG = {
 	Key = "Dev-123.04.25.@1",
 
-	FolderName = "WorkspaceExecutor",
+	FolderName = "InfiniteYields",
 	FileName = "Key.txt",
 
 	UIName = "PremiumExecutorKeySystem",
