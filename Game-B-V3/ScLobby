@@ -1,0 +1,205 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- 🔁 MAP 1
+local function runRemote()
+    print("Running Remote Script...")
+
+    -- Auto Room Settings
+    local args1 = {
+        {
+            Map = "The Aldridge Hotel",
+            Challenges = {
+                "slowPlayer",
+                "noHiding",
+                "noLights",
+                "noCrucifixes",
+                "noSanity",
+                "noGracePeriod",
+                "evidencelessOne",
+                "evidencelessTwo"
+            },
+            Difficulty = "Nightmare"
+        }
+    }
+
+    ReplicatedStorage:WaitForChild("Remotes")
+        :WaitForChild("GatewayService")
+        :WaitForChild("hostSetContract")
+        :FireServer(unpack(args1))
+
+    -- Auto Put Items
+    local args2 = {
+        {
+            Thermometer = 1/0,
+            GlowStick = 1/0,
+            ["Trail Camera"] = 1/0,
+            ["Parabolic Microphone"] = 1/0,
+            Lighter = 1/0,
+            ["Incense Burner"] = 1/0,
+            ["SLS Camera"] = 1/0,
+            Salt = 1/0,
+            ["Ghost Writing Book"] = 1/0,
+            ["UV Light"] = 1/0,
+            Crucifix = 1/0,
+            ["EMF Reader"] = 1/0,
+            ["Sanity Soda"] = 1/0,
+            ["Photo Camera"] = 1/0,
+            ["Video Camera"] = 1/0,
+            ["Strong Flashlight"] = 1/0,
+            ["Spirit Box"] = 1/0
+        }
+    }
+
+    ReplicatedStorage:WaitForChild("Remotes")
+        :WaitForChild("GatewayService")
+        :WaitForChild("equipmentChange")
+        :FireServer(unpack(args2))
+end
+
+-- 🔁 SECOND MAP FUNCTION (KEY 2)
+local function runRemote_Map2()
+    print("Running Remote Script (Map 2)...")
+
+    local args1 = {
+        {
+            Map = "Dunwich Sanatorium",
+            Challenges = {
+                "slowPlayer",
+                "noHiding",
+                "noLights",
+                "noCrucifixes",
+                "noSanity",
+                "noGracePeriod",
+                "evidencelessOne",
+                "evidencelessTwo"
+            },
+            Difficulty = "Nightmare"
+        }
+    }
+
+    ReplicatedStorage:WaitForChild("Remotes")
+        :WaitForChild("GatewayService")
+        :WaitForChild("hostSetContract")
+        :FireServer(unpack(args1))
+
+    -- Auto Put Items
+    local args2 = {
+        {
+            Thermometer = 1/0,
+            GlowStick = 1/0,
+            ["Trail Camera"] = 1/0,
+            ["Parabolic Microphone"] = 1/0,
+            Lighter = 1/0,
+            ["Incense Burner"] = 1/0,
+            ["SLS Camera"] = 1/0,
+            Salt = 1/0,
+            ["Ghost Writing Book"] = 1/0,
+            ["UV Light"] = 1/0,
+            Crucifix = 1/0,
+            ["EMF Reader"] = 1/0,
+            ["Sanity Soda"] = 1/0,
+            ["Photo Camera"] = 1/0,
+            ["Video Camera"] = 1/0,
+            ["Strong Flashlight"] = 1/0,
+            ["Spirit Box"] = 1/0
+        }
+    }
+
+    ReplicatedStorage:WaitForChild("Remotes")
+        :WaitForChild("GatewayService")
+        :WaitForChild("equipmentChange")
+        :FireServer(unpack(args2))
+end
+
+-- 🔁 FORCE START FUNCTION (KEY 5)
+local function forceStartGame()
+    print("Force starting game for all players...")
+
+    local Players = game:GetService("Players")
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        ReplicatedStorage:WaitForChild("Remotes")
+            :WaitForChild("GatewayService")
+            :WaitForChild("forceStart")
+            :FireServer(plr)
+    end
+end
+
+-- =========================
+-- 📱 MOBILE BUTTON UI
+-- =========================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "RemoteButtonGUI"
+gui.Parent = playerGui
+gui.ResetOnSpawn = false
+
+local button = Instance.new("TextButton")
+button.Parent = gui
+button.Size = UDim2.new(0, 30, 0, 30)
+button.Position = UDim2.new(1, -40, 1, -40) -- bottom-right
+button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+button.BackgroundTransparency = 0.5
+button.Text = ""
+
+-- Rounded corners
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = button
+
+-- 🎬 Click Animation
+local function animateClick()
+    button:TweenSize(
+        UDim2.new(0, 26, 0, 26),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.08,
+        true,
+        function()
+            button:TweenSize(
+                UDim2.new(0, 30, 0, 30),
+                Enum.EasingDirection.Out,
+                Enum.EasingStyle.Quad,
+                0.08,
+                true
+            )
+        end
+    )
+end
+
+button.MouseButton1Click:Connect(function()
+    animateClick()
+    runRemote()
+end)
+
+-- =========================
+-- 💻 PC KEYBIND (1)
+-- =========================
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        
+        if input.KeyCode == Enum.KeyCode.One then
+            print("Key 1 pressed")
+            runRemote()
+        end
+
+        if input.KeyCode == Enum.KeyCode.Two then
+            print("Key 2 pressed")
+            runRemote_Map2()
+        end
+
+        if input.KeyCode == Enum.KeyCode.Five then
+            print("Key 5 pressed")
+            forceStartGame()
+        end
+
+    end
+end)
