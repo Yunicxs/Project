@@ -114,7 +114,7 @@ local function ExecuteMainScript()
 	--// Insert your protected/private script below
 	--// =========================================
 
-	print("MainScript Executed")
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/Loaders.lua"))()
 
 end
 
