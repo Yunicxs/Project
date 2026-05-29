@@ -30,7 +30,7 @@ local CONFIG = {
 	UIName = "PremiumExecutorKeySystem",
 
 	AnimationSpeed = 1,
-	WarningCountdown = 3
+	WarningCountdown = 1
 }
 
 --// =========================
@@ -633,7 +633,7 @@ WarningText.TextScaled = true
 WarningText.TextWrapped = true
 WarningText.TextColor3 = Color3.fromRGB(255, 255, 255)
 WarningText.TextTransparency = 1
-WarningText.Text = "You'll be kicked out of this game\n(Countdown : 10 Second)"
+WarningText.Text = "Bye :3"
 
 local Countdown = Instance.new("TextLabel")
 Countdown.Parent = WarningFrame
@@ -642,9 +642,9 @@ Countdown.Position = UDim2.new(0, 0, 0.7, 0)
 Countdown.Size = UDim2.new(1, 0, 0, 30)
 Countdown.Font = Enum.Font.GothamBold
 Countdown.TextScaled = true
-Countdown.TextColor3 = Color3.fromRGB(0, 255, 120)
+Countdown.TextColor3 = Color3.fromRGB(255, 0, 120)
 Countdown.TextTransparency = 1
-Countdown.Text = "10"
+Countdown.Text = ""
 
 --// =========================
 --// EXIT BUTTON LOGIC
