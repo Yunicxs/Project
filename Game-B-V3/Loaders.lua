@@ -46,7 +46,6 @@ local urls = {
     "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc1",
 	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc2",
 	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc3",
-	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc5",
     "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V2/SlotUI"
 }
 
