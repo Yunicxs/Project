@@ -167,51 +167,78 @@ end)
 -- SCRIPT FUNCTIONS
 -- =========================================================
 
+local function getShortName(url)
+	local name = url:match(".*/([^/]+)$")
+	return "/" .. (name or "Unknown")
+end
+
 local function loadScript(url)
-    local numRetries = 0
-    local success = false
-    local result = nil
+	local numRetries = 0
+	local success = false
+	local result = nil
 
-    repeat
-        numRetries += 1
+	repeat
+		numRetries += 1
 
-        success, result = pcall(function()
-            return game:HttpGet(url)
-        end)
+		success, result = pcall(function()
+			return game:HttpGet(url)
+		end)
 
-        if not success then
-            warn("Failed to fetch script from URL: " .. url .. ", retrying... (" .. numRetries .. "/" .. maxRetries .. ")")
-            task.wait(0.5)
-        end
+		if not success then
+			warn(
+				"Failed to fetch "
+				.. getShortName(url)
+				.. ", retrying... ("
+				.. numRetries
+				.. "/"
+				.. maxRetries
+				.. ")"
+			)
 
-    until success or numRetries >= maxRetries
+			task.wait(0.5)
+		end
 
-    return success, result
+	until success or numRetries >= maxRetries
+
+	return success, result
 end
 
 local function executeScriptsSequentially(urls)
-    for _, url in ipairs(urls) do
+	for _, url in ipairs(urls) do
 
-        local success, scriptContent = loadScript(url)
+		local success, scriptContent = loadScript(url)
 
-        if success then
-            print("URL: " .. url .. " ✅")
+		if success then
 
-            local executeSuccess, executeError = pcall(function()
-                loadstring(scriptContent)()
-            end)
+			print("URL: " .. getShortName(url) .. " ✅")
 
-            if executeSuccess then
-                print("Executed: " .. url)
-            else
-                warn("Failed to execute script from URL: " .. url .. " - " .. executeError)
-            end
-        else
-            warn("Failed to fetch script from URL: " .. url .. " ❌")
-        end
+			local executeSuccess, executeError = pcall(function()
+				loadstring(scriptContent)()
+			end)
 
-        task.wait(0.01)
-    end
+			if executeSuccess then
+				print("Executed: " .. getShortName(url))
+			else
+				warn(
+					"Failed to execute "
+					.. getShortName(url)
+					.. " - "
+					.. tostring(executeError)
+				)
+			end
+
+		else
+
+			warn(
+				"Failed to fetch "
+				.. getShortName(url)
+				.. " ❌"
+			)
+
+		end
+
+		task.wait(0.01)
+	end
 end
 
 -- =========================================================
