@@ -1957,3 +1957,18 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         autoLeave()
     end
 end)
+
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = Game:GetService("UserInputService")
+
+local disruptionValue = ReplicatedStorage:WaitForChild("Disruption")
+local isToggled = true
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Y then
+        isToggled = not isToggled
+        disruptionValue.Value = isToggled
+    end
+end)
