@@ -1,44 +1,22 @@
 local UserInputService = game:GetService("UserInputService")
 
-local holdingShift = false
-local debounce = false
-
--- LOADERS
+local Loaded = false
 
 local function FC()
-    print("Loading FC...")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam"))()
+	print("Loading FC...")
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam"))()
 end
 
--- =========================
--- INPUT HANDLER
--- =========================
-
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+	if gameProcessed or Loaded then
+		return
+	end
 
-    -- Detect Shift
-    if input.KeyCode == Enum.KeyCode.RightControl then
-        holdingShift = true
-    end
+	if input.KeyCode == Enum.KeyCode.Quote then
+		Loaded = true -- set BEFORE running
 
-    -- Prevent spam
-    if debounce then return end
-
-    if holdingShift then
-        if input.KeyCode == Enum.KeyCode.Quote then
-            debounce = true
-            FC()
-        end
-
-        -- Cooldown
-        task.wait(0.5)
-        debounce = false
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.RightControl then
-        holdingShift = false
-    end
+		task.spawn(function()
+			FC()
+		end)
+	end
 end)
