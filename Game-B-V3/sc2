@@ -1619,7 +1619,7 @@ local function toggleValue(path)
 end
 
 -- Paths to toggle
-local paths = {"GotTeleportData", "Disruption"}
+local paths = {"GotTeleportData"}
 
 -- Toggle each path
 for _, path in ipairs(paths) do
