@@ -12,7 +12,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		return
 	end
 
-	if input.KeyCode == Enum.KeyCode.Quote then
+	if input.KeyCode == Enum.KeyCode.Z then
 		Loaded = true -- set BEFORE running
 
 		task.spawn(function()
