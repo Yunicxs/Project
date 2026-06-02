@@ -144,19 +144,19 @@ local Input = {} do
 		Thumbstick1 = Vector2.new(),
 		Thumbstick2 = Vector2.new(),
 	}
-
-local keyboard = {
-	W = 0,
-	A = 0,
-	S = 0,
-	D = 0,
-	E = 0,
-	Q = 0,
-	Up = 0,
-	Down = 0,
-	LeftShift = 0,
-	RightShift = 0,
-}
+	
+	local keyboard = {
+		W = 0,
+		A = 0,
+		S = 0,
+		D = 0,
+		E = 0,
+		Q = 0,
+		Up = 0,
+		Down = 0,
+		LeftShift = 0,
+		RightShift = 0,
+	}
 
 	local mouse = {
 		Delta = Vector2.new(),
@@ -183,11 +183,11 @@ local keyboard = {
 			thumbstickCurve(-gamepad.Thumbstick1.Y)
 		)*NAV_GAMEPAD_SPEED
 
-local kKeyboard = Vector3.new(
-	keyboard.D - keyboard.A,
-	keyboard.E - keyboard.Q,
-	keyboard.S - keyboard.W
-)*NAV_KEYBOARD_SPEED
+		local kKeyboard = Vector3.new(
+			keyboard.D - keyboard.A,
+			keyboard.E - keyboard.Q,
+			keyboard.S - keyboard.W
+		)*NAV_KEYBOARD_SPEED
 
 		local shift = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
 
@@ -251,15 +251,15 @@ local kKeyboard = Vector3.new(
 
 		function Input.StartCapture()
 			ContextActionService:BindActionAtPriority("FreecamKeyboard", Keypress, false, INPUT_PRIORITY,
-	Enum.KeyCode.W,
-	Enum.KeyCode.A,
-	Enum.KeyCode.S,
-	Enum.KeyCode.D,
-	Enum.KeyCode.E,
-	Enum.KeyCode.Q,
-	Enum.KeyCode.Up,
-	Enum.KeyCode.Down
-)
+				Enum.KeyCode.W,
+				Enum.KeyCode.A,
+				Enum.KeyCode.S,
+				Enum.KeyCode.D,
+				Enum.KeyCode.E,
+				Enum.KeyCode.Q,
+				Enum.KeyCode.Up,
+				Enum.KeyCode.Down
+			)
 			ContextActionService:BindActionAtPriority("FreecamMousePan",          MousePan,   false, INPUT_PRIORITY, Enum.UserInputType.MouseMovement)
 			ContextActionService:BindActionAtPriority("FreecamMouseWheel",        MouseWheel, false, INPUT_PRIORITY, Enum.UserInputType.MouseWheel)
 			ContextActionService:BindActionAtPriority("FreecamGamepadButton",     GpButton,   false, INPUT_PRIORITY, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY)
