@@ -1953,7 +1953,7 @@ local UserInputService = game:GetService("UserInputService")
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
-    if input.KeyCode == Enum.KeyCode.Home then
+    if input.KeyCode == Enum.KeyCode.End then
         autoLeave()
     end
 end)
