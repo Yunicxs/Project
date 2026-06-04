@@ -1362,7 +1362,29 @@ updateGhostRoom()
 
 
 
+
+
+
 local ItemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local MainItems = {
+	["Salt"] = true,
+	["Crucifix"] = true,
+	["EMF Reader"] = true,
+	["Flashlight"] = true,
+	["Ghost Writing Book"] = true,
+	["GlowStick"] = true,
+	["Incense Burner"] = true,
+	["Lighter"] = true,
+	["Parabolic Microphone"] = true,
+	["Photo Camera"] = true,
+	["SLS Camera"] = true,
+	["Spirit Box"] = true,
+	["Thermometer"] = true,
+	["Trail Camera"] = true,
+	["UV Light"] = true,
+	["Video Camera"] = true,
+}
 
 local billboards = {}
 local UserInputService = game:GetService("UserInputService")
@@ -1392,7 +1414,11 @@ local function createESP(item)
 	local label = Instance.new("TextLabel", bb)
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.new(1, 1, 1)
+	if MainItems[item.Name] then
+		label.TextColor3 = Color3.fromRGB(155, 255, 255)
+	else
+		label.TextColor3 = Color3.new(1, 1, 1)
+	end
 	label.TextStrokeTransparency = 0
 	label.TextStrokeColor3 = Color3.new(0, 0, 0)
 	label.Text = item.Name
