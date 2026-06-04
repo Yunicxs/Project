@@ -1443,7 +1443,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 	
 	-- Toggle Item ESP with "="
-	if input.KeyCode == Enum.KeyCode.Equals then
+	if input.KeyCode == Enum.KeyCode.Tab then
 		ESPEnabled = not ESPEnabled
 
 		for _, bb in ipairs(billboards) do
