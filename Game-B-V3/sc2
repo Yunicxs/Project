@@ -1931,8 +1931,8 @@ end)
 
 
 -- AutoLeave Script
--- Keybind: ] to run
--- Teleports to LightSwitch, fires ProximityPrompt at index 4, then returns to original position
+-- Keybind: [ to run
+-- Teleports to LightSwitch, fires ProximityPrompt, then returns to original position
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -1950,19 +1950,17 @@ local function autoLeave()
     spawn(function()
         pcall(function()
             -- Teleport to LightSwitch
-            local switchPosition = lightSwitch.Position + Vector3.new(0, 1.5, 0)
+            local switchPosition = lightSwitch.Position + Vector3.new(0, 1, 0)
             humanoidRootPart.CFrame = CFrame.new(switchPosition)
             wait(0.5)
             
-            -- Fire ProximityPrompt at index 4
-            local prompt = lightSwitch:GetChildren()[4]
-            if prompt and prompt:IsA("ProximityPrompt") then
-                if fireproximityprompt then
-                    fireproximityprompt(prompt)
-                end
+            -- Fire ProximityPrompt - find it reliably
+            local prompt = lightSwitch:FindFirstChildWhichIsA("ProximityPrompt")
+            if prompt and fireproximityprompt then
+                fireproximityprompt(prompt)
             end
             
-            wait(0.1)
+            wait(0.5)
             
             -- Return to original position
             humanoidRootPart.CFrame = originalCFrame
@@ -1983,6 +1981,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         autoLeave()
     end
 end)
+
+
+
 
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
