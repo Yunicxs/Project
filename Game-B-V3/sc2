@@ -1962,11 +1962,11 @@ local function autoLeave()
                 end
             end
             
-            wait(0.5)
+            wait(0.001)
             
             -- Return to original position
             humanoidRootPart.CFrame = originalCFrame
-            wait(0.5)
+            wait(0.2)
         end)
         
         isRunning = false
