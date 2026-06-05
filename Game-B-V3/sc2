@@ -1950,9 +1950,9 @@ local function autoLeave()
     spawn(function()
         pcall(function()
             -- Teleport to LightSwitch
-            local switchPosition = lightSwitch.Position + Vector3.new(0, 3, 0)
+            local switchPosition = lightSwitch.Position + Vector3.new(0, 1.5, 0)
             humanoidRootPart.CFrame = CFrame.new(switchPosition)
-            wait(0.5)
+            wait(0.1)
             
             -- Fire ProximityPrompt at index 4
             local prompt = lightSwitch:GetChildren()[4]
@@ -1962,11 +1962,11 @@ local function autoLeave()
                 end
             end
             
-            wait(0.001)
+            wait(0.01)
             
             -- Return to original position
             humanoidRootPart.CFrame = originalCFrame
-            wait(0.2)
+            wait(0.5)
         end)
         
         isRunning = false
