@@ -1521,3 +1521,83 @@ task.spawn(function()
         HighlightGhost()
     end
 end)
+
+
+
+
+
+
+
+
+
+-- Efficient script to disable ControlHints GUI and monitor GotTeleportData
+-- Uses change detection instead of continuous polling to avoid FPS drops
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local function disableControlHints()
+    -- One-time disable of ControlHints GUI
+    local player = Players.LocalPlayer
+    if player then
+        local playerGui = player:WaitForChild("PlayerGui", 5)
+        if playerGui then
+            local controlHints = playerGui:FindFirstChild("ControlHints")
+            if controlHints then
+                controlHints.Enabled = false
+        
+            else
+        
+            end
+        else
+        
+        end
+    else
+        
+    end
+end
+
+local function setGotTeleportData()
+    -- One-time set GotTeleportData to false
+    local replicatedStorage = game:GetService("ReplicatedStorage")
+    local replicatedValues = replicatedStorage:WaitForChild("ReplicatedValues", 5)
+    if replicatedValues then
+        local gotTeleportData = replicatedValues:FindFirstChild("GotTeleportData")
+        if gotTeleportData then
+            gotTeleportData.Value = false
+        
+        else
+        
+        end
+    else
+        
+    end
+end
+
+local function monitorGotTeleportData()
+    -- Monitor GotTeleportData for changes and only react if it becomes true
+    local replicatedStorage = game:GetService("ReplicatedStorage")
+    local replicatedValues = replicatedStorage:WaitForChild("ReplicatedValues", 5)
+    if replicatedValues then
+        local gotTeleportData = replicatedValues:FindFirstChild("GotTeleportData")
+        if gotTeleportData then
+            -- Use Changed event to detect when the value changes
+            gotTeleportData.Changed:Connect(function(newValue)
+                if newValue == true then
+        
+                    gotTeleportData.Value = false
+                end
+            end)
+        
+        else
+        
+        end
+    else
+        
+    end
+end
+
+-- Initial setup
+disableControlHints()
+setGotTeleportData()
+monitorGotTeleportData()
