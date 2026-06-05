@@ -260,7 +260,7 @@ PlayerStatus.BackgroundTransparency = 1
 PlayerStatus.BorderSizePixel = 0
 PlayerStatus.AnchorPoint = Vector2.new(0,1)
 PlayerStatus.Size = UDim2.new(0.21014,0,0.07339,0)
-PlayerStatus.Position = UDim2.new(0.01,0,0.99,0)
+PlayerStatus.Position = UDim2.new(0.01,0,0.96,0)
 
 local PlayerAspect = Instance.new("UIAspectRatioConstraint")
 PlayerAspect.AspectRatio = 7.25366
