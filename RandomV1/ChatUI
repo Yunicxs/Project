@@ -1,0 +1,36 @@
+-- Script to toggle Default Roblox chat UI on/off
+
+local StarterGui = game:GetService("StarterGui")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local chatEnabled = false
+
+-- Function to toggle chat
+function toggleChat()
+    chatEnabled = not chatEnabled
+    
+    if chatEnabled then
+        -- Enable chat
+        StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
+    else
+        -- Disable chat
+        StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+    end
+    
+    return chatEnabled
+end
+
+-- Bind to 'C' key for easy toggling
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    -- Check if 'C' key is pressed
+    if input.KeyCode == Enum.KeyCode.PageUp then
+        toggleChat()
+    end
+end)
+
+-- Initialize chat in enabled state
+toggleChat()
+
