@@ -1952,7 +1952,7 @@ local function autoLeave()
             -- Teleport to LightSwitch
             local switchPosition = lightSwitch.Position + Vector3.new(0, 1, 0)
             humanoidRootPart.CFrame = CFrame.new(switchPosition)
-            wait(0.5)
+            wait(0.1)
             
             -- Fire ProximityPrompt - find it reliably
             local prompt = lightSwitch:FindFirstChildWhichIsA("ProximityPrompt")
@@ -1960,11 +1960,11 @@ local function autoLeave()
                 fireproximityprompt(prompt)
             end
             
-            wait(0.5)
+            wait(0.3)
             
             -- Return to original position
             humanoidRootPart.CFrame = originalCFrame
-            wait(0.5)
+            wait(0.1)
         end)
         
         isRunning = false
