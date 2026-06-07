@@ -1662,3 +1662,129 @@ end
 disableControlHints()
 setGotTeleportData()
 monitorGotTeleportData()
+
+
+
+
+
+
+
+-- Auto Salt and Crucifix Script with Keybind
+
+local player = game.Players.LocalPlayer
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local remotes = replicatedStorage:WaitForChild("Remotes")
+local inventoryRemotes = remotes:WaitForChild("InventoryRemotes")
+local actionRemote = inventoryRemotes:WaitForChild("Action")
+local userInputService = game:GetService("UserInputService")
+
+-- Function to find slot number for a specific item
+local function findSlotForItem(itemName)
+    for i = 1, 5 do
+        local slot = player:FindFirstChild("Slot"..i)
+        if slot and slot.Value and slot.Value.Name == itemName then
+            return i, slot.Value
+        end
+    end
+    return nil, nil
+end
+
+-- Function to equip item using slot key binding
+local function equipItem(slotNumber)
+    -- Fire Action remote event with "Slot" parameter to equip the item
+    local args = {
+        "Slot",
+        slotNumber
+    }
+    actionRemote:FireServer(unpack(args))
+end
+
+-- Function to drop all items
+local function dropAllItems()
+    for i = 1, 5 do
+        local slot = player:FindFirstChild("Slot"..i)
+        if slot and slot.Value then
+            -- Equip the item using slot key binding
+            equipItem(i)
+            
+            -- Small delay to allow item to be equipped
+            task.wait(0.2)
+            
+            -- Fire Action remote event with "Drop" parameter
+            local args = {
+                "Drop"
+            }
+            actionRemote:FireServer(unpack(args))
+            
+            -- Small delay between drops
+            task.wait(0.1)
+        end
+    end
+end
+
+-- Main function to auto use Crucifix and Salt
+local function autoUseItems()
+    -- Find Crucifix slot
+    local crucifixSlot, crucifixItem = findSlotForItem("Crucifix")
+    if crucifixSlot and crucifixItem then
+        -- Equip the crucifix using slot key binding
+        equipItem(crucifixSlot)
+        
+        -- Small delay to allow item to be equipped
+        task.wait(0.3)
+        
+        -- Fire Action remote event with "Drop" parameter
+        local args = {
+            "Drop"
+        }
+        actionRemote:FireServer(unpack(args))
+    end
+    
+    -- Small delay to ensure crucifix action is processed
+    task.wait(0.5)
+    
+    -- Find Salt slot
+    local saltSlot, saltItem = findSlotForItem("Salt")
+    if saltSlot and saltItem then
+        -- Equip the salt using slot key binding
+        equipItem(saltSlot)
+        
+        -- Small delay to allow item to be equipped
+        task.wait(0.3)
+        
+        -- Drop salt at the 3 specific locations using the correct remote path
+        local saltDropRemote = game.Workspace.Seirunao.Salt.Remote.Drop
+        local capacity = game.Workspace.Seirunao.Salt.Ammo.Capacity
+        
+        local positions = {
+            CFrame.new(985.17041015625, 32.18080139160156, -925.1861572265625, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            CFrame.new(985.126953125, 32.15512466430664, -922.5787353515625, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            CFrame.new(984.9935302734375, 32.07635498046875, -919.87939453125, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+        }
+        
+        for i, position in ipairs(positions) do
+            local args = {
+                position,
+                capacity
+            }
+            saltDropRemote:FireServer(unpack(args))
+            task.wait(0.1) -- Small delay between drops
+        end
+    end
+    
+    -- Drop all remaining items
+    task.wait(0.2)
+    dropAllItems()
+end
+
+-- Keybind function
+local function onInputBegan(input, gameProcessed)
+    -- Check if the input is the backtick key (`) and if it wasn't already processed by the game
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Backquote then
+        -- Run the auto use items function
+        spawn(autoUseItems)
+    end
+end
+
+-- Connect the input began event
+userInputService.InputBegan:Connect(onInputBegan)
