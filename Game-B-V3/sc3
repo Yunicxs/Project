@@ -1541,7 +1541,7 @@ local FillColor = Color3.fromRGB(175, 25, 255)
 local DepthMode = "AlwaysOnTop"
 local FillTransparency = 0.5
 local OutlineColor = Color3.fromRGB(255, 255, 255)
-local OutlineTransparency = 0
+local OutlineTransparency = 1
 
 local CoreGui = game:FindService("CoreGui")
 local Storage = Instance.new("Folder")
