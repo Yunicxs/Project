@@ -2120,3 +2120,49 @@ RunService.Heartbeat:Connect(function()
     countLabel.Text = tostring(sessionBlinkCount)
     durationLabel.Text = tostring(lastBlinkDuration) .. "ms"
 end)
+
+
+
+
+local player = game.Players.LocalPlayer
+local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("QuickChatSent")
+local toggle = false
+
+-- Debug print to confirm script is running
+
+local function fireRemote()
+	local args = {
+		{
+			Message = "_G.GhostName",
+			ButtonText = "Use the Ghost's Name",
+			Id = "GhostName"
+		}
+	}
+	remote:FireServer(unpack(args))
+end
+
+-- Proper InputBegan handler
+local function onInputBegan(input, gameProcessed)
+	-- Check if the input is the 6 key and if it wasn't already processed by the game
+	if not gameProcessed and input.KeyCode == Enum.KeyCode.Six then
+		toggle = not toggle
+		
+		
+		if toggle then
+			fireRemote()
+			
+			-- Start loop
+			spawn(function()
+				while toggle do
+					task.wait(5)
+					if toggle then
+						fireRemote()
+					end
+				end
+			end)
+		end
+	end
+end
+
+-- Connect to InputBegan event
+game:GetService("UserInputService").InputBegan:Connect(onInputBegan)
