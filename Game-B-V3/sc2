@@ -1247,6 +1247,114 @@ task.spawn(function()
 	end
 end)
 
+
+
+local player = game.Players.LocalPlayer
+local coreGui = game.CoreGui
+
+-- Remove existing GUI if it exists
+local existingGui = coreGui:FindFirstChild("CompactStats")
+if existingGui then
+    existingGui:Destroy()
+end
+
+-- Create new GUI
+local screenGui = Instance.new("ScreenGui", coreGui)
+screenGui.Name = "CompactStats"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 60, 0, 25)
+frame.Position = UDim2.new(0.75999999, 0, 0.0299999993, 0)
+frame.BackgroundTransparency = 0.7
+frame.BackgroundColor3 = Color3.fromRGB(47, 47, 56)
+frame.BorderSizePixel = 0
+
+local uiCorner = Instance.new("UICorner", frame)
+uiCorner.CornerRadius = UDim.new(0, 5)
+
+local fpsLabel = Instance.new("TextLabel", frame)
+fpsLabel.Size = UDim2.new(0.5, -5, 1, -10)
+fpsLabel.Position = UDim2.new(0, 5, 0, 5)
+fpsLabel.BackgroundTransparency = 1
+fpsLabel.Font = Enum.Font.GothamBold
+fpsLabel.TextSize = 12
+fpsLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+fpsLabel.Text = "-"
+fpsLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local pingLabel = Instance.new("TextLabel", frame)
+pingLabel.Size = UDim2.new(0.5, -5, 1, -10)
+pingLabel.Position = UDim2.new(0.5, 0, 0, 5)
+pingLabel.BackgroundTransparency = 1
+pingLabel.Font = Enum.Font.GothamBold
+pingLabel.TextSize = 12
+pingLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+pingLabel.Text = "-"
+pingLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- FPS Calculation
+local lastTick = tick()
+local frameCount = 0
+local fps = 0
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    frameCount = frameCount + 1
+    local currentTime = tick()
+    if currentTime - lastTick >= 1 then
+        fps = frameCount
+        frameCount = 0
+        lastTick = currentTime
+        updateFPSLabel()
+    end
+end)
+
+-- Ping Calculation
+local pingValue = 0
+game:GetService("RunService").Heartbeat:Connect(function()
+    local stats = game:GetService("Stats"):FindFirstChild("PerformanceStats")
+    if stats then
+        local pingStat = stats:FindFirstChild("Ping")
+        if pingStat then
+            pingValue = math.floor(pingStat:GetValue())
+        end
+    end
+    updatePingLabel()
+end)
+
+-- Update FPS label with color coding
+function updateFPSLabel()
+    fpsLabel.Text = tostring(fps)
+
+    -- Color coding for FPS
+    if fps >= 60 then
+        fpsLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+    elseif fps >= 30 then
+        fpsLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Orange
+    else
+        fpsLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+    end
+end
+
+-- Update Ping label with color coding
+function updatePingLabel()
+    pingLabel.Text = tostring(pingValue) .. ""
+
+    -- Color coding for Ping
+    if pingValue <= 100 then
+        pingLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+    elseif pingValue <= 200 then
+        pingLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Orange
+    else
+        pingLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+    end
+end
+
+
+
+
+
 -- GhostRoomCheck Script
 -- Detects coldest zone (lowest _____LocalBaseTemp value)
 -- Displays zone name directly via BillboardGui (white bold text, small, with UIStroke)
