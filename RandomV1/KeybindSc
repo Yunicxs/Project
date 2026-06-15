@@ -3,35 +3,40 @@ local UserInputService = game:GetService("UserInputService")
 local holdingShift = false
 local debounce = false
 
+-- Safe loader wrapper: catches errors so one failure doesn't block the rest
+local function safeLoad(name, url)
+    print("Loading " .. name .. "...")
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(url))()
+    end)
+    if not success then
+        warn("[IYAI] Failed to load " .. name .. ": " .. tostring(err))
+    end
+end
+
 -- LOADERS
 local function loadInfiniteYield()
-    print("Loading Infinite Yield...")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    safeLoad("Infinite Yield", "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source")
 end
 
 local function loadRemoteSpy()
-    print("Loading RemoteSpy...")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua"))()
+    safeLoad("RemoteSpy", "https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua")
 end
 
 local function loadDex()
-    print("Loading Dex...")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+    safeLoad("Dex", "https://raw.githubusercontent.com/infyiff/backup/main/dex.lua")
 end
 
 local function IYAI()
-    print("Loading IYAI...")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/IYAI-Loaders"))()
+    safeLoad("IYAI", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/IYAI-Loaders")
 end
 
 local function FC()
-    print("Loading FC...")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam"))()
+    safeLoad("FC", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam")
 end
 
 local function EM()
-    print("Loading EM...")
-    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-emote-script-7yd7-63469"))()
+    safeLoad("EM", "https://rawscripts.net/raw/Universal-Script-emote-script-7yd7-63469")
 end
 
 -- =========================
@@ -41,7 +46,7 @@ end
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
-    -- Detect Shift
+    -- Detect RightControl (used as modifier)
     if input.KeyCode == Enum.KeyCode.RightControl then
         holdingShift = true
     end
@@ -50,33 +55,34 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if debounce then return end
 
     if holdingShift then
-        if input.KeyCode == Enum.KeyCode.K then
+        local key = input.KeyCode
+
+        if key == Enum.KeyCode.K then
             debounce = true
             loadInfiniteYield()
 
-        elseif input.KeyCode == Enum.KeyCode.P then
+        elseif key == Enum.KeyCode.P then
             debounce = true
             loadRemoteSpy()
 
-        elseif input.KeyCode == Enum.KeyCode.M then
+        elseif key == Enum.KeyCode.M then
             debounce = true
             IYAI()
 
-        elseif input.KeyCode == Enum.KeyCode.Quote then
+        elseif key == Enum.KeyCode.Quote then
             debounce = true
             FC()
 
-        elseif input.KeyCode == Enum.KeyCode.RightBracket
-            and UserInputService:IsKeyDown(Enum.KeyCode.RightControl) then
+        elseif key == Enum.KeyCode.RightBracket then
             debounce = true
             EM()
 
-        elseif input.KeyCode == Enum.KeyCode.L then
+        elseif key == Enum.KeyCode.L then
             debounce = true
             loadDex()
         end
 
-        -- Cooldown
+        -- Cooldown (always resets debounce even if load errored)
         task.wait(0.5)
         debounce = false
     end
