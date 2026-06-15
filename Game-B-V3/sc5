@@ -1,0 +1,57 @@
+local UserInputService = game:GetService("UserInputService")
+
+local debounce = false
+
+-- Safe loader wrapper: catches errors so one failure doesn't block the rest
+local function safeLoad(name, url)
+    print("Loading " .. name .. "...")
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(url))()
+    end)
+    if not success then
+        warn("[IYAI] Failed to load " .. name .. ": " .. tostring(err))
+    end
+end
+
+-- LOADERS
+local function loadK1()
+    safeLoad("K1", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/k1")
+end
+
+local function loadK2()
+    safeLoad("K2", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/k2")
+end
+
+local function loadK3()
+    safeLoad("K3", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/k3")
+end
+
+-- =========================
+-- INPUT HANDLER
+-- =========================
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if debounce then return end
+
+    local key = input.KeyCode
+
+    if key == Enum.KeyCode.Comma then
+        debounce = true
+        loadK1()
+
+    elseif key == Enum.KeyCode.L then
+        debounce = true
+        loadK2()
+
+    elseif key == Enum.KeyCode.End then
+        debounce = true
+        loadK3()
+    end
+
+    if debounce then
+        task.wait(0.5)
+        debounce = false
+    end
+end)
