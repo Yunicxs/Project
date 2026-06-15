@@ -1,0 +1,62 @@
+-- Bring UsedCrucifix Function
+local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local crucifixRunning = false
+
+local function BringCrucifix()
+    if crucifixRunning then
+        return
+    end
+
+    crucifixRunning = true
+
+    local character = player.Character
+
+    if not character then
+        crucifixRunning = false
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+
+    if not hrp then
+        crucifixRunning = false
+        return
+    end
+
+    local item = itemsFolder:FindFirstChild("UsedCrucifix")
+
+    if item then
+
+        local handle = item:FindFirstChild("Handle")
+
+        if handle then
+
+            for i = 1, 50 do
+                handle.Anchored = true
+                handle.CFrame = hrp.CFrame + Vector3.new(0, 3, 0)
+                task.wait(0.1)
+            end
+
+            task.wait(0.5)
+
+            handle.Anchored = false
+        end
+    else
+        print("UsedCrucifix not found in Items")
+    end
+    crucifixRunning = false
+end
+
+-- PC KEYBIND (L)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.L then
+        BringCrucifix()
+    end
+end)
