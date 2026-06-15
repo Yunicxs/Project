@@ -2038,57 +2038,7 @@ end)
 
 
 
--- AutoLeave Script
--- Keybind: [ to run
--- Teleports to LightSwitch, fires ProximityPrompt, then returns to original position
 
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-local lightSwitch = game.Workspace.Map.Van.Van.LeaveButton.LightSwitch
-local isRunning = false
-
-local function autoLeave()
-    if isRunning then return end
-    isRunning = true
-    
-    local originalCFrame = humanoidRootPart.CFrame
-    
-    spawn(function()
-        pcall(function()
-            -- Teleport to LightSwitch
-            local switchPosition = lightSwitch.Position + Vector3.new(0, 1, 0)
-            humanoidRootPart.CFrame = CFrame.new(switchPosition)
-            wait(0.1)
-            
-            -- Fire ProximityPrompt - find it reliably
-            local prompt = lightSwitch:FindFirstChildWhichIsA("ProximityPrompt")
-            if prompt and fireproximityprompt then
-                fireproximityprompt(prompt)
-            end
-            
-            wait(0.3)
-            
-            -- Return to original position
-            humanoidRootPart.CFrame = originalCFrame
-            wait(0.1)
-        end)
-        
-        isRunning = false
-    end)
-end
-
--- Keybind setup
-local UserInputService = game:GetService("UserInputService")
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.End then
-        autoLeave()
-    end
-end)
 
 
 
