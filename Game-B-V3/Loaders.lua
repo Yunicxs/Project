@@ -42,6 +42,285 @@ end)
 
 -- End of Image Preload
 
+
+-- minisc
+
+-- TeleportItems (Upgraded - Single Script)
+-- Fixed to work with server-owned parts
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local targetNames = {
+    Briefcase = true,
+    Soap = true,
+    Plate = true
+}
+
+local running = false
+local cooldown = false
+local COOLDOWN_TIME = 2
+
+-- Improved teleportation function that fights server-side issues
+local function TeleportPart()
+    if running or cooldown then
+        return
+    end
+
+    running = true
+    cooldown = true
+    
+    local character = player.Character
+    if not character then
+        running = false
+        cooldown = false
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        running = false
+        cooldown = false
+        return
+    end
+
+    -- Cache itemsFolder:GetChildren() for efficiency
+    local items = itemsFolder:GetChildren()
+    
+    -- Collect target items with handles
+    local targetItems = {}
+    for _, item in ipairs(items) do
+        if targetNames[item.Name] then
+            local handle = item:FindFirstChild("Handle")
+            if handle then
+                table.insert(targetItems, handle)
+            end
+        end
+    end
+    
+    -- Fight server-side issues with multiple techniques:
+    
+    -- Technique 1: Try direct CFrame setting first (works sometimes)
+    for _, handle in ipairs(targetItems) do
+        if handle and handle.Parent then
+            handle.Anchored = false -- Unanchor for physics
+            
+            -- Use CFrame multiplication instead of addition
+            local targetCFrame = hrp.CFrame * CFrame.new(
+                math.random(-5, 5),
+                3,
+                math.random(-5, 5)
+            )
+            
+            -- Try setting CFrame directly
+            handle.CFrame = targetCFrame
+        end
+    end
+    
+    -- Technique 2: If direct setting didn't work, use BodyMovers as fallback
+    task.spawn(function()
+        task.wait(0.1) -- Give server a moment to process
+        
+        for _, handle in ipairs(targetItems) do
+            if handle and handle.Parent then
+                -- Add BodyPosition to force movement
+                local bodyPos = handle:FindFirstChild("TeleportBodyPos") or Instance.new("BodyPosition")
+                bodyPos.Name = "TeleportBodyPos"
+                bodyPos.Position = (hrp.CFrame * CFrame.new(
+                    math.random(-5, 5),
+                    3,
+                    math.random(-5, 5)
+                )).Position
+                bodyPos.MaxForce = Vector3.new(4000, 4000, 4000)
+                bodyPos.D = 100
+                bodyPos.P = 1000
+                bodyPos.Parent = handle
+                
+                -- Remove BodyPosition after a moment
+                task.spawn(function()
+                    task.wait(0.5)
+                    if bodyPos.Parent then
+                        bodyPos:Destroy()
+                    end
+                end)
+            end
+        end
+    end)
+    
+    -- Technique 3: Network ownership workaround
+    task.spawn(function()
+        task.wait(0.2)
+        for _, handle in ipairs(targetItems) do
+            if handle and handle.Parent then
+                -- Try to get network ownership
+                pcall(function()
+                    handle:SetNetworkOwner(player)
+                end)
+            end
+        end
+    end)
+
+    -- Cooldown timer
+    task.spawn(function()
+        task.wait(COOLDOWN_TIME)
+        cooldown = false
+    end)
+    
+    running = false
+end
+
+-- PC KEYBIND (,)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+    if input.KeyCode == Enum.KeyCode.Comma then
+        TeleportPart()
+    end
+end)
+
+
+
+
+
+-- Bring UsedCrucifix (Upgraded - Matching TeleportItems style)
+-- Fixed to work with server-owned parts
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local crucifixRunning = false
+local crucifixCooldown = false
+local COOLDOWN_TIME = 2
+
+local function BringCrucifix()
+    if crucifixRunning or crucifixCooldown then
+        return
+    end
+
+    crucifixRunning = true
+    crucifixCooldown = true
+
+    local character = player.Character
+    if not character then
+        crucifixRunning = false
+        crucifixCooldown = false
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        crucifixRunning = false
+        crucifixCooldown = false
+        return
+    end
+
+    local item = itemsFolder:FindFirstChild("UsedCrucifix")
+    if not item then
+        print("UsedCrucifix not found in Items")
+        crucifixRunning = false
+        crucifixCooldown = false
+        return
+    end
+
+    local handle = item:FindFirstChild("Handle")
+    if not handle then
+        crucifixRunning = false
+        crucifixCooldown = false
+        return
+    end
+
+    -- Technique 1: Direct CFrame setting with anchoring loop
+    for i = 1, 50 do
+        if handle and handle.Parent then
+            handle.Anchored = true
+            handle.CFrame = hrp.CFrame * CFrame.new(0, 3, 0)
+        end
+        task.wait(0.03)
+    end
+
+    -- Technique 2: BodyPosition fallback to force movement
+    task.spawn(function()
+        task.wait(0.1)
+
+        if handle and handle.Parent then
+            local bodyPos = handle:FindFirstChild("TeleportBodyPos") or Instance.new("BodyPosition")
+            bodyPos.Name = "TeleportBodyPos"
+            bodyPos.Position = (hrp.CFrame * CFrame.new(0, 3, 0)).Position
+            bodyPos.MaxForce = Vector3.new(4000, 4000, 4000)
+            bodyPos.D = 100
+            bodyPos.P = 1000
+            bodyPos.Parent = handle
+
+            task.spawn(function()
+                task.wait(0.5)
+                if bodyPos.Parent then
+                    bodyPos:Destroy()
+                end
+            end)
+        end
+    end)
+
+    -- Technique 3: Network ownership workaround
+    task.spawn(function()
+        task.wait(0.2)
+        if handle and handle.Parent then
+            pcall(function()
+                handle:SetNetworkOwner(player)
+            end)
+        end
+    end)
+
+    task.wait(0.5)
+    if handle and handle.Parent then
+        handle.Anchored = false
+    end
+
+    -- Cooldown timer
+    task.spawn(function()
+        task.wait(COOLDOWN_TIME)
+        crucifixCooldown = false
+    end)
+
+    crucifixRunning = false
+end
+
+-- PC KEYBIND (L)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+    if input.KeyCode == Enum.KeyCode.L then
+        BringCrucifix()
+    end
+end)
+
+-- end mini sc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 local urls = {
 	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc1",
 	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/sc2",
