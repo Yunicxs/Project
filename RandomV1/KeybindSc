@@ -20,7 +20,7 @@ local function loadInfiniteYield()
 end
 
 local function loadRemoteSpy()
-    safeLoad("RemoteSpy", "https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua")
+    safeLoad("RemoteSpy", "https://github.com/notpoiu/cobalt/releases/latest/download/Cobalt.luau")
 end
 
 local function loadDex()
