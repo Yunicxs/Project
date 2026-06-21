@@ -4,7 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.F1 then
+    if input.KeyCode == Enum.KeyCode.F2 then
         local cobalt = game:GetService("CoreGui").RobloxGui:FindFirstChild("Cobalt")
         if cobalt then
             cobalt.Enabled = not cobalt.Enabled
