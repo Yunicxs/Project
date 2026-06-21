@@ -35,6 +35,9 @@ local function FC()
     safeLoad("FC", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam")
 end
 
+local function CB()
+    safeLoad("CB", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/Cobalt.lua")
+
 local function EM()
     safeLoad("EM", "https://rawscripts.net/raw/Universal-Script-emote-script-7yd7-63469")
 end
@@ -64,6 +67,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         elseif key == Enum.KeyCode.P then
             debounce = true
             loadRemoteSpy()
+
+        elseif key == Enum.KeyCode.N then
+            debounce = true
+            CB()
 
         elseif key == Enum.KeyCode.M then
             debounce = true
