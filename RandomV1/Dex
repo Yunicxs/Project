@@ -1,0 +1,35 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+
+local UserInputService = game:GetService("UserInputService")
+
+local function getToggleUpvalue()
+    local sg = nil
+    local robloxGui = game:GetService("CoreGui").RobloxGui
+    for _, child in ipairs(robloxGui:GetChildren()) do
+        if child:IsA("ScreenGui") and child:FindFirstChild("LeftToggle") and child:FindFirstChild("RightToggle") then
+            sg = child
+            break
+        end
+    end
+    if not sg then return nil end
+
+    local left = sg:FindFirstChild("LeftToggle")
+    local conns = getconnections(left.MouseButton1Click)
+    if #conns == 0 then return nil end
+
+    return debug.getupvalue(conns[1].Function, 1)
+end
+
+local toggleUpv = getToggleUpvalue()
+if not toggleUpv then
+    warn("Could not find toggle functions")
+    return
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.F4 then
+        pcall(function() toggleUpv.ToggleSide("left") end)
+        pcall(function() toggleUpv.ToggleSide("right") end)
+    end
+end)
