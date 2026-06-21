@@ -8,7 +8,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         local cobalt = game:GetService("CoreGui").RobloxGui:FindFirstChild("Cobalt")
         if cobalt then
             cobalt.Enabled = not cobalt.Enabled
-            print("Cobalt is now " .. (cobalt.Enabled and "Enabled" or "Disabled"))
         else
             print("Cobalt GUI not found")
         end
