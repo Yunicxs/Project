@@ -33,3 +33,18 @@ if type(Plugin) ~= "table" then error("[IYAI] Core did not return a Plugin table
 Plugin.Commands.ai.Function({}, game:GetService("Players").LocalPlayer)
 
 print("IYAI Loaded - Use the AI panel to interact")
+
+local UserInputService = game:GetService("UserInputService")
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.F1 then
+        local iyai = game:GetService("CoreGui").RobloxGui:FindFirstChild("IYAI")
+        if iyai then
+            iyai.Enabled = not iyai.Enabled
+            print("IYAI is now " .. (iyai.Enabled and "Enabled" or "Disabled"))
+        else
+            print("IYAI GUI not found")
+        end
+    end
+end)
