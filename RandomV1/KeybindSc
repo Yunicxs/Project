@@ -37,6 +37,7 @@ end
 
 local function CB()
     safeLoad("CB", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/Cobalt.lua")
+end
 
 local function EM()
     safeLoad("EM", "https://rawscripts.net/raw/Universal-Script-emote-script-7yd7-63469")
