@@ -24,7 +24,7 @@ local function loadRemoteSpy()
 end
 
 local function loadDex()
-    safeLoad("Dex", "https://raw.githubusercontent.com/infyiff/backup/main/dex.lua")
+    safeLoad("Dex", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/Dex")
 end
 
 local function IYAI()
