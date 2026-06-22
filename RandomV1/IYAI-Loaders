@@ -42,7 +42,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         local iyai = game:GetService("CoreGui").RobloxGui:FindFirstChild("IYAI")
         if iyai then
             iyai.Enabled = not iyai.Enabled
-            print("IYAI is now " .. (iyai.Enabled and "Enabled" or "Disabled"))
         else
             print("IYAI GUI not found")
         end
