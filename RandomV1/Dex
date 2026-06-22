@@ -28,7 +28,7 @@ end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.F4 then
+    if input.KeyCode == Enum.KeyCode.F3 then
         pcall(function() toggleUpv.ToggleSide("left") end)
         pcall(function() toggleUpv.ToggleSide("right") end)
     end
