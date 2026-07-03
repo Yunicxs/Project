@@ -1,1 +1,1 @@
-here
+loadstring(game:HttpGet("https://raw.githubusercontent.com/PotterDareDevil/CLG-Roblox-Scripts/refs/heads/main/Better%20Manager%20V2%20Obf.lua"))()
