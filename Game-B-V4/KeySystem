@@ -1,0 +1,689 @@
+--// =========================================================
+--// PREMIUM EXECUTOR KEY SYSTEM
+--// EXECUTOR FILESYSTEM VERSION
+--// Compatible With Most Executors
+--// Delta / Fluxus / Codex / Hydrogen / Electron
+--// Wave / Solara / Xeno / Most UNC Executors
+--// =========================================================
+
+--// =========================
+--// SERVICES
+--// =========================
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+
+--// =========================
+--// CONFIG
+--// =========================
+
+local CONFIG = {
+	Key = "Dev-734.01.25.@2",
+
+	FolderName = "InfiniteYields",
+	FileName = "Key.txt",
+
+	UIName = "PremiumExecutorKeySystem",
+
+	AnimationSpeed = 1,
+	WarningCountdown = 1
+}
+
+--// =========================
+--// FILESYSTEM SUPPORT
+--// =========================
+
+local makefolder = makefolder or createfolder
+local isfolder = isfolder
+local writefile = writefile
+local readfile = readfile
+local isfile = isfile
+
+local FILESYSTEM_SUPPORTED =
+	makefolder and
+	isfolder and
+	writefile and
+	readfile and
+	isfile
+
+--// =========================
+--// CLEAN OLD UI
+--// =========================
+
+pcall(function()
+	local oldUI = CoreGui:FindFirstChild(CONFIG.UIName)
+
+	if oldUI then
+		oldUI:Destroy()
+	end
+end)
+
+--// =========================
+--// PATHS
+--// =========================
+
+local FolderPath = CONFIG.FolderName
+local FilePath = FolderPath .. "/" .. CONFIG.FileName
+
+--// =========================
+--// CREATE FOLDER
+--// =========================
+
+if FILESYSTEM_SUPPORTED then
+
+	pcall(function()
+
+		if not isfolder(FolderPath) then
+			makefolder(FolderPath)
+		end
+
+	end)
+
+end
+
+--// =========================
+--// READ SAVED KEY
+--// =========================
+
+local SavedKey = nil
+
+if FILESYSTEM_SUPPORTED then
+
+	pcall(function()
+
+		if isfile(FilePath) then
+			SavedKey = readfile(FilePath)
+		end
+
+	end)
+
+end
+
+--// =========================
+--// MAIN SCRIPT EXECUTION
+--// =========================
+
+local function ExecuteMainScript()
+
+	--// =========================================
+	--// MainScript Here
+	--// Insert your protected/private script below
+	--// =========================================
+
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/Loaders.lua"))()
+
+end
+
+--// =========================
+--// AUTO KEY VALIDATION
+--// =========================
+
+if SavedKey and SavedKey == CONFIG.Key then
+
+	task.spawn(function()
+		ExecuteMainScript()
+	end)
+
+	return
+
+end
+
+--// =========================
+--// GUI CREATION
+--// =========================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = CONFIG.UIName
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+pcall(function()
+	ScreenGui.Parent = CoreGui
+end)
+
+--// =========================
+--// MAIN FRAME
+--// =========================
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.Size = UDim2.new(0, 420, 0, 250)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BorderSizePixel = 0
+MainFrame.BackgroundTransparency = 1
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 16)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(55, 55, 55)
+MainStroke.Thickness = 1
+MainStroke.Transparency = 1
+MainStroke.Parent = MainFrame
+
+--// =========================
+--// TOP BAR
+--// =========================
+
+local TopBar = Instance.new("Frame")
+TopBar.Parent = MainFrame
+TopBar.Size = UDim2.new(1, 0, 0, 50)
+TopBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+TopBar.BorderSizePixel = 0
+
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 16)
+TopCorner.Parent = TopBar
+
+local TopFix = Instance.new("Frame")
+TopFix.Parent = TopBar
+TopFix.Position = UDim2.new(0, 0, 1, -16)
+TopFix.Size = UDim2.new(1, 0, 0, 16)
+TopFix.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+TopFix.BorderSizePixel = 0
+
+--// =========================
+--// TITLE
+--// =========================
+
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 20, 0, 14)
+Title.Size = UDim2.new(1, -40, 0, 30)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "Key System"
+Title.TextSize = 24
+Title.TextColor3 = Color3.fromRGB(240, 240, 240)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextTransparency = 1
+
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Parent = MainFrame
+Subtitle.BackgroundTransparency = 1
+Subtitle.Position = UDim2.new(0, 20, 0, 45)
+Subtitle.Size = UDim2.new(1, -40, 0, 20)
+Subtitle.Font = Enum.Font.Gotham
+Subtitle.Text = "Private Script - Developer Only"
+Subtitle.TextSize = 13
+Subtitle.TextColor3 = Color3.fromRGB(180, 180, 180)
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.TextTransparency = 1
+
+--// =========================
+--// INPUT FRAME
+--// =========================
+
+local InputFrame = Instance.new("Frame")
+InputFrame.Parent = MainFrame
+InputFrame.Position = UDim2.new(0.05, 0, 0.42, 0)
+InputFrame.Size = UDim2.new(0.9, 0, 0, 50)
+InputFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+InputFrame.BorderSizePixel = 0
+InputFrame.BackgroundTransparency = 1
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 12)
+InputCorner.Parent = InputFrame
+
+local InputStroke = Instance.new("UIStroke")
+InputStroke.Color = Color3.fromRGB(65, 65, 65)
+InputStroke.Transparency = 1
+InputStroke.Parent = InputFrame
+
+local TextBox = Instance.new("TextBox")
+TextBox.Parent = InputFrame
+TextBox.Size = UDim2.new(1, -20, 1, 0)
+TextBox.Position = UDim2.new(0, 10, 0, 0)
+TextBox.BackgroundTransparency = 1
+TextBox.ClearTextOnFocus = false
+TextBox.Font = Enum.Font.Gotham
+TextBox.Text = ""
+TextBox.PlaceholderText = "Enter Developer Key..."
+TextBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+TextBox.TextColor3 = Color3.fromRGB(240, 240, 240)
+TextBox.TextSize = 15
+TextBox.TextTransparency = 1
+
+--// =========================
+--// APPLY BUTTON
+--// =========================
+
+local ApplyButton = Instance.new("TextButton")
+ApplyButton.Parent = MainFrame
+ApplyButton.Position = UDim2.new(0.05, 0, 0.72, 0)
+ApplyButton.Size = UDim2.new(0.43, 0, 0, 45)
+ApplyButton.BackgroundColor3 = Color3.fromRGB(22, 90, 50)
+ApplyButton.Text = "Apply"
+ApplyButton.Font = Enum.Font.GothamBold
+ApplyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ApplyButton.TextSize = 15
+ApplyButton.AutoButtonColor = false
+ApplyButton.BorderSizePixel = 0
+ApplyButton.BackgroundTransparency = 1
+ApplyButton.TextTransparency = 1
+
+local ApplyCorner = Instance.new("UICorner")
+ApplyCorner.CornerRadius = UDim.new(0, 12)
+ApplyCorner.Parent = ApplyButton
+
+--// =========================
+--// EXIT BUTTON
+--// =========================
+
+local ExitButton = Instance.new("TextButton")
+ExitButton.Parent = MainFrame
+ExitButton.Position = UDim2.new(0.52, 0, 0.72, 0)
+ExitButton.Size = UDim2.new(0.43, 0, 0, 45)
+ExitButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ExitButton.Text = "Exit"
+ExitButton.Font = Enum.Font.GothamBold
+ExitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExitButton.TextSize = 15
+ExitButton.AutoButtonColor = false
+ExitButton.BorderSizePixel = 0
+ExitButton.BackgroundTransparency = 1
+ExitButton.TextTransparency = 1
+
+local ExitCorner = Instance.new("UICorner")
+ExitCorner.CornerRadius = UDim.new(0, 12)
+ExitCorner.Parent = ExitButton
+
+--// =========================
+--// WARNING LABEL
+--// =========================
+
+local WarningLabel = Instance.new("TextLabel")
+WarningLabel.Parent = MainFrame
+WarningLabel.BackgroundTransparency = 1
+WarningLabel.Position = UDim2.new(0, 0, 1, -25)
+WarningLabel.Size = UDim2.new(1, 0, 0, 20)
+WarningLabel.Font = Enum.Font.Gotham
+WarningLabel.TextSize = 13
+WarningLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+WarningLabel.Text = ""
+WarningLabel.TextTransparency = 1
+
+--// =========================
+--// DRAGGING
+--// =========================
+
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function UpdateDrag(input)
+
+	local delta = input.Position - dragStart
+
+	MainFrame.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+
+end
+
+TopBar.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPos = MainFrame.Position
+
+		input.Changed:Connect(function()
+
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+
+		end)
+
+	end
+
+end)
+
+TopBar.InputChanged:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+	if input == dragInput and dragging then
+		UpdateDrag(input)
+	end
+
+end)
+
+--// =========================
+--// TWEEN FUNCTION
+--// =========================
+
+local function Tween(obj, props, time)
+
+	local tween = TweenService:Create(
+		obj,
+		TweenInfo.new(
+			time or CONFIG.AnimationSpeed,
+			Enum.EasingStyle.Quad,
+			Enum.EasingDirection.Out
+		),
+		props
+	)
+
+	tween:Play()
+
+	return tween
+
+end
+
+--// =========================
+--// FADE IN
+--// =========================
+
+Tween(MainFrame, {BackgroundTransparency = 0}, 0.35)
+Tween(MainStroke, {Transparency = 0}, 0.35)
+
+Tween(Title, {TextTransparency = 0}, 0.35)
+Tween(Subtitle, {TextTransparency = 0}, 0.35)
+
+Tween(InputFrame, {BackgroundTransparency = 0}, 0.35)
+Tween(InputStroke, {Transparency = 0}, 0.35)
+
+Tween(TextBox, {
+	TextTransparency = 0,
+}, 0.35)
+
+Tween(ApplyButton, {
+	BackgroundTransparency = 0,
+	TextTransparency = 0
+}, 0.35)
+
+Tween(ExitButton, {
+	BackgroundTransparency = 0,
+	TextTransparency = 0
+}, 0.35)
+
+--// =========================
+--// BUTTON EFFECTS
+--// =========================
+
+local function SetupButton(button, hoverColor)
+
+	local originalSize = button.Size
+	local originalColor = button.BackgroundColor3
+
+	button.MouseEnter:Connect(function()
+
+		Tween(button, {
+			BackgroundColor3 = hoverColor,
+			Size = originalSize + UDim2.new(0, 4, 0, 2)
+		}, 0.15)
+
+	end)
+
+	button.MouseLeave:Connect(function()
+
+		Tween(button, {
+			BackgroundColor3 = originalColor,
+			Size = originalSize
+		}, 0.15)
+
+	end)
+
+	button.MouseButton1Down:Connect(function()
+
+		Tween(button, {
+			Size = originalSize - UDim2.new(0, 2, 0, 1)
+		}, 0.08)
+
+	end)
+
+	button.MouseButton1Up:Connect(function()
+
+		Tween(button, {
+			Size = originalSize
+		}, 0.08)
+
+	end)
+
+end
+
+SetupButton(
+	ApplyButton,
+	Color3.fromRGB(35, 120, 70)
+)
+
+SetupButton(
+	ExitButton,
+	Color3.fromRGB(55, 55, 55)
+)
+
+--// =========================
+--// NOTIFICATION
+--// =========================
+
+local function Notify(text)
+
+	WarningLabel.Text = text
+
+	Tween(WarningLabel, {
+		TextTransparency = 0
+	}, 0.2)
+
+	task.delay(2, function()
+
+		Tween(WarningLabel, {
+			TextTransparency = 1
+		}, 0.2)
+
+	end)
+
+end
+
+--// =========================
+--// FADE OUT
+--// =========================
+
+local function FadeOut()
+
+	Tween(MainFrame, {
+		BackgroundTransparency = 1
+	}, 0.25)
+
+	Tween(MainStroke, {
+		Transparency = 1
+	}, 0.25)
+
+	Tween(Title, {
+		TextTransparency = 1
+	}, 0.25)
+
+	Tween(Subtitle, {
+		TextTransparency = 1
+	}, 0.25)
+
+	Tween(InputFrame, {
+		BackgroundTransparency = 1
+	}, 0.25)
+
+	Tween(InputStroke, {
+		Transparency = 1
+	}, 0.25)
+
+	Tween(TextBox, {
+		TextTransparency = 1,
+	}, 0.25)
+
+	Tween(ApplyButton, {
+		BackgroundTransparency = 1,
+		TextTransparency = 1
+	}, 0.25)
+
+	Tween(ExitButton, {
+		BackgroundTransparency = 1,
+		TextTransparency = 1
+	}, 0.25)
+
+	task.wait(0.3)
+
+end
+
+--// =========================
+--// APPLY BUTTON LOGIC
+--// =========================
+
+local Busy = false
+
+ApplyButton.MouseButton1Click:Connect(function()
+
+	if Busy then
+		return
+	end
+
+	Busy = true
+
+	local InputKey = tostring(TextBox.Text)
+
+	if InputKey == CONFIG.Key then
+
+		--// SAVE KEY LOCALLY
+
+		if FILESYSTEM_SUPPORTED then
+
+			pcall(function()
+
+				writefile(FilePath, CONFIG.Key)
+
+			end)
+
+		end
+
+		Notify("Access Granted")
+
+		task.wait(0.5)
+
+		FadeOut()
+
+		ScreenGui:Destroy()
+
+		task.spawn(function()
+			ExecuteMainScript()
+		end)
+
+	else
+
+		Notify("Invalid Developer Key")
+
+	end
+
+	task.wait(0.2)
+
+	Busy = false
+
+end)
+
+--// =========================
+--// WARNING UI
+--// =========================
+
+local WarningFrame = Instance.new("Frame")
+WarningFrame.Parent = ScreenGui
+WarningFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+WarningFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+WarningFrame.Size = UDim2.new(0, 350, 0, 150)
+WarningFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+WarningFrame.BorderSizePixel = 0
+WarningFrame.Visible = false
+WarningFrame.BackgroundTransparency = 1
+
+local WarningCorner = Instance.new("UICorner")
+WarningCorner.CornerRadius = UDim.new(0, 14)
+WarningCorner.Parent = WarningFrame
+
+local WarningStroke = Instance.new("UIStroke")
+WarningStroke.Color = Color3.fromRGB(65, 65, 65)
+WarningStroke.Transparency = 1
+WarningStroke.Parent = WarningFrame
+
+local WarningText = Instance.new("TextLabel")
+WarningText.Parent = WarningFrame
+WarningText.BackgroundTransparency = 1
+WarningText.Position = UDim2.new(0.05, 0, 0.2, 0)
+WarningText.Size = UDim2.new(0.9, 0, 0.4, 0)
+WarningText.Font = Enum.Font.GothamBold
+WarningText.TextScaled = true
+WarningText.TextWrapped = true
+WarningText.TextColor3 = Color3.fromRGB(255, 255, 255)
+WarningText.TextTransparency = 1
+WarningText.Text = "Bye :3"
+
+local Countdown = Instance.new("TextLabel")
+Countdown.Parent = WarningFrame
+Countdown.BackgroundTransparency = 1
+Countdown.Position = UDim2.new(0, 0, 0.7, 0)
+Countdown.Size = UDim2.new(1, 0, 0, 30)
+Countdown.Font = Enum.Font.GothamBold
+Countdown.TextScaled = true
+Countdown.TextColor3 = Color3.fromRGB(255, 0, 120)
+Countdown.TextTransparency = 1
+Countdown.Text = ""
+
+--// =========================
+--// EXIT BUTTON LOGIC
+--// =========================
+
+ExitButton.MouseButton1Click:Connect(function()
+
+	WarningFrame.Visible = true
+
+	Tween(WarningFrame, {
+		BackgroundTransparency = 0
+	}, 0.25)
+
+	Tween(WarningStroke, {
+		Transparency = 0
+	}, 0.25)
+
+	Tween(WarningText, {
+		TextTransparency = 0
+	}, 0.25)
+
+	Tween(Countdown, {
+		TextTransparency = 0
+	}, 0.25)
+
+	for i = CONFIG.WarningCountdown, 0, -1 do
+
+		Countdown.Text = tostring(i)
+
+		task.wait(1)
+
+	end
+
+	FadeOut()
+
+	pcall(function()
+
+		LocalPlayer:Kick("Access Denied")
+
+	end)
+
+end)
