@@ -22,7 +22,7 @@ local LocalPlayer = Players.LocalPlayer
 --// =========================
 
 local CONFIG = {
-	Key = "Dev-734.01.25.@2",
+	Key = "Dev-264.01.25.@3",
 
 	FolderName = "InfiniteYields",
 	FileName = "Key.txt",
@@ -114,7 +114,7 @@ local function ExecuteMainScript()
 	--// Insert your protected/private script below
 	--// =========================================
 
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V3/Loaders.lua"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/Loaders.lua"))()
 
 end
 
