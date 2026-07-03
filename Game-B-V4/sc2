@@ -2012,3 +2012,166 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         disruptionValue.Value = isToggled
     end
 end)
+
+
+
+
+-- Crucifix Auto Ghost Room Bypass
+-- Continuously scans all zones for the lowest temperature (ghost room)
+-- Press H to instantly place the Crucifix in the coldest zone
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local InventoryRemotes = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InventoryRemotes")
+
+-- Cache: name -> position (center of zone)
+local zoneCache = {}
+local ghostRoomName = nil
+local ghostRoomPos = nil
+
+local function isExcluded(zone)
+    if zone:FindFirstChild("Exclude") and zone.Exclude.Value == true then
+        return true
+    end
+    return false
+end
+
+local function getZonePosition(zone)
+    if zone:IsA("BasePart") then
+        return zone.Position
+    end
+    -- For UnionOperation or Model, use bounding box center
+    if zone:IsA("Model") then
+        local cf, size = zone:GetBoundingBox()
+        return cf.Position
+    end
+    -- Fallback: try to find a child part
+    for _, child in ipairs(zone:GetDescendants()) do
+        if child:IsA("BasePart") then
+            return child.Position
+        end
+    end
+    return nil
+end
+
+-- Non-blocking scan: runs every 2 seconds via Heartbeat
+local function scanZones()
+    local zonesFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Zones")
+    if not zonesFolder then return end
+
+    local lowestTemp = math.huge
+    local coldestZone = nil
+    local coldestPos = nil
+
+    for _, zone in ipairs(zonesFolder:GetChildren()) do
+        -- Must be a valid zone
+        if not zone:FindFirstChild("IsZone") then continue end
+        -- Skip excluded zones (Outside, stairwells, etc.)
+        if isExcluded(zone) then continue end
+
+        local tempVal = zone:FindFirstChild("_____Temperature")
+        if not tempVal then continue end
+
+        local temp = tempVal.Value
+        local baseTemp = nil
+        local baseTempVal = tempVal:FindFirstChild("_____LocalBaseTemp")
+        if baseTempVal then
+            baseTemp = baseTempVal.Value
+        end
+
+        -- Use baseTemp for comparison if available, otherwise live temp
+        local compareTemp = baseTemp ~= nil and baseTemp or temp
+
+        if compareTemp < lowestTemp then
+            lowestTemp = compareTemp
+            coldestZone = zone
+            coldestPos = getZonePosition(zone)
+        end
+    end
+
+    if coldestZone then
+        ghostRoomName = coldestZone.Name
+        ghostRoomPos = coldestPos
+    end
+end
+
+-- Run scan every 2 seconds (non-blocking)
+task.spawn(function()
+    while true do
+        scanZones()
+        task.wait(0.1)
+    end
+end)
+
+-- Initial scan
+task.wait(0.5)
+scanZones()
+
+local function placeCrucifixAtGhostRoom()
+    if not ghostRoomPos then
+        
+        -- Force a scan
+        scanZones()
+        task.wait(0.5)
+        if not ghostRoomPos then
+        
+            return
+        end
+    end
+
+    local character = LocalPlayer.Character
+    if not character then return end
+
+    -- Step 1: Find which slot has the Crucifix
+    local crucifixSlot = nil
+    for i = 1, 5 do
+        local slotVal = LocalPlayer:FindFirstChild("Slot" .. i)
+        if slotVal and slotVal.Value and slotVal.Value.Name == "Crucifix" then
+            crucifixSlot = i
+            break
+        end
+    end
+
+    if not crucifixSlot then
+        return
+    end
+
+    -- Step 2: Switch to that slot
+    InventoryRemotes.Action:FireServer("Slot", crucifixSlot)
+
+    -- Step 3: Wait for the tool to equip
+    task.wait(0.5)
+
+    -- Step 4: Find the equipped crucifix tool and its BookRemote
+    local crucifixTool = character:FindFirstChild("Crucifix")
+    if not crucifixTool then
+        task.wait(0.3)
+        crucifixTool = character:FindFirstChild("Crucifix")
+    end
+
+    if not crucifixTool then
+        return
+    end
+
+    local bookRemote = crucifixTool:FindFirstChild("Remotes") and crucifixTool.Remotes:FindFirstChild("BookRemote")
+    if not bookRemote then
+        return
+    end
+
+    -- Step 5: Build CFrame at ghost room position
+    local targetCFrame = CFrame.new(ghostRoomPos) * CFrame.new(0, 0.3, 0) * CFrame.Angles(0, 0, math.rad(90))
+
+    -- Step 6: Fire, bypassing the 25-stud range check
+    bookRemote:FireServer(targetCFrame)
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.One and UserInputService:IsKeyDown(Enum.KeyCode.E) then
+        placeCrucifixAtGhostRoom()
+    end
+end)
