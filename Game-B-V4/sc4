@@ -1,0 +1,39 @@
+local UserInputService = game:GetService("UserInputService")
+
+local FreeCamLoaded = false
+local ChatUILoaded = false
+
+-- FreeCam Loader
+local function FC()
+	print("Loading FC...")
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam"))()
+end
+
+-- ChatUI Loader
+local function LoadingCUI()
+	print("Loading ChatUI...")
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/ChatUI"))()
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+
+	-- Z = FreeCam
+	if input.KeyCode == Enum.KeyCode.Z and not FreeCamLoaded then
+		FreeCamLoaded = true
+
+		task.spawn(function()
+			FC()
+		end)
+
+	-- PageUp = ChatUI
+	elseif input.KeyCode == Enum.KeyCode.PageUp and not ChatUILoaded then
+		ChatUILoaded = true
+
+		task.spawn(function()
+			LoadingCUI()
+		end)
+	end
+end)
