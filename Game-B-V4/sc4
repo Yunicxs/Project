@@ -9,7 +9,7 @@ local function FC()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam"))()
 end
 
--- ChatUI Loader
+-- ChatUI Loaderr
 local function LoadingCUI()
 	print("Loading ChatUI...")
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/ChatUI"))()
