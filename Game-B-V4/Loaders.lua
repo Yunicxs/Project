@@ -44,8 +44,8 @@ end)
 
 local urls = {
 	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/sc1",
-	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/sc2",
-	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/sc3",
+	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/sc2%2B",
+	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/sc3%2B",
 	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/sc4"
 }
 
