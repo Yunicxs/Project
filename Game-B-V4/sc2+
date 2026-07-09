@@ -1,0 +1,2154 @@
+
+-- Created in Real
+-- print
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+-- Remove Old ToggleUI
+local ExistingUI = CoreGui:FindFirstChild("ToggleUI")
+if ExistingUI then
+	ExistingUI:Destroy()
+end
+
+-- ToggleUI
+local ToggleUI = Instance.new("ScreenGui")
+ToggleUI.Name = "ToggleUI"
+ToggleUI.Parent = CoreGui
+ToggleUI.IgnoreGuiInset = true
+ToggleUI.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+ToggleUI.ResetOnSpawn = false
+
+-- TFrame
+local TFrame = Instance.new("Frame")
+TFrame.Name = "TFrame"
+TFrame.Parent = ToggleUI
+TFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+TFrame.BackgroundTransparency = 1
+TFrame.BorderSizePixel = 0
+TFrame.Size = UDim2.new(0.12037,0,0.05181,0)
+TFrame.Position = UDim2.new(0.87086,0,0.01846,0)
+
+local TAspect = Instance.new("UIAspectRatioConstraint")
+TAspect.Parent = TFrame
+TAspect.AspectRatio = 5.39394
+
+-- ToogleUI
+local ToogleUI = Instance.new("Frame")
+ToogleUI.Name = "ToogleUI"
+ToogleUI.Parent = TFrame
+ToogleUI.BackgroundColor3 = Color3.fromRGB(0,0,0)
+ToogleUI.BackgroundTransparency = 1
+ToogleUI.BorderSizePixel = 0
+ToogleUI.AnchorPoint = Vector2.new(0.5,0.5)
+ToogleUI.Size = UDim2.new(1,0,0.90909,0)
+ToogleUI.Position = UDim2.new(0.5,0,0.45455,0)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ToogleUI
+UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+UIListLayout.HorizontalFlex = Enum.UIFlexAlignment.SpaceBetween
+UIListLayout.VerticalFlex = Enum.UIFlexAlignment.SpaceBetween
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0.001,0)
+
+-- THHComplete (UI SECTION)
+local THHComplete = Instance.new("ImageLabel")
+THHComplete.Name = "THHComplete"
+THHComplete.Parent = ToogleUI
+THHComplete.BackgroundColor3 = Color3.fromRGB(229,250,8)
+THHComplete.BackgroundTransparency = 1
+THHComplete.ImageTransparency = 1
+THHComplete.BorderSizePixel = 0
+THHComplete.Image = "rbxassetid://6034295711"
+THHComplete.Size = UDim2.new(0.16292,0,0.96667,0)
+THHComplete.Position = UDim2.new(0.28277,0,-1.3,0)
+
+-- UnSee
+local UnSee = Instance.new("ImageLabel")
+UnSee.Name = "UnSee"
+UnSee.Parent = ToogleUI
+UnSee.BackgroundColor3 = Color3.fromRGB(227,233,241)
+UnSee.BackgroundTransparency = 1
+UnSee.ImageTransparency = 1
+UnSee.BorderSizePixel = 0
+UnSee.Image = "rbxassetid://6031075929"
+UnSee.ScaleType = Enum.ScaleType.Tile
+UnSee.Size = UDim2.new(0.16292,0,0.96667,0)
+UnSee.Position = UDim2.new(-0.93464,0,0.57358,0)
+
+-- GhostRoom
+local GhostRoom = Instance.new("ImageLabel")
+GhostRoom.Name = "GhostRoom"
+GhostRoom.Parent = ToogleUI
+GhostRoom.BackgroundColor3 = Color3.fromRGB(227,233,241)
+GhostRoom.BackgroundTransparency = 1
+GhostRoom.ImageTransparency = 1
+GhostRoom.BorderSizePixel = 0
+GhostRoom.Image = "rbxassetid://6035161563"
+GhostRoom.Size = UDim2.new(0.16292,0,0.96667,0)
+GhostRoom.Position = UDim2.new(0.51124,0,0.03333,0)
+
+-- NoClip
+local NoClip = Instance.new("ImageLabel")
+NoClip.Name = "NoClip"
+NoClip.Parent = ToogleUI
+NoClip.BackgroundColor3 = Color3.fromRGB(227,233,241)
+NoClip.BackgroundTransparency = 1
+NoClip.ImageTransparency = 1
+NoClip.BorderSizePixel = 0
+NoClip.Image = "rbxassetid://6031067241"
+NoClip.Size = UDim2.new(0.16292,0,0.96667,0)
+NoClip.Position = UDim2.new(0.34831,0,0.03333,0)
+
+-- Fullbright
+local Fullbright = Instance.new("ImageLabel")
+Fullbright.Name = "Fullbright"
+Fullbright.Parent = ToogleUI
+Fullbright.BackgroundColor3 = Color3.fromRGB(227,233,241)
+Fullbright.BackgroundTransparency = 1
+Fullbright.BorderSizePixel = 0
+Fullbright.Image = "rbxassetid://6031471491"
+Fullbright.Size = UDim2.new(0.16292,0,0.96667,0)
+Fullbright.Position = UDim2.new(0.67416,0,0,0)
+Fullbright.ImageTransparency = 1
+
+-- Run
+local Run = Instance.new("ImageLabel")
+Run.Name = "Run"
+Run.Parent = ToogleUI
+Run.BackgroundColor3 = Color3.fromRGB(227,233,241)
+Run.BackgroundTransparency = 1
+Run.BorderSizePixel = 0
+Run.Image = "rbxassetid://6034754445"
+Run.Size = UDim2.new(0.16292,0,0.96667,0)
+Run.Position = UDim2.new(0.46727,0,2.34969,0)
+Run.ImageTransparency = 1
+
+-- Speed Text
+local Speed = Instance.new("TextLabel")
+Speed.Name = "Speed"
+Speed.Parent = TFrame
+Speed.BackgroundColor3 = Color3.fromRGB(255,255,255)
+Speed.BackgroundTransparency = 1
+Speed.TextTransparency = 1
+Speed.BorderSizePixel = 0
+Speed.AnchorPoint = Vector2.new(0.5,0.5)
+Speed.Position = UDim2.new(0.91567,0,1.13876,0)
+Speed.Size = UDim2.new(0.11,0,0.5,0)
+Speed.FontFace = Font.new(
+	"rbxasset://fonts/families/SourceSansPro.json",
+	Enum.FontWeight.Bold,
+	Enum.FontStyle.Normal
+)
+Speed.Text = "6.5"
+Speed.TextColor3 = Color3.fromRGB(255,255,255)
+Speed.TextScaled = true
+Speed.TextSize = 14
+Speed.TextWrapped = true
+Speed.RichText = true
+
+-- ToggleUI Fade Animation
+local FadeTween = TweenInfo.new(
+	0.6,
+	Enum.EasingStyle.Quad,
+	Enum.EasingDirection.Out
+)
+
+task.spawn(function()
+	for _,Object in ipairs(TFrame:GetDescendants()) do
+		if Object:IsA("ImageLabel") then
+			Object.ImageTransparency = 1
+			TweenService:Create(Object, FadeTween, {
+				ImageTransparency = 0
+			}):Play()
+		elseif Object:IsA("TextLabel") then
+			Object.TextTransparency = 1
+			TweenService:Create(Object, FadeTween, {
+				TextTransparency = 0
+			}):Play()
+		end
+		task.wait(0.08)
+	end
+end)
+
+-- End of ToggleUI
+
+-- ============================================================
+-- FULLBRIGHT SCRIPT
+-- ============================================================
+
+-- info script
+-- Fullbright Toggle integrated into ToggleUI
+-- Keybind: T
+-- ImageColor3: white = off, light green = on
+-- end info script
+
+-- Color constants
+local COLOR_ON = Color3.fromRGB(144, 238, 144)  -- light green
+local COLOR_OFF = Color3.fromRGB(255, 255, 255)  -- white
+
+-- Toggle state
+local FullBrightEnabled = false
+
+-- Store original settings
+local OriginalSettings = {
+	Brightness = Lighting.Brightness,
+	ClockTime = Lighting.ClockTime,
+	FogEnd = Lighting.FogEnd,
+	GlobalShadows = Lighting.GlobalShadows,
+	OutdoorAmbient = Lighting.OutdoorAmbient
+}
+
+-- Store Atmosphere instances
+local SavedAtmospheres = {}
+
+-- Apply Fullbright
+local function enableFullBright()
+	SavedAtmospheres = {}
+	for _, v in pairs(Lighting:GetDescendants()) do
+		if v:IsA("Atmosphere") then
+			table.insert(SavedAtmospheres, v:Clone())
+			v:Destroy()
+		end
+	end
+
+	Lighting.Brightness = 1
+	Lighting.ClockTime = 14
+	Lighting.FogEnd = 100000
+	Lighting.GlobalShadows = false
+	Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+
+	Fullbright.ImageColor3 = COLOR_ON
+end
+
+-- Restore original settings
+local function disableFullBright()
+	Lighting.Brightness = OriginalSettings.Brightness
+	Lighting.ClockTime = OriginalSettings.ClockTime
+	Lighting.FogEnd = OriginalSettings.FogEnd
+	Lighting.GlobalShadows = OriginalSettings.GlobalShadows
+	Lighting.OutdoorAmbient = OriginalSettings.OutdoorAmbient
+
+	for _, v in pairs(SavedAtmospheres) do
+		v.Parent = Lighting
+	end
+
+	Fullbright.ImageColor3 = COLOR_OFF
+end
+
+-- Toggle function
+local function toggleFullBright()
+	FullBrightEnabled = not FullBrightEnabled
+
+	if FullBrightEnabled then
+		enableFullBright()
+	else
+		disableFullBright()
+	end
+end
+
+-- Keybind (T)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.T then
+		toggleFullBright()
+	end
+end)
+
+
+-- info script
+-- ChangeTemp Script
+-- Keybind: K
+-- Sets Outside zone temperature to 0.1 for 3 seconds
+-- Uses wait(0.01) for smooth timing like old script
+-- end info script
+
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- Find temperature path
+local temperaturePath = game.Workspace:FindFirstChild("Map")
+    and game.Workspace.Map:FindFirstChild("Zones")
+    and game.Workspace.Map.Zones:FindFirstChild("Outside")
+    and game.Workspace.Map.Zones.Outside:FindFirstChild("_____Temperature")
+
+if temperaturePath and temperaturePath:IsA("NumberValue") then
+else
+    warn("Temperature path not found")
+end
+
+local function changeTemperature()
+    if not temperaturePath or not temperaturePath:IsA("NumberValue") then
+        return
+    end
+    
+    -- Get current value
+    local currentTemperature = temperaturePath.Value
+    
+    -- Set to 0.1 for 3 seconds
+    local startTime = tick()
+    while tick() - startTime < 3 do
+        temperaturePath.Value = 0.1
+        wait(0.01)  -- Wait for smooth timing
+    end
+end
+
+-- PC Keybind
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.K then
+        changeTemperature()
+    end
+end)
+-- END
+
+-- info script
+-- Running Script synced to UI
+-- Keybind: LeftShift to toggle, B to increase, C to decrease
+-- Uses Speed TextLabel to show only speed value, Run ImageLabel for color
+-- Default speed: 6.5, Current speed: 12 (adjustable)
+-- end info script
+
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+
+local toggle = false
+local keybindToggle = Enum.KeyCode.LeftShift
+local keybindIncrease = Enum.KeyCode.B
+local keybindDecrease = Enum.KeyCode.C
+local speedLoop = nil
+local defaultSpeed = 6.5 -- Speed when OFF
+local currentSpeed = 13.5  -- Speed when ON (changeable)
+
+-- Wait for ToggleUI
+local toggleUI = CoreGui:WaitForChild("ToggleUI")
+local tframe = toggleUI:WaitForChild("TFrame")
+local toogleUI = tframe:WaitForChild("ToogleUI")
+local runLabel = toogleUI:WaitForChild("Run")
+local speedLabel = tframe:WaitForChild("Speed")
+
+-- Function to start speed loop
+local function startSpeedLoop(speed)
+    -- Stop any existing loop
+    if speedLoop then
+        speedLoop:Disconnect()
+        speedLoop = nil
+    end
+    
+    -- Start new loop
+    speedLoop = RunService.RenderStepped:Connect(function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = speed
+        end
+    end)
+end
+
+-- Function to update GUI
+local function updateGUI()
+    if toggle then
+        speedLabel.Text = tostring(currentSpeed)
+        speedLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+        runLabel.ImageColor3 = Color3.fromRGB(144, 238, 144) -- light green
+    else
+        speedLabel.Text = tostring(defaultSpeed)
+        speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White
+        runLabel.ImageColor3 = Color3.fromRGB(255, 255, 255) -- white
+    end
+end
+
+-- Toggle function
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    -- Toggle speed on/off
+    if input.KeyCode == keybindToggle then
+        toggle = not toggle
+        if toggle then
+            startSpeedLoop(currentSpeed) -- ON: Uses adjustable speed
+        else
+            startSpeedLoop(defaultSpeed) -- OFF: Stays at 6.5
+        end
+        updateGUI()
+    end
+
+    -- Increase speed (only when ON)
+    if input.KeyCode == keybindIncrease and toggle then
+        currentSpeed = currentSpeed + 2
+        startSpeedLoop(currentSpeed) -- Apply new speed immediately
+        updateGUI()
+    end
+
+    -- Decrease speed (only when ON)
+    if input.KeyCode == keybindDecrease and toggle then
+        if currentSpeed > 1 then -- Prevents negative speed
+            currentSpeed = currentSpeed - 2
+            startSpeedLoop(currentSpeed) -- Apply new speed immediately
+            updateGUI()
+        end
+    end
+end)
+-- END
+
+-- ============================================================
+-- SLOW PLAYERS DETECTION
+-- ============================================================
+
+local SlowPlayersColor = Color3.fromRGB(255, 182, 193) -- Light red
+local slowPlayersDetectionEnabled = true
+
+-- Function to check if Slow Players TextLabel is present/visible
+local function isSlowPlayersActive()
+    -- Look for the "Slow Players" TextLabel in the Challenges frame
+    local challengesFrame = game.Workspace.Map.Van.Van.TimerModel.Monitor.SurfaceGui:FindFirstChild("Challenges")
+    if not challengesFrame then
+        return false
+    end
+    
+    local slowPlayersLabel = challengesFrame:FindFirstChild("Slow Players")
+    if not slowPlayersLabel then
+        return false
+    end
+    
+    return slowPlayersLabel.Visible
+end
+
+-- Modified updateGUI function to respect Slow Players priority
+local function updateGUI()
+    if isSlowPlayersActive() then
+        -- Slow Players detection takes priority
+        return -- Don't update normal colors if Slow Players is active
+    end
+    
+    -- Normal speed update logic
+    if toggle then
+        speedLabel.Text = tostring(currentSpeed)
+        speedLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+        if runLabel.ImageColor3 ~= SlowPlayersColor then
+            runLabel.ImageColor3 = Color3.fromRGB(144, 238, 144) -- light green
+        end
+    else
+        speedLabel.Text = tostring(defaultSpeed)
+        speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White
+        if runLabel.ImageColor3 ~= SlowPlayersColor then
+            runLabel.ImageColor3 = Color3.fromRGB(255, 255, 255) -- white
+        end
+    end
+end
+
+-- Function to update Run label for slow players challenge
+local function updateSlowPlayersUI()
+    if not runLabel then return end
+    
+    local isActive = isSlowPlayersActive()
+    
+    if isActive then
+        runLabel.ImageColor3 = SlowPlayersColor
+    else
+        -- If Slow Players is deactivated, restore normal colors
+        if updateGUI then
+            updateGUI()
+        end
+    end
+end
+
+-- Monitor when the Slow Players challenge is added or removed
+local surfaceGui = game.Workspace.Map.Van.Van.TimerModel.Monitor.SurfaceGui
+local challengesFrame = surfaceGui:FindFirstChild("Challenges")
+
+if challengesFrame then
+    -- Monitor when new labels are added to Challenges
+    challengesFrame.DescendantAdded:Connect(function(child)
+        if child.Name == "Slow Players" then
+            updateSlowPlayersUI()
+        end
+    end)
+    
+    -- Monitor when labels are removed from Challenges
+    challengesFrame.DescendantRemoving:Connect(function(child)
+        if child.Name == "Slow Players" then
+            updateSlowPlayersUI()
+        end
+    end)
+end
+
+-- Loop to monitor slow players challenge (non-blocking)
+task.spawn(function()
+    while true do
+        if slowPlayersDetectionEnabled then
+            updateSlowPlayersUI()
+        end
+        task.wait(0.5) -- Check every 0.5 seconds
+    end
+end)
+
+
+
+
+-- Function to add billboards to objects
+local function trackObject(object, text, color)
+    if not object:FindFirstChild(text) then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Adornee = object
+        billboard.Name = text
+        billboard.Size = UDim2.new(0, 100, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 2, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = object
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Parent = billboard
+        textLabel.BackgroundTransparency = 1
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.Font = Enum.Font.SourceSansBold
+        textLabel.TextSize = 14
+        textLabel.TextColor3 = color
+        textLabel.TextStrokeTransparency = 0
+        textLabel.TextYAlignment = Enum.TextYAlignment.Center
+        textLabel.Text = text
+        textLabel.ZIndex = 10
+    end
+end
+
+-- Function to continuously track objects and ensure billboards remain intact
+local function continuousTrack()
+    while true do
+        local map = workspace:FindFirstChild("Map")
+        if map then
+            -- Crused Items
+            local crusedItems = {
+                {name = "Ouija Board", path = game:GetService("Workspace"):FindFirstChild("Spirit Board"), color = Color3.fromRGB(0, 128, 0)},
+                {name = "Music Box", path = game:GetService("Workspace").Map.Items:FindFirstChild("Music Box"), color = Color3.fromRGB(200, 100, 255)},
+                {name = "Summoning Circle", path = game:GetService("Workspace"):FindFirstChild("SummoningCircle"), color = Color3.fromRGB(255, 140, 0)},
+                {name = "Tarot Cards", path = game:GetService("Workspace").Map.Items:FindFirstChild("Tarot Cards"), color = Color3.fromRGB(128, 0, 128)},
+                {name = "Voodoo Doll", path = game:GetService("Workspace"):FindFirstChild("BooBooDoll"), color = Color3.fromRGB(255, 255, 0)}
+            }
+
+            for _, item in pairs(crusedItems) do
+                if item.path then
+                    trackObject(item.path, item.name, item.color)
+                end
+            end
+
+            -- Track Generators
+            if map:FindFirstChild("Generators") then
+                for _, obj in pairs(map.Generators:GetChildren()) do
+                    if obj.Name == "GeneratorMesh" then
+                        trackObject(obj, "Generator", Color3.fromRGB(255, 0, 0))
+                    end
+                end
+            end
+
+            -- Track Van
+            if map:FindFirstChild("Van") then
+                for _, obj in pairs(map.Van:GetChildren()) do
+                    if obj.Name == "SpawnLocation" then
+                        trackObject(obj, "Van", Color3.fromRGB(255, 20, 147))
+                    end
+                end
+            end
+
+            -- Track Orbs
+            if map:FindFirstChild("Orbs") then
+                for _, obj in pairs(map.Orbs:GetChildren()) do
+                    if obj.Name == "OrbPart" then
+                        trackObject(obj, "Orb", Color3.fromRGB(30, 144, 255))
+                    end
+                end
+            end
+
+            -- Track Prints
+            if map:FindFirstChild("Prints") then
+                for _, obj in pairs(map.Prints:GetChildren()) do
+                    if obj.Name == "UV_Hand" then
+                        trackObject(obj, "Fingerprint", Color3.fromRGB(75, 0, 130))
+                    end
+                end
+            end
+        end
+
+        wait(1) -- Check every 1 second to ensure billboards stay intact
+    end
+end
+
+-- Run the continuous track function
+spawn(continuousTrack)
+-- END
+
+-- Create THHComplete ImageLabel
+local CoreGui = game.CoreGui
+local LocalPlayer = game.Players.LocalPlayer
+
+-- Wait for UI to load
+local function waitForUI()
+    local attempts = 0
+    while attempts < 50 do
+        local toggleUI = CoreGui:FindFirstChild("ToggleUI")
+        if toggleUI then
+            local tframe = toggleUI:FindFirstChild("TFrame")
+            if tframe then
+                local toogleUI = tframe:FindFirstChild("ToogleUI")
+                if toogleUI then
+                    return toogleUI
+                end
+            end
+        end
+        attempts = attempts + 1
+        task.wait(0.1)
+    end
+    return nil
+end
+
+-- Create or find THHComplete
+local ToogleUI = waitForUI()
+if not ToogleUI then
+    warn("ToogleUI not found, creating THHComplete in Workspace")
+    ToogleUI = workspace
+end
+
+local THHComplete = ToogleUI:FindFirstChild("THHComplete")
+if not THHComplete then
+    THHComplete = Instance.new("ImageLabel")
+    THHComplete.Name = "THHComplete"
+    THHComplete.Parent = ToogleUI
+    THHComplete.BackgroundColor3 = Color3.fromRGB(229,250,8)
+    THHComplete.BackgroundTransparency = 1
+    THHComplete.ImageTransparency = 1
+    THHComplete.BorderSizePixel = 0
+    THHComplete.Image = "rbxassetid://6034295711"
+    THHComplete.Size = UDim2.new(0.16292,0,0.96667,0)
+    THHComplete.Position = UDim2.new(0.28277,0,-1.3,0)
+end
+
+-- Optimized THH&PGB Challenge Detection Script
+-- Uses event-based monitoring and cached instances for better performance
+-- Constants
+local COLOR_GOLD = Color3.fromRGB(255, 215, 0)
+local COLOR_YELLOW = Color3.fromRGB(255, 128, 128)
+local COLOR_GRAY = Color3.fromRGB(255, 0, 0)
+
+-- Required subjects table (for fast lookup)
+local REQUIRED_SUBJECTS = {
+    ["Cursed Object"] = true,
+    ["Boo-Boo Doll"] = true,
+    ["Burning Crucifix"] = true,
+    ["Ghost"] = true
+}
+
+-- Cache for performance optimization
+local cachedInstances = {
+    photoSubjects = {},
+    selections = {},
+    thhComplete = THHComplete
+}
+
+-- Cache PhotoSubject instances on startup (using simple GetDescendants approach)
+local function cachePhotoSubjects()
+    cachedInstances.photoSubjects = {}
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return end
+    
+    -- Get all PhotoSubject textlabels using GetDescendants
+    for _, instance in ipairs(playerGui:GetDescendants()) do
+        if instance.Name == "PhotoSubject" and instance:IsA("TextLabel") then
+            table.insert(cachedInstances.photoSubjects, instance)
+        end
+    end
+end
+
+-- Cache Selection instances on startup (using simple GetDescendants approach)
+local function cacheSelections()
+    cachedInstances.selections = {}
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return end
+    
+    -- Get all Selection imagelabels using GetDescendants
+    for _, instance in ipairs(playerGui:GetDescendants()) do
+        if instance.Name == "Selection" and instance:IsA("ImageLabel") then
+            table.insert(cachedInstances.selections, instance)
+        end
+    end
+end
+
+-- Check PhotoSubjects completion (using cached instances)
+local function checkPhotoSubjects()
+    local foundSubjects = {}
+    local foundCount = 0
+    
+    for _, photoSubject in ipairs(cachedInstances.photoSubjects) do
+        if photoSubject:IsA("TextLabel") then
+            local text = photoSubject.Text or ""
+            if REQUIRED_SUBJECTS[text] then
+                foundSubjects[text] = true
+                foundCount = foundCount + 1
+            end
+        end
+    end
+    
+    local allFound = foundCount == 4
+    return allFound, foundCount, 4
+end
+
+-- Check Selections completion (using cached instances)
+local function checkSelections()
+    local selectedFound = false
+    
+    for _, selection in ipairs(cachedInstances.selections) do
+        if selection:IsA("ImageLabel") and selection.ImageTransparency == 0 then
+            selectedFound = true
+            break
+        end
+    end
+    return selectedFound
+end
+
+-- Smooth fading "Bip (fade out) . . ." radar-like animation for COLOR_YELLOW and COLOR_GRAY
+local blinkThread = nil
+local shouldBlink = false
+
+local function startBlinkingAnimation()
+    -- Stop any existing animation
+    shouldBlink = false
+    if blinkThread then
+        pcall(function() task.cancel(blinkThread) end)
+        blinkThread = nil
+    end
+    
+    -- Start new animation
+    shouldBlink = true
+    blinkThread = task.spawn(function()
+        while shouldBlink and cachedInstances.thhComplete do
+            -- Make fully visible (bip appears)
+            cachedInstances.thhComplete.ImageTransparency = 0
+            
+            -- Hold at full visibility for 0.5 seconds
+            task.wait(0.000005)
+            
+            -- Smooth fade out (bip disappears)
+            for i = 1, 20 do
+                if not shouldBlink or not cachedInstances.thhComplete then return end
+                cachedInstances.thhComplete.ImageTransparency = i/20
+                task.wait(0.0005) -- Smooth fade out over 0.5 seconds
+            end
+            
+            -- Gap before next bip (0.5 seconds)
+            task.wait(1)
+        end
+        
+        -- Ensure it's visible when animation stops
+        if cachedInstances.thhComplete then
+            cachedInstances.thhComplete.ImageTransparency = 0
+        end
+    end)
+end
+
+local function stopBlinkingAnimation()
+    shouldBlink = false
+    if blinkThread then
+        pcall(function() task.cancel(blinkThread) end)
+        blinkThread = nil
+    end
+    
+    -- Ensure visibility when stopped
+    if cachedInstances.thhComplete then
+        cachedInstances.thhComplete.ImageTransparency = 0
+    end
+end
+
+-- Update THHComplete ImageLabel color
+local function updateTHHColor(step1Complete, step2Complete)
+    if not cachedInstances.thhComplete then
+        return 
+    end
+    
+    local newColor
+    if step1Complete and step2Complete then
+        newColor = COLOR_GOLD
+    elseif step1Complete or step2Complete then
+        newColor = COLOR_YELLOW
+    else
+        newColor = COLOR_GRAY
+    end
+    
+    cachedInstances.thhComplete.ImageColor3 = newColor
+    
+    -- Start or stop blinking animation based on color
+    if newColor == COLOR_YELLOW or newColor == COLOR_GRAY then
+        startBlinkingAnimation()
+    else
+        stopBlinkingAnimation()
+    end
+end
+
+-- Main check function (optimized to use cached instances)
+local function checkChallenges()
+    local step1Complete, step1Found, step1Total = checkPhotoSubjects()
+    local step2Complete = checkSelections()
+    
+    updateTHHColor(step1Complete, step2Complete)
+end
+
+-- Setup event-based monitoring instead of constant polling
+local function setupMonitoring()
+    -- Monitor for new PhotoSubjects and Selections being added
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if playerGui then
+        local function onDescendantAdded(instance)
+            if instance.Name == "PhotoSubject" and instance:IsA("TextLabel") then
+                -- Add to cache if not already there
+                local found = false
+                for _, existing in ipairs(cachedInstances.photoSubjects) do
+                    if existing == instance then
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    table.insert(cachedInstances.photoSubjects, instance)
+                end
+            elseif instance.Name == "Selection" and instance:IsA("ImageLabel") then
+                -- Add to cache if not already there
+                local found = false
+                for _, existing in ipairs(cachedInstances.selections) do
+                    if existing == instance then
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    table.insert(cachedInstances.selections, instance)
+                end
+            end
+        end
+        
+        playerGui.DescendantAdded:Connect(onDescendantAdded)
+        
+        -- Also cleanup removed instances
+        local function onDescendantRemoved(instance)
+            for i, photoSubject in ipairs(cachedInstances.photoSubjects) do
+                if photoSubject == instance then
+                    table.remove(cachedInstances.photoSubjects, i)
+                    break
+                end
+            end
+            for i, selection in ipairs(cachedInstances.selections) do
+                if selection == instance then
+                    table.remove(cachedInstances.selections, i)
+                    break
+                end
+            end
+        end
+        
+        playerGui.DescendantAdded:Connect(onDescendantAdded)
+        playerGui.DescendantRemoving:Connect(onDescendantRemoved)
+    end
+    
+    -- Initial cache and check
+    cachePhotoSubjects()
+    cacheSelections()
+    checkChallenges()
+    
+    -- Periodic check with longer interval since we're mostly event-driven
+    task.spawn(function()
+        while true do
+            task.wait(0.5)  -- Check every 0.5 seconds
+            checkChallenges()
+        end
+    end)
+end
+
+-- Start monitoring
+task.spawn(function()
+    task.wait(1)  -- Wait for UI to load
+    setupMonitoring()
+end)
+
+-- Create a Billboard GUI to display the WalkSpeed
+local function createBillboardGui(bot)
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Size = UDim2.new(6, 0, 3, 0) -- Adjust the size as needed
+    billboardGui.StudsOffset = Vector3.new(0, 2, 0) -- Position above the bot's feet
+    billboardGui.AlwaysOnTop = true
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1) -- White color
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSansBold -- Use a bold font
+
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Color = Color3.new(0, 0, 0) -- Black color for better visibility
+    uiStroke.Thickness = 2
+    uiStroke.Parent = textLabel
+
+    textLabel.Parent = billboardGui
+    billboardGui.Parent = bot:FindFirstChild("LeftFoot") or bot:FindFirstChild("RightFoot") or bot:FindFirstChild("HumanoidRootPart") -- Parent to foot or root part if available
+    return textLabel
+end
+
+-- Function to update the WalkSpeed on the Billboard GUI
+local function updateWalkSpeed(humanoid, textLabel)
+    local previousSpeed = humanoid.WalkSpeed
+    while true do
+        if humanoid and textLabel then
+            local walkSpeed = math.floor(humanoid.WalkSpeed * 10) / 10 -- Round to one decimal place
+            textLabel.Text = tostring(walkSpeed)
+
+            if walkSpeed > previousSpeed then
+                textLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Yellow color if speed increased
+            elseif walkSpeed < previousSpeed then
+                textLabel.TextColor3 = Color3.fromRGB(0, 0, 255) -- Blue color if speed decreased
+            end
+
+            previousSpeed = walkSpeed
+        end
+        wait(0.1) -- Update every 0.1 seconds
+    end
+end
+
+-- Main function to detect the bot and update the WalkSpeed
+local function monitorGhost()
+    if _G.monitoringGhost then
+        _G.monitoringGhost:Destroy() -- Destroy the old one if already running
+    end
+
+    local monitorPart = Instance.new("Folder")
+    monitorPart.Name = "MonitorGhostFolder"
+    monitorPart.Parent = workspace
+    _G.monitoringGhost = monitorPart
+
+    task.spawn(function()
+        while true do
+            if not monitorPart.Parent then return end -- Stop if the monitorPart is destroyed
+            local bot = workspace:FindFirstChild("Ghost")
+            if bot then
+                local humanoid = bot:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    local textLabel = createBillboardGui(bot)
+                    task.spawn(updateWalkSpeed, humanoid, textLabel)
+                end
+            end
+            wait(1) -- Check every 1 second for the Ghost
+        end
+    end)
+end
+
+task.spawn(monitorGhost)
+
+-- info script
+-- Non-blocking version of Tab 3 scripts
+-- Replaced spawn() with task.spawn()
+-- Replaced blocking while true loops with task.spawn() + task.wait()
+-- end info script
+
+-- ESP for HumanoidRootParts
+local espTransparency = 0.8
+
+function createEsp(part)
+    if part:IsA("BasePart") and part.Name == "HumanoidRootPart" then
+        local parentModel = part:FindFirstAncestorOfClass("Model")
+        if not (parentModel and parentModel.Name == "Ghost" and parentModel.Parent == workspace) then
+            local espBox = Instance.new("BoxHandleAdornment")
+            espBox.Name = part.Name .. "_ESP"
+            espBox.Parent = part
+            espBox.Adornee = part
+            espBox.AlwaysOnTop = true
+            espBox.ZIndex = 0
+            espBox.Size = part.Size
+            espBox.Transparency = espTransparency
+            espBox.Color = BrickColor.new("Lime green")
+        end
+    end
+end
+
+-- Loop through existing parts
+for _, part in pairs(workspace:GetDescendants()) do
+    createEsp(part)
+end
+
+-- Connect to new parts
+workspace.DescendantAdded:Connect(function(part)
+    createEsp(part)
+end)
+
+-- Player ESP with fixed toggle functionality
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+-- Configuration
+local TOGGLE_KEY = Enum.KeyCode.Five
+local ESP_ENABLED = true
+local SHINY_COLOR = Color3.fromRGB(255, 255, 90) -- Light yellow
+
+-- Function to toggle ESP visibility
+local function toggleESP()
+    ESP_ENABLED = not ESP_ENABLED
+    
+    -- Update all existing ESP elements immediately
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character then
+            local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                local billboard = humanoidRootPart:FindFirstChild(player.Name .. "_ESP")
+                if billboard then
+                    billboard.Enabled = ESP_ENABLED
+                end
+            end
+        end
+    end
+end
+
+-- Set up keybind
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == TOGGLE_KEY then
+        toggleESP()
+    end
+end)
+
+-- Function to create ESP for a player
+local function createPlayerESP(player)
+    if player == Players.LocalPlayer then return end
+    
+    local character = player.Character
+    if not character then return end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    -- Remove existing ESP if it exists
+    local existingBillboard = humanoidRootPart:FindFirstChild(player.Name .. "_ESP")
+    if existingBillboard then
+        existingBillboard:Destroy()
+    end
+    
+    -- Create new billboard
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = player.Name .. "_ESP"
+    billboard.Adornee = humanoidRootPart
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Enabled = ESP_ENABLED
+    billboard.Parent = humanoidRootPart
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundTransparency = 1
+    frame.Parent = billboard
+
+    local usernameLabel = Instance.new("TextLabel")
+    usernameLabel.Size = UDim2.new(1, 0, 0.5, -5)
+    usernameLabel.Position = UDim2.new(0, 0, 0, 0)
+    usernameLabel.BackgroundTransparency = 1
+    usernameLabel.Font = Enum.Font.GothamBold
+    usernameLabel.Text = ""
+    usernameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    usernameLabel.TextSize = 14
+    usernameLabel.TextStrokeTransparency = 0.7
+    usernameLabel.TextXAlignment = Enum.TextXAlignment.Center
+    usernameLabel.TextYAlignment = Enum.TextYAlignment.Bottom
+    usernameLabel.Parent = frame
+
+    local displayNameLabel = Instance.new("TextLabel")
+    displayNameLabel.Size = UDim2.new(1, 0, 0.5, -5)
+    displayNameLabel.Position = UDim2.new(0, 0, 0.2, 0)
+    displayNameLabel.BackgroundTransparency = 1
+    displayNameLabel.Font = Enum.Font.GothamBold
+    displayNameLabel.Text = player.DisplayName
+    displayNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    displayNameLabel.TextSize = 12
+    displayNameLabel.TextStrokeTransparency = 0.7
+    displayNameLabel.TextXAlignment = Enum.TextXAlignment.Center
+    displayNameLabel.TextYAlignment = Enum.TextYAlignment.Top
+    displayNameLabel.Parent = frame
+
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Parent = usernameLabel
+    uiGradient.Rotation = 0
+    uiGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, SHINY_COLOR),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    })
+
+    local uiGradientBottom = Instance.new("UIGradient")
+    uiGradientBottom.Parent = displayNameLabel
+    uiGradientBottom.Rotation = 0
+    uiGradientBottom.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, SHINY_COLOR),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    })
+    
+    -- Animation function
+    local function animate()
+        while billboard and billboard.Parent do
+            if ESP_ENABLED then
+                for i = -1, 1, 0.02 do
+                    if not billboard or not billboard.Parent then return end
+                    uiGradient.Offset = Vector2.new(i, 0)
+                    uiGradientBottom.Offset = Vector2.new(i, 0)
+                    task.wait(0.05)
+                end
+            else
+                task.wait(0.1)
+            end
+        end
+    end
+    
+    spawn(animate)
+end
+
+-- Function to remove ESP when player leaves
+local function removePlayerESP(player)
+    if player.Character then
+        local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            local billboard = humanoidRootPart:FindFirstChild(player.Name .. "_ESP")
+            if billboard then
+                billboard:Destroy()
+            end
+        end
+    end
+end
+
+-- Set up ESP for existing players
+for _, player in pairs(Players:GetPlayers()) do
+    createPlayerESP(player)
+    
+    -- Set up character events
+    player.CharacterAdded:Connect(function()
+        createPlayerESP(player)
+    end)
+end
+
+-- Set up events for new players
+Players.PlayerAdded:Connect(function(player)
+    createPlayerESP(player)
+    
+    player.CharacterAdded:Connect(function()
+        createPlayerESP(player)
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    removePlayerESP(player)
+end)
+
+-- Ghost highlight (NON-BLOCKING VERSION)
+local FillColor = Color3.fromRGB(175, 25, 255)
+local DepthMode = "AlwaysOnTop"
+local FillTransparency = 0.9
+local OutlineColor = Color3.fromRGB(255, 255, 255)
+local OutlineTransparency = 0.2
+
+local CoreGui = game:FindService("CoreGui")
+local Storage = Instance.new("Folder")
+Storage.Parent = CoreGui
+Storage.Name = "Ghost_Highlight_Storage"
+
+local function HighlightGhost()
+    local ghost = workspace:FindFirstChild("Ghost")
+    if ghost then
+        for _, part in ipairs(ghost:GetChildren()) do
+            if part:IsA("BasePart") then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "GhostHighlight_" .. part.Name
+                highlight.FillColor = FillColor
+                highlight.DepthMode = DepthMode
+                highlight.FillTransparency = FillTransparency
+                highlight.OutlineColor = OutlineColor
+                highlight.OutlineTransparency = OutlineTransparency
+                highlight.Adornee = part
+                highlight.Parent = Storage
+            end
+        end
+    end
+end
+
+local function ClearGhostHighlight()
+    for _, highlight in ipairs(Storage:GetChildren()) do
+        if highlight:IsA("Highlight") then
+            highlight:Destroy()
+        end
+    end
+end
+
+-- NON-BLOCKING GHOST DETECTION
+task.spawn(function()
+    while task.wait(0.3) do
+        ClearGhostHighlight()
+        HighlightGhost()
+    end
+end)
+
+
+
+
+
+
+
+
+
+
+-- Auto Salt and Crucifix Script with Keybind
+
+local player = game.Players.LocalPlayer
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local remotes = replicatedStorage:WaitForChild("Remotes")
+local inventoryRemotes = remotes:WaitForChild("InventoryRemotes")
+local actionRemote = inventoryRemotes:WaitForChild("Action")
+local userInputService = game:GetService("UserInputService")
+
+-- Function to find slot number for a specific item
+local function findSlotForItem(itemName)
+    for i = 1, 5 do
+        local slot = player:FindFirstChild("Slot"..i)
+        if slot and slot.Value and slot.Value.Name == itemName then
+            return i, slot.Value
+        end
+    end
+    return nil, nil
+end
+
+-- Function to equip item using slot key binding
+local function equipItem(slotNumber)
+    -- Fire Action remote event with "Slot" parameter to equip the item
+    local args = {
+        "Slot",
+        slotNumber
+    }
+    actionRemote:FireServer(unpack(args))
+end
+
+-- Function to drop all items
+local function dropAllItems()
+    for i = 1, 5 do
+        local slot = player:FindFirstChild("Slot"..i)
+        if slot and slot.Value then
+            -- Equip the item using slot key binding
+            equipItem(i)
+            
+            -- Small delay to allow item to be equipped
+            task.wait(0.2)
+            
+            -- Fire Action remote event with "Drop" parameter
+            local args = {
+                "Drop"
+            }
+            actionRemote:FireServer(unpack(args))
+            
+            -- Small delay between drops
+            task.wait(0.1)
+        end
+    end
+end
+
+-- Main function to auto use Crucifix and Salt
+local function autoUseItems()
+    -- Find Crucifix slot
+    local crucifixSlot, crucifixItem = findSlotForItem("Crucifix")
+    if crucifixSlot and crucifixItem then
+        -- Equip the crucifix using slot key binding
+        equipItem(crucifixSlot)
+        
+        -- Small delay to allow item to be equipped
+        task.wait(0.3)
+        
+        -- Fire Action remote event with "Drop" parameter
+        local args = {
+            "Drop"
+        }
+        actionRemote:FireServer(unpack(args))
+    end
+    
+    -- Small delay to ensure crucifix action is processed
+    task.wait(0.5)
+    
+    -- Find Salt slot
+    local saltSlot, saltItem = findSlotForItem("Salt")
+    if saltSlot and saltItem then
+        -- Equip the salt using slot key binding
+        equipItem(saltSlot)
+        
+        -- Small delay to allow item to be equipped
+        task.wait(0.3)
+        
+        -- Drop salt at the 3 specific locations using the correct remote path
+        local saltDropRemote = game.Workspace.Seirunao.Salt.Remote.Drop
+        local capacity = game.Workspace.Seirunao.Salt.Ammo.Capacity
+        
+        local positions = {
+            CFrame.new(985.17041015625, 32.18080139160156, -925.1861572265625, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            CFrame.new(985.126953125, 32.15512466430664, -922.5787353515625, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+            CFrame.new(984.9935302734375, 32.07635498046875, -919.87939453125, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+        }
+        
+        for i, position in ipairs(positions) do
+            local args = {
+                position,
+                capacity
+            }
+            saltDropRemote:FireServer(unpack(args))
+            task.wait(0.1) -- Small delay between drops
+        end
+    end
+    
+    -- Drop all remaining items
+    task.wait(0.2)
+    dropAllItems()
+end
+
+-- Keybind function
+local function onInputBegan(input, gameProcessed)
+    -- Check if the input is the backtick key (`) and if it wasn't already processed by the game
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Backquote then
+        -- Run the auto use items function
+        spawn(autoUseItems)
+    end
+end
+
+-- Connect the input began event
+userInputService.InputBegan:Connect(onInputBegan)
+
+-- info script
+-- UnSeeGhost Script synced to UI
+-- Keybind: X
+-- Taps Outside Zone continuously via firetouchinterest
+-- UnSee ImageLabel color: white = off, light green = on
+-- end info script
+
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+
+local LoopEnabled = false
+local LoopThread = nil
+
+local COLOR_ON = Color3.fromRGB(144, 238, 144)  -- light green
+local COLOR_OFF = Color3.fromRGB(255, 255, 255) -- white
+
+-- Wait for ToggleUI
+local toggleUI = CoreGui:WaitForChild("ToggleUI")
+local toogleUI = toggleUI:WaitForChild("TFrame"):WaitForChild("ToogleUI")
+local unSeeLabel = toogleUI:WaitForChild("UnSee")
+
+-- Find Outside Zone
+local outsideZone = nil
+local zones = game.Workspace:FindFirstChild("Map"):FindFirstChild("Zones")
+if zones then
+    outsideZone = zones:FindFirstChild("Outside")
+end
+
+-- Touch function
+local function triggerTouch()
+    if not outsideZone then return end
+    
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        firetouchinterest(char.HumanoidRootPart, outsideZone, 0)
+        firetouchinterest(char.HumanoidRootPart, outsideZone, 1)
+    end
+end
+
+-- Safe loop
+local function startLoop()
+    if LoopThread then
+        return -- prevent stacking loops
+    end
+    
+    LoopThread = task.spawn(function()
+        while LoopEnabled do
+            triggerTouch()
+            task.wait(0.1)
+        end
+        LoopThread = nil
+    end)
+end
+
+-- Update UI color
+local function updateUI()
+    if LoopEnabled then
+        unSeeLabel.ImageColor3 = COLOR_ON
+    else
+        unSeeLabel.ImageColor3 = COLOR_OFF
+    end
+end
+
+-- Toggle function
+local function toggleLoop()
+    LoopEnabled = not LoopEnabled
+    updateUI()
+    
+    if LoopEnabled then
+        startLoop()
+    end
+end
+
+-- UI Toggle for ImageLabel
+unSeeLabel.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        toggleLoop()
+    end
+end)
+
+-- PC Keybind
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.X then
+        toggleLoop()
+    end
+end)
+-- END
+-- TeleportItems (Upgraded - Single Script)
+-- Fixed to work with server-owned parts
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local targetNames = {
+    Briefcase = true,
+    Soap = true,
+    Plate = true
+}
+
+local running = false
+local cooldown = false
+local COOLDOWN_TIME = 2
+
+-- Improved teleportation function that fights server-side issues
+local function TeleportPart()
+    if running or cooldown then
+        return
+    end
+
+    running = true
+    cooldown = true
+    
+    local character = player.Character
+    if not character then
+        running = false
+        cooldown = false
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        running = false
+        cooldown = false
+        return
+    end
+
+    -- Cache itemsFolder:GetChildren() for efficiency
+    local items = itemsFolder:GetChildren()
+    
+    -- Collect target items with handles
+    local targetItems = {}
+    for _, item in ipairs(items) do
+        if targetNames[item.Name] then
+            local handle = item:FindFirstChild("Handle")
+            if handle then
+                table.insert(targetItems, handle)
+            end
+        end
+    end
+    
+    -- Fight server-side issues with multiple techniques:
+    
+    -- Technique 1: Try direct CFrame setting first (works sometimes)
+    for _, handle in ipairs(targetItems) do
+        if handle and handle.Parent then
+            handle.Anchored = false -- Unanchor for physics
+            
+            -- Use CFrame multiplication instead of addition
+            local targetCFrame = hrp.CFrame * CFrame.new(
+                math.random(-5, 5),
+                3,
+                math.random(-5, 5)
+            )
+            
+            -- Try setting CFrame directly
+            handle.CFrame = targetCFrame
+        end
+    end
+    
+    -- Technique 2: If direct setting didn't work, use BodyMovers as fallback
+    task.spawn(function()
+        task.wait(0.1) -- Give server a moment to process
+        
+        for _, handle in ipairs(targetItems) do
+            if handle and handle.Parent then
+                -- Add BodyPosition to force movement
+                local bodyPos = handle:FindFirstChild("TeleportBodyPos") or Instance.new("BodyPosition")
+                bodyPos.Name = "TeleportBodyPos"
+                bodyPos.Position = (hrp.CFrame * CFrame.new(
+                    math.random(-5, 5),
+                    3,
+                    math.random(-5, 5)
+                )).Position
+                bodyPos.MaxForce = Vector3.new(4000, 4000, 4000)
+                bodyPos.D = 100
+                bodyPos.P = 1000
+                bodyPos.Parent = handle
+                
+                -- Remove BodyPosition after a moment
+                task.spawn(function()
+                    task.wait(0.5)
+                    if bodyPos.Parent then
+                        bodyPos:Destroy()
+                    end
+                end)
+            end
+        end
+    end)
+    
+    -- Technique 3: Network ownership workaround
+    task.spawn(function()
+        task.wait(0.2)
+        for _, handle in ipairs(targetItems) do
+            if handle and handle.Parent then
+                -- Try to get network ownership
+                pcall(function()
+                    handle:SetNetworkOwner(player)
+                end)
+            end
+        end
+    end)
+
+    -- Cooldown timer
+    task.spawn(function()
+        task.wait(COOLDOWN_TIME)
+        cooldown = false
+    end)
+    
+    running = false
+end
+
+-- PC KEYBIND (,)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+    if input.KeyCode == Enum.KeyCode.Comma then
+        TeleportPart()
+    end
+end)
+
+
+
+
+
+-- Bring UsedCrucifix (Upgraded - Matching TeleportItems style)
+-- Fixed to work with server-owned parts
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+local crucifixRunning = false
+local crucifixCooldown = false
+local COOLDOWN_TIME = 2
+
+local function BringCrucifix()
+    if crucifixRunning or crucifixCooldown then
+        return
+    end
+
+    crucifixRunning = true
+    crucifixCooldown = true
+
+    local character = player.Character
+    if not character then
+        crucifixRunning = false
+        crucifixCooldown = false
+        return
+    end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        crucifixRunning = false
+        crucifixCooldown = false
+        return
+    end
+
+    local item = itemsFolder:FindFirstChild("UsedCrucifix")
+    if not item then
+        print("UsedCrucifix not found in Items")
+        crucifixRunning = false
+        crucifixCooldown = false
+        return
+    end
+
+    local handle = item:FindFirstChild("Handle")
+    if not handle then
+        crucifixRunning = false
+        crucifixCooldown = false
+        return
+    end
+
+    -- Technique 1: Direct CFrame setting with anchoring loop
+    for i = 1, 50 do
+        if handle and handle.Parent then
+            handle.Anchored = true
+            handle.CFrame = hrp.CFrame * CFrame.new(0, 3, 0)
+        end
+        task.wait(0.03)
+    end
+
+    -- Technique 2: BodyPosition fallback to force movement
+    task.spawn(function()
+        task.wait(0.1)
+
+        if handle and handle.Parent then
+            local bodyPos = handle:FindFirstChild("TeleportBodyPos") or Instance.new("BodyPosition")
+            bodyPos.Name = "TeleportBodyPos"
+            bodyPos.Position = (hrp.CFrame * CFrame.new(0, 3, 0)).Position
+            bodyPos.MaxForce = Vector3.new(4000, 4000, 4000)
+            bodyPos.D = 100
+            bodyPos.P = 1000
+            bodyPos.Parent = handle
+
+            task.spawn(function()
+                task.wait(0.5)
+                if bodyPos.Parent then
+                    bodyPos:Destroy()
+                end
+            end)
+        end
+    end)
+
+    -- Technique 3: Network ownership workaround
+    task.spawn(function()
+        task.wait(0.2)
+        if handle and handle.Parent then
+            pcall(function()
+                handle:SetNetworkOwner(player)
+            end)
+        end
+    end)
+
+    task.wait(0.5)
+    if handle and handle.Parent then
+        handle.Anchored = false
+    end
+
+    -- Cooldown timer
+    task.spawn(function()
+        task.wait(COOLDOWN_TIME)
+        crucifixCooldown = false
+    end)
+
+    crucifixRunning = false
+end
+
+-- PC KEYBIND (L)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+    if input.KeyCode == Enum.KeyCode.L then
+        BringCrucifix()
+    end
+end)
+
+-- end mini sc
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+-- NightVision setup (same as mobile version)
+local function setupNightVision()
+    -- Set NightVision ownership to true
+    local NV = Player:FindFirstChild("NightVision")
+    if NV then
+        NV.Value = true
+    else
+        local newNV = Instance.new("BoolValue")
+        newNV.Name = "NightVision"
+        newNV.Value = true
+        newNV.Parent = Player
+    end
+
+    -- Remove the noLights challenge that blocks NV
+    local challenges = ReplicatedStorage:FindFirstChild("ActiveChallenges")
+    if challenges then
+        local noLights = challenges:FindFirstChild("noLights")
+        if noLights then
+            noLights:Destroy()
+        end
+    end
+
+    -- Enable the NVG battery GUI
+    local NVGBattery = PlayerGui:FindFirstChild("NVGBattery")
+    if NVGBattery then
+        NVGBattery.Enabled = true
+    end
+
+    -- Toggle NightVision value to force .Changed event
+    task.defer(function()
+        local nv = Player:FindFirstChild("NightVision")
+        if nv and nv.Value == true then
+            nv.Value = false
+            task.wait(0.1)
+            nv.Value = true
+        end
+    end)
+end
+
+-- Prevent Atmosphere from ever being fully removed.
+-- saveOriginalSettings() in LightingManager reads Lighting.Atmosphere.Density
+-- with no nil check. If Fullbright destroys Atmosphere, the next NV toggle crashes.
+-- Fix: hook AncestryChanged on Atmosphere and instantly recreate if parent becomes nil.
+local function protectAtmosphere()
+    local atmos = Lighting:FindFirstChildOfClass("Atmosphere")
+
+    local function onRemoved(instance)
+        if instance.ClassName == "Atmosphere" and not instance.Parent then
+            task.defer(function()
+                if not Lighting:FindFirstChildOfClass("Atmosphere") then
+                    local a = Instance.new("Atmosphere")
+                    a.Density = 0.3
+                    a.Offset = 0.25
+                    a.Color = Color3.fromRGB(199, 199, 199)
+                    a.Decay = Color3.fromRGB(92, 60, 43)
+                    a.Glare = 0
+                    a.Haze = 1
+                    a.Parent = Lighting
+                end
+            end)
+        end
+    end
+
+    if atmos then
+        pcall(function()
+            atmos.AncestryChanged:Connect(function(_, parent)
+                if not parent then onRemoved(atmos) end
+            end)
+        end)
+    end
+
+    -- Also watch for new Atmosphere instances being added (in case it recreated externally)
+    Lighting.ChildAdded:Connect(function(child)
+        if child:IsA("Atmosphere") then
+            pcall(function()
+                child.AncestryChanged:Connect(function(_, parent)
+                    if not parent then onRemoved(child) end
+                end)
+            end)
+        end
+    end)
+
+    -- Safety net: periodic check
+    task.spawn(function()
+        while task.wait(0.5) do
+            if not Lighting:FindFirstChildOfClass("Atmosphere") then
+                pcall(function()
+                    local a = Instance.new("Atmosphere")
+                    a.Density = 0.3
+                    a.Offset = 0.25
+                    a.Color = Color3.fromRGB(199, 199, 199)
+                    a.Decay = Color3.fromRGB(92, 60, 43)
+                    a.Glare = 0
+                    a.Haze = 1
+                    a.Parent = Lighting
+                end)
+            end
+        end
+    end)
+end
+
+-- Initialize both features
+setupNightVision()
+protectAtmosphere()
+
+-- Ghost Blink Detection - Display Session Blinks After Hunt
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+
+-- Get local player and create UI
+local player = Players.LocalPlayer
+
+-- Check if UI already exists and destroy it
+local existingUI = CoreGui:FindFirstChild("GhostBlinkUI")
+if existingUI then
+    existingUI:Destroy()
+end
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "GhostBlinkUI"
+screenGui.Parent = CoreGui
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Create the main frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "BlinkInfo"
+mainFrame.Size = UDim2.new(0, 150, 0, 25)
+mainFrame.Position = UDim2.new(0.62, 0, 0.01, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(47, 47, 56)
+mainFrame.BackgroundTransparency = 0.5
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = true
+
+-- Add UICorner to main frame
+local mainFrameCorner = Instance.new("UICorner")
+mainFrameCorner.CornerRadius = UDim.new(0, 4)
+mainFrameCorner.Parent = mainFrame
+
+mainFrame.Parent = screenGui
+
+-- Create blink count label
+local countLabel = Instance.new("TextLabel")
+countLabel.Name = "Count"
+countLabel.Size = UDim2.new(0, 40, 1, 0)
+countLabel.Position = UDim2.new(0, 0, 0, 0)
+countLabel.BackgroundTransparency = 1
+countLabel.Text = "0"
+countLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+countLabel.Font = Enum.Font.GothamBold
+countLabel.TextSize = 14
+countLabel.TextXAlignment = Enum.TextXAlignment.Center
+countLabel.Parent = mainFrame
+
+-- Create separator label
+local separator1 = Instance.new("TextLabel")
+separator1.Name = "Separator1"
+separator1.Size = UDim2.new(0, 15, 1, 0)
+separator1.Position = UDim2.new(0, 40, 0, 0)
+separator1.BackgroundTransparency = 1
+separator1.Text = "|"
+separator1.TextColor3 = Color3.fromRGB(255, 255, 255)
+separator1.Font = Enum.Font.GothamBold
+separator1.TextSize = 14
+separator1.TextXAlignment = Enum.TextXAlignment.Center
+separator1.Parent = mainFrame
+
+-- Create duration label
+local durationLabel = Instance.new("TextLabel")
+durationLabel.Name = "Duration"
+durationLabel.Size = UDim2.new(0, 50, 1, 0)
+durationLabel.Position = UDim2.new(0, 55, 0, 0)
+durationLabel.BackgroundTransparency = 1
+durationLabel.Text = "0ms"
+durationLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+durationLabel.Font = Enum.Font.GothamBold
+durationLabel.TextSize = 14
+durationLabel.TextXAlignment = Enum.TextXAlignment.Center
+durationLabel.Parent = mainFrame
+
+-- Create separator label
+local separator2 = Instance.new("TextLabel")
+separator2.Name = "Separator2"
+separator2.Size = UDim2.new(0, 15, 1, 0)
+separator2.Position = UDim2.new(0, 105, 0, 0)
+separator2.BackgroundTransparency = 1
+separator2.Text = "|"
+separator2.TextColor3 = Color3.fromRGB(255, 255, 255)
+separator2.Font = Enum.Font.GothamBold
+separator2.TextSize = 14
+separator2.TextXAlignment = Enum.TextXAlignment.Center
+separator2.Parent = mainFrame
+
+-- Create status box
+local statusBox = Instance.new("Frame")
+statusBox.Name = "Status"
+statusBox.Size = UDim2.new(0, 15, 0, 15)
+statusBox.Position = UDim2.new(0, 125, 0, 5)
+statusBox.BackgroundColor3 = Color3.fromRGB(200, 100, 255) -- Light purple
+statusBox.BackgroundTransparency = 0.5 -- Visible by default (current state)
+statusBox.BorderSizePixel = 0
+
+-- Add UICorner to status box
+local statusBoxCorner = Instance.new("UICorner")
+statusBoxCorner.CornerRadius = UDim.new(0, 2)
+statusBoxCorner.Parent = statusBox
+
+statusBox.Parent = mainFrame
+
+-- Variables to track blinking
+local sessionBlinkCount = 0
+local totalBlinkCount = 0
+local lastBlinkDuration = 0
+local isBlinking = false
+local blinkStartTime = 0
+local ghost = nil
+local head = nil
+local headHighlight = nil
+local wasHunting = false
+local huntingSessionStarted = false
+local huntingSessionEnded = false
+local huntingStableCount = 0
+
+-- Statistics tracking
+local sessionBlinkDurations = {}
+
+-- Function to initialize ghost tracking
+local function initializeGhostTracking()
+    ghost = Workspace:FindFirstChild("Ghost")
+    if not ghost then
+        -- Try to find ghost in ReplicatedStorage and wait for it to be loaded
+        local ghostModelFolder = game.ReplicatedStorage:FindFirstChild("GhostModel")
+        if ghostModelFolder then
+            ghost = ghostModelFolder:FindFirstChild("Ghost")
+        end
+    end
+    
+    if ghost then
+        head = ghost:FindFirstChild("Head")
+        local highlightStorage = CoreGui:FindFirstChild("Ghost_Highlight_Storage")
+        if highlightStorage then
+            headHighlight = highlightStorage:FindFirstChild("GhostHighlight_Head")
+        end
+        
+        if head and headHighlight then
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- Function to check if ghost is hunting
+local function isGhostHunting()
+    -- First check if ghost exists
+    if not ghost or not ghost.Parent then
+        return false
+    end
+    
+    -- Then check the hunting property
+    if ghost:FindFirstChild("Hunting") then
+        return ghost.Hunting.Value
+    end
+    
+    return false
+end
+
+-- Function to calculate statistics
+local function calculateBlinkStats()
+    if #sessionBlinkDurations == 0 then
+        return 0, 0, 0
+    end
+    
+    local minDuration = math.huge
+    local maxDuration = 0
+    local totalDuration = 0
+    
+    for _, duration in ipairs(sessionBlinkDurations) do
+        if duration < minDuration then
+            minDuration = duration
+        end
+        if duration > maxDuration then
+            maxDuration = duration
+        end
+        totalDuration = totalDuration + duration
+    end
+    
+    return minDuration, maxDuration, totalDuration
+end
+
+-- Function to reset session tracking (but not total blinks)
+local function resetSessionTracking()
+    -- Print statistics before resetting
+    if #sessionBlinkDurations > 0 then
+        local minDuration, maxDuration, totalDuration = calculateBlinkStats()
+        print("=== Ghost Hunting Session Ended ===")
+        print("Session Blinks:", #sessionBlinkDurations)
+        print("Fastest Blink:", minDuration .. "ms")
+        print("Longest Blink:", maxDuration .. "ms")
+        if #sessionBlinkDurations > 0 then
+            print("Average Blink:", math.floor((totalDuration / #sessionBlinkDurations) + 0.5) .. "ms")
+        end
+        print("===================================")
+    end
+    
+    -- Reset session tracking variables (but not total blinks)
+    lastBlinkDuration = 0
+    isBlinking = false
+    blinkStartTime = 0
+    huntingSessionEnded = true
+    
+    -- Keep sessionBlinkCount displayed in UI
+    -- Reset UI
+    durationLabel.Text = "0ms"
+    statusBox.BackgroundTransparency = 0.5 -- Reset to visible state
+end
+
+-- Try to initialize immediately
+local initialized = initializeGhostTracking()
+
+-- If not initialized, set up a connection to try again when ghost appears
+if not initialized then
+    local connection
+    connection = Workspace.ChildAdded:Connect(function(child)
+        if child.Name == "Ghost" then
+            wait(1) -- Wait a bit for everything to load
+            if initializeGhostTracking() then
+                connection:Disconnect()
+            end
+        end
+    end)
+end
+
+-- Main detection loop
+RunService.Heartbeat:Connect(function()
+    -- Check if ghost exists
+    local currentGhost = Workspace:FindFirstChild("Ghost")
+    
+    -- If ghost disappeared, reset session tracking
+    if ghost and not currentGhost then
+        if huntingSessionStarted and not huntingSessionEnded then
+            resetSessionTracking()
+        end
+        ghost = nil
+        head = nil
+        headHighlight = nil
+        initialized = false
+        huntingSessionStarted = false
+        huntingSessionEnded = false
+        huntingStableCount = 0
+        return
+    end
+    
+    -- If not initialized but ghost exists, try to initialize
+    if not initialized and currentGhost then
+        initialized = initializeGhostTracking()
+        if not initialized then return end
+    end
+    
+    -- If ghost doesn't exist, return
+    if not ghost or not head or not headHighlight then return end
+    
+    -- Check hunting status
+    local hunting = isGhostHunting()
+    
+    -- Stabilize hunting detection to prevent flickering
+    if hunting == wasHunting then
+        huntingStableCount = math.min(huntingStableCount + 1, 10) -- Cap at 10 frames
+    else
+        huntingStableCount = 0
+    end
+    
+    -- Only act on hunting state if it's been stable for a few frames
+    if huntingStableCount >= 3 then
+        -- Check if hunting just started (and we're not already in a session)
+        if hunting and not huntingSessionStarted and not huntingSessionEnded then
+            huntingSessionStarted = true
+            huntingSessionEnded = false
+            -- Reset session blinks only when hunting starts (not total blinks)
+            sessionBlinkDurations = {}
+            sessionBlinkCount = 0
+            countLabel.Text = tostring(sessionBlinkCount)
+        end
+        
+        -- Check if hunting state changed from true to false (and we were in a session)
+        if not hunting and huntingSessionStarted and not huntingSessionEnded then
+            -- Ghost just finished hunting, reset session tracking
+            resetSessionTracking()
+        end
+    end
+    
+    -- Update previous hunting state
+    wasHunting = hunting
+    
+    -- Check if head exists and is valid
+    if not head or not head.Parent then return end
+    
+    -- Method 1: Check head transparency
+    local headInvisible = (head.Transparency >= 0.95)  -- Almost invisible
+    
+    -- Use head transparency as the main indicator
+    if headInvisible and not isBlinking then
+        -- Blink started
+        isBlinking = true
+        blinkStartTime = tick()
+        statusBox.BackgroundTransparency = 1 -- Make transparent when blinking (opposite state)
+    elseif not headInvisible and isBlinking then
+        -- Blink ended
+        isBlinking = false
+        local duration = (tick() - blinkStartTime) * 1000  -- Convert to ms
+        lastBlinkDuration = math.floor(duration + 0.5)  -- Round to nearest ms
+        sessionBlinkCount = sessionBlinkCount + 1
+        totalBlinkCount = totalBlinkCount + 1
+        
+        -- Store duration for statistics only during active hunting
+        if huntingSessionStarted and not huntingSessionEnded then
+            table.insert(sessionBlinkDurations, lastBlinkDuration)
+        end
+        
+        statusBox.BackgroundTransparency = 0.5 -- Make visible when not blinking (current state)
+    end
+    
+    -- Update UI
+    countLabel.Text = tostring(sessionBlinkCount)
+    durationLabel.Text = tostring(lastBlinkDuration) .. "ms"
+end)
+
+local player = game.Players.LocalPlayer
+local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("QuickChatSent")
+local toggle = false
+
+-- Debug print to confirm script is running
+
+local function fireRemote()
+	local args = {
+		{
+			Message = "_G.GhostName",
+			ButtonText = "Use the Ghost's Name",
+			Id = "GhostName"
+		}
+	}
+	remote:FireServer(unpack(args))
+end
+
+-- Proper InputBegan handler
+local function onInputBegan(input, gameProcessed)
+	-- Check if the input is the 6 key and if it wasn't already processed by the game
+	if not gameProcessed and input.KeyCode == Enum.KeyCode.Six then
+		toggle = not toggle
+		
+		
+		if toggle then
+			fireRemote()
+			
+			-- Start loop
+			spawn(function()
+				while toggle do
+					task.wait(5)
+					if toggle then
+						fireRemote()
+					end
+				end
+			end)
+		end
+	end
+end
+
+-- Connect to InputBegan event
+game:GetService("UserInputService").InputBegan:Connect(onInputBegan)
