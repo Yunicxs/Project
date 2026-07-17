@@ -1254,7 +1254,7 @@ end)
 -- Keep ESP attached while model exists in Workspace (survives death)
 game:GetService("RunService").Heartbeat:Connect(syncESP)
 
- Ghost highlight (NON-BLOCKING VERSION)
+-- Ghost highlight (NON-BLOCKING VERSION)
 local FillColor = Color3.fromRGB(175, 25, 255)
 local DepthMode = "AlwaysOnTop"
 local FillTransparency = 0.9
