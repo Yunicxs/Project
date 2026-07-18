@@ -1450,12 +1450,245 @@ end
 -- Connect the input began event
 userInputService.InputBegan:Connect(onInputBegan)
 
--- info script
--- UnSeeGhost Script synced to UI
+-- AutoDropItems — Section 1: skeleton, config, keybind
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local ActionRemote = ReplicatedStorage.Remotes.InventoryRemotes.Action
+
+-- Config
+local DROPKEY = Enum.KeyCode.Backquote  -- the ` key above Tab
+local DROPDELAY = 0.1  -- seconds between actions to avoid rate-limit kicks
+
+-- Track on/off state (press ` once to toggle the auto-drop on/off)
+local autoDropEnabled = false
+
+-- Toggle when ` is pressed
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == DROPKEY then
+		autoDropEnabled = not autoDropEnabled
+	end
+end)
+
+-- Section 2: scan all slots, switch then drop each occupied slot
+local function slotOccupied(slotIndex)
+	local ov = LocalPlayer:FindFirstChild("Slot" .. slotIndex)
+	return ov and ov.Value ~= nil
+end
+
+local function dropAllSlots()
+	for i = 1, 5 do
+		if slotOccupied(i) then
+			-- Step 1: change to this slot
+			ActionRemote:FireServer("Slot", i)
+			task.wait(DROPDELAY)
+			-- Step 2: drop the item in the active slot
+			ActionRemote:FireServer("Drop")
+			task.wait(DROPDELAY)
+		end
+	end
+end
+
+-- Section 3: loop while enabled
+task.spawn(function()
+	while true do
+		task.wait(0.1)
+		if autoDropEnabled then
+			dropAllSlots()
+		end
+	end
+end)
+
+-- TeleportItems (Ghost Room Edition)
+-- Detects the coldest zone (Ghost Room) and teleports target items there.
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+-- Names of items to teleport
+local targetNames = {
+	["EMF Reader"] = true,
+	["Flashlight"] = true,
+	["SLS Camera"] = true,
+	["Spirit Box"] = true,
+	["Strong Flashlight"] = true,
+	["Thermometer"] = true,
+	["UV Light"] = true,
+}
+
+-- Folder that holds the target items
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+-- Folder that holds all zones (each has _____Temperature + _____LocalBaseTemp)
+local zonesFolder = workspace:WaitForChild("Map"):WaitForChild("Zones")
+
+-- Find the coldest zone (lowest _____Temperature). That is the Ghost Room.
+-- Returns the zone Part, its temperature, and a CFrame to teleport to.
+local function GetGhostRoom()
+	local coldestZone = nil
+	local coldestTemp = math.huge
+
+	for _, zone in ipairs(zonesFolder:GetChildren()) do
+		-- Each zone is a Part with a _____Temperature NumberValue
+		local tempValue = zone:FindFirstChild("_____Temperature")
+		if tempValue and tempValue:IsA("NumberValue") then
+			local temp = tempValue.Value
+			local baseTemp = tempValue:FindFirstChild("_____LocalBaseTemp")
+			-- baseTemp available if you want to compare against baseline later
+
+			if temp < coldestTemp then
+				coldestTemp = temp
+				coldestZone = zone
+			end
+		end
+	end
+
+	if not coldestZone then
+		return nil, nil, nil
+	end
+
+	-- Prefer a SpawnPoint inside the zone, otherwise use the zone center
+	local spawnPoint = coldestZone:FindFirstChild("SpawnPoint")
+	local targetCFrame
+	if spawnPoint and spawnPoint:IsA("BasePart") then
+		targetCFrame = spawnPoint.CFrame + Vector3.new(0, 3, 0)
+	else
+		targetCFrame = coldestZone.CFrame + Vector3.new(0, 3, 0)
+	end
+
+	return coldestZone, coldestTemp, targetCFrame
+end
+
+-- Teleport every target item to the Ghost Room
+local running = false
+local cooldown = false
+local COOLDOWN_TIME = 2
+
+local function TeleportToGhostRoom()
+	if running or cooldown then
+		return
+	end
+
+	running = true
+	cooldown = true
+
+	local character = player.Character
+	if not character then
+		running = false
+		cooldown = false
+		return
+	end
+
+	-- Detect the Ghost Room (coldest zone) right before teleporting
+	local ghostZone, ghostTemp, targetCFrame = GetGhostRoom()
+	if not ghostZone or not targetCFrame then
+		warn("Ghost Room not found!")
+		running = false
+		cooldown = false
+		return
+	end
+
+	-- Collect target items with handles
+	local targetItems = {}
+	for _, item in ipairs(itemsFolder:GetChildren()) do
+		if targetNames[item.Name] then
+			local handle = item:FindFirstChild("Handle")
+			if handle then
+				table.insert(targetItems, handle)
+			end
+		end
+	end
+
+	-- Technique 1: direct CFrame set
+	for _, handle in ipairs(targetItems) do
+		if handle and handle.Parent then
+			handle.Anchored = false
+			handle.CFrame = targetCFrame * CFrame.new(
+				math.random(-5, 5),
+				0,
+				math.random(-5, 5)
+			)
+		end
+	end
+
+	-- Technique 2: BodyPosition fallback to force movement
+	task.spawn(function()
+		task.wait(0.1)
+		for _, handle in ipairs(targetItems) do
+			if handle and handle.Parent then
+				local bodyPos = handle:FindFirstChild("TeleportBodyPos") or Instance.new("BodyPosition")
+				bodyPos.Name = "TeleportBodyPos"
+				bodyPos.Position = (targetCFrame * CFrame.new(
+					math.random(-5, 5),
+					0,
+					math.random(-5, 5)
+				)).Position
+				bodyPos.MaxForce = Vector3.new(4000, 4000, 4000)
+				bodyPos.D = 100
+				bodyPos.P = 1000
+				bodyPos.Parent = handle
+
+				task.spawn(function()
+					task.wait(0.5)
+					if bodyPos.Parent then
+						bodyPos:Destroy()
+					end
+				end)
+			end
+		end
+	end)
+
+	-- Technique 3: network ownership workaround
+	task.spawn(function()
+		task.wait(0.2)
+		for _, handle in ipairs(targetItems) do
+			if handle and handle.Parent then
+				pcall(function()
+					handle:SetNetworkOwner(player)
+				end)
+			end
+		end
+	end)
+
+	-- Cooldown
+	task.spawn(function()
+		task.wait(COOLDOWN_TIME)
+		cooldown = false
+	end)
+
+	running = false
+end
+
+-- PC KEYBIND (P)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+	if input.KeyCode == Enum.KeyCode.P then
+		TeleportToGhostRoom()
+	end
+end)
+
+-- Section 1: Find the GhostRoom ImageLabel
+local ghostRoom = game:GetService("CoreGui"):WaitForChild("ToggleUI")
+	:WaitForChild("TFrame")
+	:WaitForChild("ToogleUI")
+	:WaitForChild("GhostRoom")
+
+-- Section 2 + 3: Run on a separate thread so the main script never blocks
+task.spawn(function()
+	local saltStepped = game:GetService("Workspace"):WaitForChild("SaltStepped", math.huge)
+
+	ghostRoom.ImageColor3 = Color3.fromRGB(255, 182, 193)
+end)
+
 -- Keybind: X
--- Taps Outside Zone continuously via firetouchinterest
--- UnSee ImageLabel color: white = off, light green = on
--- end info script
 
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
