@@ -464,7 +464,7 @@ end
 
 -- Section 3: AFK state + timer
 local AFK_ACTIVE = false
-local AFK_TIMEOUT = 60          -- seconds of no input before auto-activate
+local AFK_TIMEOUT = 30          -- seconds of no input before auto-activate
 local lastInputTime = tick()
 local latestGhost = nil         -- last ghost read from Quick Chat
 
