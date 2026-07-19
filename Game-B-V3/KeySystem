@@ -22,7 +22,7 @@ local LocalPlayer = Players.LocalPlayer
 --// =========================
 
 local CONFIG = {
-	Key = "Dev-967.01.25.@4",
+	Key = "Dev-792.01.25.@5",
 
 	FolderName = "InfiniteYields",
 	FileName = "Key.txt",
