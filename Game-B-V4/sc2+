@@ -2175,3 +2175,164 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         placeCrucifixAtGhostRoom()
     end
 end)
+
+-- AutoIgnitedCandles - Manual ignite via keybind E
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local CandlesFolder = workspace.Map.Candles
+local LightCandle = ReplicatedStorage.Remotes.LightCandle
+
+-- All candle/light targets.
+local IgniteTargets = {}
+
+for _, obj in ipairs(CandlesFolder:GetChildren()) do
+    if obj.Name == "Light" and obj:IsA("Model") then
+        table.insert(IgniteTargets, obj)
+    elseif obj.Name == "Candle" and obj:IsA("BasePart") then
+        table.insert(IgniteTargets, obj)
+    end
+end
+
+
+local function GetCharacterRoot()
+    local char = LocalPlayer.Character
+    if char then
+        return char:FindFirstChild("HumanoidRootPart")
+    end
+    return nil
+end
+
+local function GetTargetPosition(target)
+    if target:IsA("Model") then
+        if target.PrimaryPart then
+            return target.PrimaryPart.Position
+        end
+        return target:GetPivot().Position
+    end
+    return target.Position
+end
+
+local function IsAlreadyLit(target)
+    local flag = target:FindFirstChild("IsIgnited")
+    return flag and flag:IsA("BoolValue") and flag.Value == true
+end
+
+
+local function GetPromptFor(target)
+    if target:IsA("Model") then
+        local holder = target:FindFirstChild("lightholder")
+        if holder then
+            return holder:FindFirstChild("IgniteCandlePrompt")
+        end
+    else
+        return target:FindFirstChild("IgniteCandlePrompt")
+    end
+    return nil
+end
+
+local function SyncPrompts()
+    for _, target in ipairs(IgniteTargets) do
+        if target and target.Parent then
+            local prompt = GetPromptFor(target)
+            if prompt and prompt:IsA("ProximityPrompt") then
+                if IsAlreadyLit(target) then
+                    prompt.Enabled = false
+                else
+                    prompt.Enabled = true
+                    prompt.HoldDuration = 0
+                    prompt.MaxActivationDistance = 10
+                end
+            end
+        end
+    end
+end
+
+RunService:BindToRenderStep(
+    "AutoIgnitedCandles_PromptSync",
+    Enum.RenderPriority.Last.Value,
+    SyncPrompts
+)
+
+
+local MANUAL_RANGE = 15
+
+local function IgniteNearestManual()
+    local root = GetCharacterRoot()
+    if not root then return end
+    local myPos = root.Position
+
+    local best, bestDist = nil, MANUAL_RANGE
+    for _, target in ipairs(IgniteTargets) do
+        if target and target.Parent and not IsAlreadyLit(target) then
+            local dist = (GetTargetPosition(target) - myPos).Magnitude
+            if dist <= bestDist then
+                bestDist = dist
+                best = target
+            end
+        end
+    end
+
+    if best then
+        local ok, err = pcall(function()
+            LightCandle:FireServer(best)
+        end)
+        if not ok then
+            warn("[AutoIgnitedCandles] manual ignite error:", err)
+        end
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.E then
+        IgniteNearestManual()
+    end
+end)
+
+local AutoIgniteEnabled = false   -- starts OFF; press LeftAlt to toggle
+local AUTO_RANGE = 10
+local AUTO_STEP_DELAY = 0.1      -- seconds between auto passes
+
+local function TryAutoIgnite()
+    if not AutoIgniteEnabled then return end
+
+    local root = GetCharacterRoot()
+    if not root then return end
+    local myPos = root.Position
+
+    for _, target in ipairs(IgniteTargets) do
+        if target and target.Parent and not IsAlreadyLit(target) then
+            local dist = (GetTargetPosition(target) - myPos).Magnitude
+            if dist <= AUTO_RANGE then
+                local ok, err = pcall(function()
+                    LightCandle:FireServer(target)
+                end)
+                if not ok then
+                    warn("[AutoIgnitedCandles] auto ignite error:", err)
+                end
+            end
+        end
+    end
+end
+
+local lastAuto = 0
+RunService.Heartbeat:Connect(function(dt)
+    lastAuto = lastAuto + dt
+    if lastAuto >= AUTO_STEP_DELAY then
+        lastAuto = 0
+        local ok, err = pcall(TryAutoIgnite)
+        if not ok then
+            warn("[AutoIgnitedCandles] auto loop error:", err)
+        end
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.LeftAlt then
+        AutoIgniteEnabled = not AutoIgniteEnabled
+    end
+end)
