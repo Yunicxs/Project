@@ -186,12 +186,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
     if input.UserInputType == Enum.UserInputType.Keyboard then
         
-        if input.KeyCode == Enum.KeyCode.One then
+        if input.KeyCode == Enum.KeyCode.Two then
             print("Key 1 pressed")
             runRemote()
         end
 
-        if input.KeyCode == Enum.KeyCode.Two then
+        if input.KeyCode == Enum.KeyCode.Three then
             print("Key 2 pressed")
             runRemote_Map2()
         end
