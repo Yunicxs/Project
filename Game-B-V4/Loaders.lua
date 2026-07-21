@@ -292,7 +292,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- AFKSelect by Cobalt-style helper
+-- AFKSelect by Cobalt-style helper (standalone)
 -- Section 1: services, ghost detection, selection helpers
 
 local Players = game:GetService("Players")
@@ -302,10 +302,10 @@ local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Remotes (listen only; selection is driven through _G.SGC from SelectGhostCmd)
+-- Remotes
 local RadioEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Radio")
 local SystemMessage = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Radio"):WaitForChild("Remotes"):WaitForChild("SystemMessage")
-
+local SelectGhostEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SelectGhost1")
 -- Ghost list container (same path as SelectGhostCmd)
 local function getGhostFrame()
 	local pg = LocalPlayer:FindFirstChild("PlayerGui")
@@ -356,19 +356,31 @@ local function getGhostNames()
 	return names
 end
 
--- extract ghost name from a Quick Chat message like "[QUICK CHAT] X: The Ghost is a ZoZo"
+-- extract ghost name from various message formats (handles punctuation and prefixes)
 local function extractGhostFromMessage(msg)
 	if not msg or type(msg) ~= "string" then return nil end
+	
+	-- Pattern 1: "The Ghost is a [GhostName]" (Direct search)
 	local marker = "The Ghost is a "
 	local s, e = string.find(msg, marker, 1, true)
-	if not s then return nil end
-	local rest = string.sub(msg, e + 1)
-	-- trim trailing whitespace/newlines
-	rest = string.match(rest, "^%s*(.-)%s*$")
-	if rest == "" then return nil end
-	return rest
-end
+	if s then
+		local rest = string.sub(msg, e + 1)
+		-- Trim and remove trailing punctuation (.,!?)
+		rest = string.match(rest, "^%s*(.-)%s*$")
+		if rest and rest ~= "" then 
+			rest = string.gsub(rest, "[%p]+$", "")
+			return rest 
+		end
+	end
+	
+	-- Pattern 2: Regex fallback for "[QUICK CHAT] X: The Ghost is a ZoZo"
+	local ghost = string.match(msg, "The Ghost is a%s+([%w%s']+)")
+	if ghost then 
+		return string.match(ghost, "^%s*(.-)%s*$")
+	end
 
+	return nil
+end
 -- validate extracted name against known ghost list (case-insensitive)
 local function matchGhostInList(name)
 	if not name then return nil end
@@ -381,23 +393,53 @@ local function matchGhostInList(name)
 	return nil
 end
 
--- resolve the shared SelectGhostCmd system (_G.SGC) so AFK uses the SAME selection logic.
--- waits briefly if Tab 4 hasn't run yet.
-local function getSGC()
-	-- already loaded
-	if _G.SGC and _G.SGC.selectGhost and _G.SGC.getGhostNames then
-		return _G.SGC
-	end
-	-- wait up to ~5s for Tab 4 to populate it
-	for _ = 1, 50 do
-		if _G.SGC and _G.SGC.selectGhost and _G.SGC.getGhostNames then
-			return _G.SGC
+-- Standalone Brain Logic (Moved from Tab 4)
+-- Standalone Brain Logic (Moved from Tab 4)
+local function syncSelection(chosenName)
+	-- If chosenName is empty, we don't force clear everything 
+	-- unless specifically called for a "No Ghost Found" scenario,
+	-- to avoid fighting with manual Journal clicks.
+	if not chosenName or chosenName == "" then return end
+
+	local frame = getGhostFrame()
+	if not frame then return end
+	local lowered = string.lower(chosenName)
+	for _, child in ipairs(frame:GetChildren()) do
+		if child:IsA("ImageButton") and child.Name == "GhostTemplate" then
+			local sel = child:FindFirstChild("Selection")
+			if sel and sel:IsA("ImageLabel") then
+				local more = child:FindFirstChild("More")
+				local tl = more and more:FindFirstChild("TextLabel")
+				if tl and tl:IsA("TextLabel") then
+					-- ONLY update if it's the target or needs to be hidden
+					local isMatch = (string.lower(tl.Text) == lowered)
+					sel.ImageTransparency = isMatch and 0 or 1
+				end
+			end
 		end
-		task.wait(0.1)
 	end
-	return _G.SGC
 end
 
+local function selectGhostStandalone(name)
+	local names = getGhostNames()
+	local found = false
+	for _, n in ipairs(names) do
+		if string.lower(n) == string.lower(name or "") then
+			found = true
+			break
+		end
+	end
+	
+	if found then
+		SelectGhostEvent:FireServer(name)
+		syncSelection(name)
+		return true, name
+	else
+		SelectGhostEvent:FireServer("No Ghost Found")
+		syncSelection("")
+		return false, name
+	end
+end
 -- Section 2: AFKSelect UI (center screen)
 local CoreGui = game:GetService("CoreGui")
 
@@ -464,7 +506,7 @@ end
 
 -- Section 3: AFK state + timer
 local AFK_ACTIVE = false
-local AFK_TIMEOUT = 30          -- seconds of no input before auto-activate
+local AFK_TIMEOUT = 15        -- seconds of no input before auto-activate
 local lastInputTime = tick()
 local latestGhost = nil         -- last ghost read from Quick Chat
 
@@ -479,18 +521,24 @@ local function setAFK(active)
 	end
 end
 
--- update latest ghost + (if AFK active) immediately select it via the shared SGC system
+-- update latest ghost + (if AFK active) immediately select it via standalone brain
 local function onGhostDetected(name)
 	local matched = matchGhostInList(name)
 	if not matched then return end
+	
 	latestGhost = matched
+	
+	-- Only auto-select if AFK is active to prevent overriding manual play
 	if AFK_ACTIVE then
-		local sgc = getSGC()
-		if sgc and sgc.selectGhost then
-			sgc.selectGhost(matched)   -- fires SelectGhost1 + syncs Journal Selection
+		-- Now using the standalone selection function instead of _G.SGC
+		local success, selectedName = selectGhostStandalone(matched)
+		if success then
+			setAFKSelected(selectedName)
 		end
-		setAFKSelected(matched)
 	end
+	
+	-- Always update the AFK label if it's visible, to show we "saw" the ghost
+	setAFKSelected(getSelectedGhostName())
 end
 
 -- Section 4: input tracking, toggle/cancel, auto-activate timer
@@ -521,9 +569,17 @@ end)
 -- Section 5: listen to chat + quick chat remotes
 -- Quick Chat: SystemMessage.OnClientEvent("QuickChat", {Message=..., Author=...})
 SystemMessage.OnClientEvent:Connect(function(channel, data)
-	if channel ~= "QuickChat" then return end
-	if type(data) ~= "table" then return end
-	local msg = data.Message
+	-- Optimization: Process ALL messages to see if they contain ghost info, 
+	-- even if the channel isn't explicitly "QuickChat", just in case.
+	local msg = ""
+	if channel == "QuickChat" and type(data) == "table" then
+		msg = data.Message
+	elseif type(data) == "string" then
+		msg = data
+	end
+	
+	if msg == "" then return end
+	
 	local ghost = extractGhostFromMessage(msg)
 	if ghost then
 		onGhostDetected(ghost)
@@ -532,6 +588,7 @@ end)
 
 -- Normal chat: Radio.OnClientEvent(player, text)
 RadioEvent.OnClientEvent:Connect(function(player, text)
+	if type(text) ~= "string" then return end
 	local ghost = extractGhostFromMessage(text)
 	if ghost then
 		onGhostDetected(ghost)
@@ -563,11 +620,37 @@ local function refreshAFKSelected()
 	setAFKSelected(cur)
 end
 
+-- watch journal Selection boxes so manual clicks in the Journal sync the label
 local function watchTemplate(template)
 	local sel = template:FindFirstChild("Selection")
 	if not sel or not sel:IsA("ImageLabel") then return end
+	local more = template:FindFirstChild("More")
+	local nameTL = more and more:FindFirstChild("TextLabel")
+	if not nameTL then return end
+
 	sel:GetPropertyChangedSignal("ImageTransparency"):Connect(function()
-		refreshAFKSelected()
+		local current = nil
+		if sel.ImageTransparency == 0 then
+			-- Enforce Single Selection: deselect all other templates to prevent "duplicate 0s"
+			local frame = getGhostFrame()
+			if frame then
+				for _, c in ipairs(frame:GetChildren()) do
+					if c ~= template and c:IsA("ImageButton") and c.Name == "GhostTemplate" then
+						local s = c:FindFirstChild("Selection")
+						if s and s:IsA("ImageLabel") and s.ImageTransparency == 0 then
+							s.ImageTransparency = 1
+						end
+					end
+				end
+			end
+			current = nameTL.Text
+		else
+			-- If deselected, check if anyone else is still selected
+			current = getSelectedGhostName()
+		end
+		
+		latestGhost = current
+		setAFKSelected(current)
 	end)
 end
 
