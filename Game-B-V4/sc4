@@ -926,21 +926,68 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+
+-- UserInputService grabbed up front so the E handler (Section 5)
+-- is registered as early as possible (top of the script).
 local UserInputService = game:GetService("UserInputService")
+
 local CandlesFolder = workspace.Map.Candles
+
+-- Server ignite remote. Firing it directly bypasses the Lighter
+-- (the ProximityPrompt path is server-gated on a lit Lighter,
+-- but this remote call is accepted when you are in range).
 local LightCandle = ReplicatedStorage.Remotes.LightCandle
 
--- All candle/light targets.
+-- All candle/light targets (table persists; re-scans only add new).
 local IgniteTargets = {}
 
-for _, obj in ipairs(CandlesFolder:GetChildren()) do
-    if obj.Name == "Light" and obj:IsA("Model") then
-        table.insert(IgniteTargets, obj)
-    elseif obj.Name == "Candle" and obj:IsA("BasePart") then
-        table.insert(IgniteTargets, obj)
+-- Add a target only if it is not already collected, so re-scans
+-- never duplicate or re-check existing entries.
+local function AddTargetIfNew(obj)
+    for _, t in ipairs(IgniteTargets) do
+        if t == obj then
+            return false
+        end
+    end
+    table.insert(IgniteTargets, obj)
+    return true
+end
+
+-- Scan one folder/parent for valid candle/light targets.
+local function ScanForTargets(parent)
+    if not parent then return end
+    for _, obj in ipairs(parent:GetChildren()) do
+        if obj.Name == "Light" and obj:IsA("Model") then
+            AddTargetIfNew(obj)
+        elseif obj.Name == "Candle" and obj:IsA("BasePart") then
+            AddTargetIfNew(obj)
+        end
     end
 end
 
+-- Initial collection (Map.Candles + SummoningCircle).
+local SummoningCircle = workspace:FindFirstChild("SummoningCircle")
+ScanForTargets(CandlesFolder)
+ScanForTargets(SummoningCircle)
+
+local RunService = game:GetService("RunService")
+local RESCAN_DELAY = 10   -- seconds between re-scans
+
+local lastRescan = 0
+RunService.Heartbeat:Connect(function(dt)
+    lastRescan = lastRescan + dt
+    if lastRescan >= RESCAN_DELAY then
+        lastRescan = 0
+        -- SummoningCircle may spawn later, so re-find it too
+        SummoningCircle = workspace:FindFirstChild("SummoningCircle")
+        ScanForTargets(CandlesFolder)
+        ScanForTargets(SummoningCircle)
+    end
+end)
+
+-- ============================================================
+-- Section 2 of 5: Helpers (character root, position, lit-check)
+-- ============================================================
 
 local function GetCharacterRoot()
     local char = LocalPlayer.Character
@@ -965,6 +1012,7 @@ local function IsAlreadyLit(target)
     return flag and flag:IsA("BoolValue") and flag.Value == true
 end
 
+-- Section 3 of 5: Sync prompts to lit-state (visual)
 
 local function GetPromptFor(target)
     if target:IsA("Model") then
@@ -1001,6 +1049,12 @@ RunService:BindToRenderStep(
     SyncPrompts
 )
 
+-- ============================================================
+-- Section 4 of 5: Manual ignite function (fired by keybind E)
+-- Ignites the NEAREST unlit candle within range via the server
+-- remote directly. No Lighter, no auto-loop. You choose when to
+-- press E; the nearest in-range unlit candle ignites.
+-- ============================================================
 
 local MANUAL_RANGE = 15
 
@@ -1030,15 +1084,22 @@ local function IgniteNearestManual()
     end
 end
 
+-- Section 5 of 5: Bind key E to manual ignite (registered early,
+
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.E then
         IgniteNearestManual()
     end
 end)
 
+-- Section 6 of 6: AUTO ignite loop (toggle LeftAlt)
+
+
 local AutoIgniteEnabled = false   -- starts OFF; press LeftAlt to toggle
-local AUTO_RANGE = 10
+local AUTO_RANGE = 20
 local AUTO_STEP_DELAY = 0.1      -- seconds between auto passes
+
+-- (UserInputService is already declared at the top in Section 1)
 
 local function TryAutoIgnite()
     if not AutoIgniteEnabled then return end
@@ -1074,10 +1135,10 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
+-- LeftAlt toggles auto-ignite on/off (gameProcessed guard kept
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.LeftAlt then
         AutoIgniteEnabled = not AutoIgniteEnabled
     end
 end)
-
