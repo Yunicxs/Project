@@ -14,8 +14,6 @@ local refBtn = header:WaitForChild("RefBtn")
 -- Set GUI to hidden immediately on first run
 screenGui.Enabled = false
 
-wait(0.5)
-
 -- 1. Toggle Logic (F4)
 local toggleKey = Enum.KeyCode.F4
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -38,66 +36,73 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
--- 3. Create "Last Server" Button with cloned styling
-local function createLastServerButton()
-    -- Destroy existing button if it exists
-    local existing = header:FindFirstChild("LastServerBtn")
-    if existing then
-        existing:Destroy()
+-- 3. Create Server Buttons with cloned styling
+local function createServerButtons()
+    -- Destroy existing buttons if they exist
+    local existingLS = header:FindFirstChild("LastServerBtn")
+    if existingLS then existingLS:Destroy() end
+    
+    local existingRJ = header:FindFirstChild("RejoinBtn")
+    if existingRJ then existingRJ:Destroy() end
+
+    local function applyStyle(btn, text)
+        btn.Text = text
+        btn.Size = UDim2.new(0, 70, 0, 28) -- Made smaller than RefBtn (96)
+        btn.BackgroundColor3 = refBtn.BackgroundColor3
+        btn.BackgroundTransparency = refBtn.BackgroundTransparency
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.TextSize = 8
+        btn.Font = refBtn.Font
+        btn.ZIndex = refBtn.ZIndex
+
+        local refCorner = refBtn:FindFirstChildOfClass("UICorner")
+        if refCorner then
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = refCorner.CornerRadius
+            corner.Parent = btn
+        end
+
+        local refStroke = refBtn:FindFirstChildOfClass("UIStroke")
+        if refStroke then
+            local stroke = Instance.new("UIStroke")
+            stroke.Color = refStroke.Color
+            stroke.Thickness = refStroke.Thickness
+            stroke.Transparency = refStroke.Transparency
+            stroke.Parent = btn
+        end
     end
 
-    local btn = Instance.new("TextButton")
-    btn.Name = "LastServerBtn"
-    btn.Text = "Last Server"
-    
-    -- Copy structure and style from RefBtn
-    btn.Size = refBtn.Size
-    btn.BackgroundColor3 = refBtn.BackgroundColor3
-    btn.BackgroundTransparency = refBtn.BackgroundTransparency
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255) -- Set to white for readability as RefBtn's text color was dark
-    btn.TextSize = 8
-    btn.Font = refBtn.Font
-    btn.ZIndex = refBtn.ZIndex
-    
-    -- Position it to the left of RefBtn
-    -- RefBtn is at {1, -180}, {0.5, -14}. 
-    -- We offset it by the button's width (96) + a small gap (5)
-    btn.Position = UDim2.new(1, -180 - 96 - 5, 0.5, -14)
-    
-    btn.Parent = header
+    -- Last Server Button
+    local lsBtn = Instance.new("TextButton")
+    lsBtn.Name = "LastServerBtn"
+    applyStyle(lsBtn, "Last Server")
+    lsBtn.Position = UDim2.new(1, -180 - 70 - 5, 0.5, -14)
+    lsBtn.Parent = header
 
-    -- Copy UICorner
-    local refCorner = refBtn:FindFirstChildOfClass("UICorner")
-    if refCorner then
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = refCorner.CornerRadius
-        corner.Parent = btn
-    end
+    -- Rejoin Button
+    local rjBtn = Instance.new("TextButton")
+    rjBtn.Name = "RejoinBtn"
+    applyStyle(rjBtn, "Rejoin")
+    rjBtn.Position = UDim2.new(1, -180 - 70 - 5 - 70 - 5, 0.5, -14)
+    rjBtn.Parent = header
 
-    -- Copy UIStroke
-    local refStroke = refBtn:FindFirstChildOfClass("UIStroke")
-    if refStroke then
-        local stroke = Instance.new("UIStroke")
-        stroke.Color = refStroke.Color
-        stroke.Thickness = refStroke.Thickness
-        stroke.Transparency = refStroke.Transparency
-        stroke.Parent = btn
-    end
-
-    btn.MouseButton1Click:Connect(function()
-        local success, data = pcall(function()
-            return HttpService:JSONDecode(readfile("lastServer.json"))
-        end)
-
+    -- LS Logic
+    lsBtn.MouseButton1Click:Connect(function()
+        local success, data = pcall(function() return HttpService:JSONDecode(readfile("lastServer.json")) end)
         if success and data then
             TeleportService:TeleportToPlaceInstance(data.PlaceId, data.JobId, player)
         else
-            warn("Last server could not be found.")
-            btn.Text = "Not Found!"
+            warn("Last server not found")
+            lsBtn.Text = "Not Found!"
             task.wait(1)
-            btn.Text = "Last Server"
+            lsBtn.Text = "Last Server"
         end
+    end)
+
+    -- Rejoin Logic
+    rjBtn.MouseButton1Click:Connect(function()
+        TeleportService:Teleport(game.PlaceId, player)
     end)
 end
 
-createLastServerButton()
+createServerButtons()
