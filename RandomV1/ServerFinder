@@ -1,0 +1,103 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/R2c2k/serverbrowser/refs/heads/main/sb"))()
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local screenGui = playerGui:WaitForChild("RSB23")
+local header = screenGui.MainWindow.Header
+local refBtn = header:WaitForChild("RefBtn")
+
+-- Set GUI to hidden immediately on first run
+screenGui.Enabled = false
+
+wait(0.5)
+
+-- 1. Toggle Logic (F4)
+local toggleKey = Enum.KeyCode.F4
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == toggleKey then
+        screenGui.Enabled = not screenGui.Enabled
+    end
+end)
+
+-- 2. Save Server on Leave
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == player then
+        local currentServer = {
+            PlaceId = game.PlaceId,
+            JobId = game.JobId
+        }
+        pcall(function()
+            writefile("lastServer.json", HttpService:JSONEncode(currentServer))
+        end)
+    end
+end)
+
+-- 3. Create "Last Server" Button with cloned styling
+local function createLastServerButton()
+    -- Destroy existing button if it exists
+    local existing = header:FindFirstChild("LastServerBtn")
+    if existing then
+        existing:Destroy()
+    end
+
+    local btn = Instance.new("TextButton")
+    btn.Name = "LastServerBtn"
+    btn.Text = "Last Server"
+    
+    -- Copy structure and style from RefBtn
+    btn.Size = refBtn.Size
+    btn.BackgroundColor3 = refBtn.BackgroundColor3
+    btn.BackgroundTransparency = refBtn.BackgroundTransparency
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255) -- Set to white for readability as RefBtn's text color was dark
+    btn.TextSize = 8
+    btn.Font = refBtn.Font
+    btn.ZIndex = refBtn.ZIndex
+    
+    -- Position it to the left of RefBtn
+    -- RefBtn is at {1, -180}, {0.5, -14}. 
+    -- We offset it by the button's width (96) + a small gap (5)
+    btn.Position = UDim2.new(1, -180 - 96 - 5, 0.5, -14)
+    
+    btn.Parent = header
+
+    -- Copy UICorner
+    local refCorner = refBtn:FindFirstChildOfClass("UICorner")
+    if refCorner then
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = refCorner.CornerRadius
+        corner.Parent = btn
+    end
+
+    -- Copy UIStroke
+    local refStroke = refBtn:FindFirstChildOfClass("UIStroke")
+    if refStroke then
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = refStroke.Color
+        stroke.Thickness = refStroke.Thickness
+        stroke.Transparency = refStroke.Transparency
+        stroke.Parent = btn
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        local success, data = pcall(function()
+            return HttpService:JSONDecode(readfile("lastServer.json"))
+        end)
+
+        if success and data then
+            TeleportService:TeleportToPlaceInstance(data.PlaceId, data.JobId, player)
+        else
+            warn("Last server could not be found.")
+            btn.Text = "Not Found!"
+            task.wait(1)
+            btn.Text = "Last Server"
+        end
+    end)
+end
+
+createLastServerButton()
