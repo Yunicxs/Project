@@ -1,0 +1,41 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ClientGateway = require(LocalPlayer.PlayerGui.MenuClient.MenuClientInitialize.Dependencies.ClientGateway)
+
+local function captureLobbyId()
+    local idFound = nil
+    
+    local connection = ClientGateway:Subscribe("updateLobbyPlayers", function(data)
+        if data and typeof(data) == "table" then
+        end
+    end)
+    ClientGateway:Subscribe("updateLobbySettings", function(data)
+    end)
+    return connection
+end
+
+local function applyInfiniteSize()
+    local INTERNAL_INF_VALUE = 99
+    local settings = {
+        MaxPlayers = INTERNAL_INF_VALUE,
+        IsLocked = true,
+        MinLevel = 0,
+        VoiceChatOnly = false,
+        Description = "",
+        DisabledGamepasses = {}
+    }
+
+    task.wait(1)
+    
+    print("INF Lobby Bypass : Waiting...")
+    local success, err = ClientGateway:Invoke("hostUpdateSettings", settings)
+
+    if success then
+        print("INF Lobby bypass : Succes...")
+    else
+        warn("INF Lobby Bypass : your not a Host/Room Master." .. tostring(err))
+    end
+end
+
+captureLobbyId()
+applyInfiniteSize()
