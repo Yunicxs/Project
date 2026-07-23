@@ -1,4 +1,4 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/R2c2k/serverbrowser/refs/heads/main/sb"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/sb.txt"))()
 
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
