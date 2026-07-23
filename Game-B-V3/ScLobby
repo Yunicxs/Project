@@ -1,5 +1,68 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local ClientGateway = require(LocalPlayer.PlayerGui.MenuClient.MenuClientInitialize.Dependencies.ClientGateway)
+
+local function captureLobbyId()
+    local connection = ClientGateway:Subscribe("updateLobbyPlayers", function(data)
+        if data and typeof(data) == "table" then
+            -- Reserved
+        end
+    end)
+
+    ClientGateway:Subscribe("updateLobbySettings", function(data)
+        -- Reserved
+    end)
+
+    return connection
+end
+
+local function applyInfiniteSize()
+    local INTERNAL_INF_VALUE = 99
+
+    local settings = {
+        MaxPlayers = INTERNAL_INF_VALUE,
+        IsLocked = true,
+        MinLevel = 0,
+        VoiceChatOnly = false,
+        Description = "",
+        DisabledGamepasses = {}
+    }
+
+    task.wait(1)
+
+    print("INF Lobby Bypass : Waiting...")
+
+    local success, err = ClientGateway:Invoke("hostUpdateSettings", settings)
+
+    if success then
+        print("INF Lobby Bypass : Success...")
+    else
+        warn("INF Lobby Bypass : You're not the Host/Room Master. " .. tostring(err))
+    end
+end
+
+local Running = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.Six and not Running then
+        Running = true
+
+        task.spawn(function()
+            captureLobbyId()
+            applyInfiniteSize()
+            Running = false
+        end)
+    end
+end)
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
