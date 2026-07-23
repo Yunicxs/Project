@@ -16,8 +16,8 @@ local Padding = Instance.new("UIPadding")
 
 -- State
 local CurrentSettings = {
-    IsLocked = true,
-    Description = "Grinding Is Life",
+    IsLocked = false,
+    Description = "",
     MinLevel = 0
 }
 
