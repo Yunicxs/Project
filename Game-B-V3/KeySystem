@@ -114,9 +114,20 @@ local function ExecuteMainScript()
 	--// Insert your protected/private script below
 	--// =========================================
 
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/Loaders.lua"))()
-
-end
+	local Scripts = {
+	    [6348640020] = "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/Loaders.lua",
+	    [6137321701] = "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/lb1",
+		}
+		
+		local URL = Scripts[game.PlaceId]
+		
+		if URL then
+		    loadstring(game:HttpGet(URL))()
+		else
+		    warn(("No script available for PlaceId: %d"):format(game.PlaceId))
+		end
+	
+	end
 
 --// =========================
 --// AUTO KEY VALIDATION
