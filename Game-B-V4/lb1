@@ -235,7 +235,9 @@ local function runRemote()
         {
             Map = "The Aldridge Hotel",
             Challenges = {
+                "slowPlayer",
                 "noHiding",
+                "noLights",
                 "noCrucifixes",
                 "noSanity",
                 "noGracePeriod",
