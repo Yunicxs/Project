@@ -1,0 +1,1708 @@
+local UserInputService = game:GetService("UserInputService")
+
+local FreeCamLoaded = false
+local ChatUILoaded = false
+
+-- FreeCam Loader
+local function FC()
+	print("Loading FC...")
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam"))()
+end
+
+-- ChatUI Loaderr
+local function LoadingCUI()
+	print("Loading ChatUI...")
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/ChatUI"))()
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+
+	-- Z = FreeCam
+	if input.KeyCode == Enum.KeyCode.Z and not FreeCamLoaded then
+		FreeCamLoaded = true
+
+		task.spawn(function()
+			FC()
+		end)
+
+	-- PageUp = ChatUI
+	elseif input.KeyCode == Enum.KeyCode.PageUp and not ChatUILoaded then
+		ChatUILoaded = true
+
+		task.spawn(function()
+			LoadingCUI()
+		end)
+	end
+end)
+
+
+if game.PlaceId ~= 6348640020 then return end
+
+wait(1)
+
+-- AFKAutoSelectGhost StandAloneScript
+-- Based on logic from Tab 6 and User requirements
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Constants
+local AFK_TIMEOUT = 15
+local SELECTED_COLOR = Color3.fromRGB(52, 78, 58)
+local SELECTED_TRANSPARENCY = 0.25
+local DEFAULT_COLOR = Color3.fromRGB(25, 25, 25)
+local DEFAULT_TRANSPARENCY = 0.2
+
+-- Remotes
+local SelectGhostEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SelectGhost1")
+local SystemMessageEvent = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Radio"):WaitForChild("Remotes"):WaitForChild("SystemMessage")
+
+--------------------------------------------------------------------------------
+-- UI Section (AFKSelectUI)
+--------------------------------------------------------------------------------
+-- Prevent duplicate UI
+local existingUI = CoreGui:FindFirstChild("AFKSelectUI")
+if existingUI then existingUI:Destroy() end
+
+local afkGui = Instance.new("ScreenGui")
+afkGui.Name = "AFKSelectUI"
+afkGui.ResetOnSpawn = false
+afkGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+afkGui.Enabled = true
+afkGui.Parent = CoreGui
+
+local afkFrame = Instance.new("Frame")
+afkFrame.Name = "AFKFrame"
+afkFrame.Size = UDim2.new(0, 360, 0, 90)
+afkFrame.Position = UDim2.new(0.5, -180, 0.5, -45)
+afkFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+afkFrame.BackgroundTransparency = 0.15
+afkFrame.BorderSizePixel = 0
+afkFrame.Visible = false
+afkFrame.Parent = afkGui
+
+local afkCorner = Instance.new("UICorner")
+afkCorner.CornerRadius = UDim.new(0, 10)
+afkCorner.Parent = afkFrame
+
+local afkStroke = Instance.new("UIStroke")
+afkStroke.Color = Color3.fromRGB(120, 90, 200)
+afkStroke.Thickness = 1
+afkStroke.Transparency = 0.35
+afkStroke.Parent = afkFrame
+
+local afkTitle = Instance.new("TextLabel")
+afkTitle.Name = "Title"
+afkTitle.Size = UDim2.new(1, 0, 0, 44)
+afkTitle.Position = UDim2.new(0, 0, 0, 4)
+afkTitle.BackgroundTransparency = 1
+afkTitle.Text = "You're at AFK Farm"
+afkTitle.TextColor3 = Color3.fromRGB(190, 150, 255)
+afkTitle.Font = Enum.Font.GothamBold
+afkTitle.TextSize = 24
+afkTitle.Parent = afkFrame
+
+local afkSelected = Instance.new("TextLabel")
+afkSelected.Name = "SelectedGhost"
+afkSelected.Size = UDim2.new(1, 0, 0, 32)
+afkSelected.Position = UDim2.new(0, 0, 0, 50)
+afkSelected.BackgroundTransparency = 1
+afkSelected.Text = "Selected: None"
+afkSelected.TextColor3 = Color3.fromRGB(120, 220, 160)
+afkSelected.Font = Enum.Font.Gotham
+afkSelected.TextSize = 18
+afkSelected.Parent = afkFrame
+
+local function setAFKVisible(v)
+    afkFrame.Visible = v
+end
+
+local function setAFKSelectedText(name)
+    if name and name ~= "" and name ~= "No Ghost Found" then
+        afkSelected.Text = "Selected: " .. name
+    else
+        afkSelected.Text = "Selected: None"
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Logic Section (From Tab 6)
+--------------------------------------------------------------------------------
+
+local function getGhostNamesFrame()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local j = pg:FindFirstChild("Journal")
+    if not j then return nil end
+    local bg = j:FindFirstChild("Background")
+    if not bg then return nil end
+    local mc = bg:FindFirstChild("MainContent")
+    if not mc then return nil end
+    local main = mc:FindFirstChild("Main")
+    if not main then return nil end
+    local others = main:FindFirstChild("Others")
+    if not others then return nil end
+    local contents = others:FindFirstChild("Contents")
+    if not contents then return nil end
+    local frames = contents:FindFirstChild("Frames")
+    if not frames then return nil end
+    local ghosts = frames:FindFirstChild("Ghosts")
+    if not ghosts then return nil end
+    local content = ghosts:FindFirstChild("Content")
+    if not content then return nil end
+    local rightContent = content:FindFirstChild("RightContent")
+    if not rightContent then return nil end
+    local itemsFrame = rightContent:FindFirstChild("ItemsFrame")
+    if not itemsFrame then return nil end
+    local itemList = itemsFrame:FindFirstChild("ItemList")
+    if not itemList then return nil end
+    return itemList
+end
+
+local function getGhostSelectionFrame()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local j = pg:FindFirstChild("Journal")
+    if not j then return nil end
+    local bg = j:FindFirstChild("Background")
+    if not bg then return nil end
+    local mc = bg:FindFirstChild("MainContent")
+    if not mc then return nil end
+    local main = mc:FindFirstChild("Main")
+    if not main then return nil end
+    local others = main:FindFirstChild("Others")
+    if not others then return nil end
+    local contents = others:FindFirstChild("Contents")
+    if not contents then return nil end
+    local frames = contents:FindFirstChild("Frames")
+    if not frames then return nil end
+    local evidence = frames:FindFirstChild("Evidence")
+    if not evidence then return nil end
+    local right = evidence:FindFirstChild("Right")
+    if not right then return nil end
+    local content = right:FindFirstChild("Content")
+    if not content then return nil end
+    local cg = content:FindFirstChild("CanvasGroup")
+    if not cg then return nil end
+    return cg:FindFirstChild("Frame")
+end
+
+local function getAllGhostButtonsForNames()
+    local itemList = getGhostNamesFrame()
+    local buttons = {}
+    if not itemList then return buttons end
+    for _, child in ipairs(itemList:GetDescendants()) do
+        if child:IsA("ImageButton") and child:FindFirstChild("NameLabel") then
+            table.insert(buttons, child)
+        end
+    end
+    return buttons
+end
+
+local function getAllGhostButtonsForSelection()
+    local frame = getGhostSelectionFrame()
+    local buttons = {}
+    if not frame then return buttons end
+    for _, child in ipairs(frame:GetChildren()) do
+        if child:IsA("ImageButton") then
+            table.insert(buttons, child)
+        end
+    end
+    return buttons
+end
+
+local function getGhostNames()
+    local buttons = getAllGhostButtonsForNames()
+    local names = {}
+    for _, btn in ipairs(buttons) do
+        local nameLabel = btn:FindFirstChild("NameLabel")
+        local txt = nameLabel and nameLabel.Text or btn.Name
+        if txt and txt ~= "" then
+            table.insert(names, txt)
+        end
+    end
+    return names
+end
+
+local function findGhostTemplate(name)
+    local buttons = getAllGhostButtonsForNames()
+    local lowered = string.lower(name)
+    for _, btn in ipairs(buttons) do
+        local nameLabel = btn:FindFirstChild("NameLabel")
+        local btnName = nameLabel and nameLabel.Text or btn.Name
+        if string.lower(btnName) == lowered then
+            return btn
+        end
+    end
+    return nil
+end
+
+local function syncSelection(chosenName)
+    local buttons = getAllGhostButtonsForSelection()
+    local lowered = chosenName and string.lower(chosenName) or ""
+    
+    for _, btn in ipairs(buttons) do
+        local isMatch = (lowered ~= "" and string.lower(btn.Name) == lowered)
+        if isMatch then
+            btn.BackgroundColor3 = SELECTED_COLOR
+            btn.BackgroundTransparency = SELECTED_TRANSPARENCY
+        else
+            btn.BackgroundColor3 = DEFAULT_COLOR
+            btn.BackgroundTransparency = DEFAULT_TRANSPARENCY
+        end
+    end
+end
+
+local function selectGhost(name)
+    local template = findGhostTemplate(name)
+    if template then
+        SelectGhostEvent:FireServer(name)
+        syncSelection(name)
+        setAFKSelectedText(name)
+        return true, name
+    else
+        SelectGhostEvent:FireServer("No Ghost Found")
+        syncSelection("")
+        setAFKSelectedText("No Ghost Found")
+        return false, name
+    end
+end
+
+--------------------------------------------------------------------------------
+-- AFK Execution Logic
+--------------------------------------------------------------------------------
+
+local isAFK = false
+local UserInputService = game:GetService("UserInputService")
+local lastInputTime = tick()
+
+local function toggleAFK(state)
+    isAFK = state
+    setAFKVisible(state)
+    if state then
+        print("[AFK] Mode Enabled")
+    else
+        print("[AFK] Mode Disabled")
+    end
+end
+
+-- Watch Journal Selection for Sync
+local function isSelected(btn)
+    local colorMatch = (btn.BackgroundColor3.R > SELECTED_COLOR.R - 0.01 and btn.BackgroundColor3.R < SELECTED_COLOR.R + 0.01) and
+                      (btn.BackgroundColor3.G > SELECTED_COLOR.G - 0.01 and btn.BackgroundColor3.G < SELECTED_COLOR.G + 0.01) and
+                      (btn.BackgroundColor3.B > SELECTED_COLOR.B - 0.01 and btn.BackgroundColor3.B < SELECTED_COLOR.B + 0.01)
+    local transMatch = math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05
+    return colorMatch and transMatch
+end
+
+local function watchTemplate(template)
+    if not template:IsA("ImageButton") then return end
+    local function checkSelection()
+        if isSelected(template) then
+            -- Always sync the text, regardless of whether AFK mode is true or false
+            setAFKSelectedText(template.Name)
+        end
+    end
+    template:GetPropertyChangedSignal("BackgroundColor3"):Connect(checkSelection)
+    template:GetPropertyChangedSignal("BackgroundTransparency"):Connect(checkSelection)
+end
+
+local function watchAllTemplates()
+    for _, c in ipairs(getAllGhostButtonsForSelection()) do
+        watchTemplate(c)
+    end
+end
+
+watchAllTemplates()
+
+-- Listen for SystemMessage (QuickChat)
+SystemMessageEvent.OnClientEvent:Connect(function(type, data)
+    if not isAFK then return end -- Only auto-select if AFK mode is active
+    
+    if type == "QuickChat" and data and data.Message then
+        local msg = data.Message
+        if string.find(msg, "The Ghost is a") then
+            local ghostName = msg:match("The Ghost is a%s+(.+)$")
+            if ghostName then
+                ghostName = string.gsub(ghostName, "[%p%s]+$", "")
+                selectGhost(ghostName)
+            end
+        end
+    end
+end)
+
+-- Input Detection to disable AFK
+UserInputService.InputBegan:Connect(function(input, processed)
+    -- Check for keybind ']' to force AFK mode
+    if input.KeyCode == Enum.KeyCode.RightBracket then
+        toggleAFK(true)
+        lastInputTime = 0 -- reset timer to avoid immediate disable
+        return
+    end
+
+    -- Any other input disables AFK mode
+    if not processed then
+        lastInputTime = tick()
+        if isAFK then
+            toggleAFK(false)
+        end
+    end
+end)
+
+-- AFK Idle Timer Logic
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if not isAFK and (tick() - lastInputTime) >= AFK_TIMEOUT then
+            toggleAFK(true)
+        end
+    end
+end)
+
+-- AutoIgnitedCandles - Manual ignite via keybind E
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- UserInputService grabbed up front so the E handler (Section 5)
+-- is registered as early as possible (top of the script).
+local UserInputService = game:GetService("UserInputService")
+
+local CandlesFolder = workspace.Map.Candles
+
+-- Server ignite remote. Firing it directly bypasses the Lighter
+-- (the ProximityPrompt path is server-gated on a lit Lighter,
+-- but this remote call is accepted when you are in range).
+local LightCandle = ReplicatedStorage.Remotes.LightCandle
+
+-- All candle/light targets (table persists; re-scans only add new).
+local IgniteTargets = {}
+
+-- Add a target only if it is not already collected, so re-scans
+-- never duplicate or re-check existing entries.
+local function AddTargetIfNew(obj)
+    for _, t in ipairs(IgniteTargets) do
+        if t == obj then
+            return false
+        end
+    end
+    table.insert(IgniteTargets, obj)
+    return true
+end
+
+-- Scan one folder/parent for valid candle/light targets.
+local function ScanForTargets(parent)
+    if not parent then return end
+    for _, obj in ipairs(parent:GetChildren()) do
+        if obj.Name == "Light" and obj:IsA("Model") then
+            AddTargetIfNew(obj)
+        elseif obj.Name == "Candle" and obj:IsA("BasePart") then
+            AddTargetIfNew(obj)
+        end
+    end
+end
+
+-- Initial collection (Map.Candles + SummoningCircle).
+local SummoningCircle = workspace:FindFirstChild("SummoningCircle")
+ScanForTargets(CandlesFolder)
+ScanForTargets(SummoningCircle)
+
+local RunService = game:GetService("RunService")
+local RESCAN_DELAY = 10   -- seconds between re-scans
+
+local lastRescan = 0
+RunService.Heartbeat:Connect(function(dt)
+    lastRescan = lastRescan + dt
+    if lastRescan >= RESCAN_DELAY then
+        lastRescan = 0
+        -- SummoningCircle may spawn later, so re-find it too
+        SummoningCircle = workspace:FindFirstChild("SummoningCircle")
+        ScanForTargets(CandlesFolder)
+        ScanForTargets(SummoningCircle)
+    end
+end)
+
+-- ============================================================
+-- Section 2 of 5: Helpers (character root, position, lit-check)
+-- ============================================================
+
+local function GetCharacterRoot()
+    local char = LocalPlayer.Character
+    if char then
+        return char:FindFirstChild("HumanoidRootPart")
+    end
+    return nil
+end
+
+local function GetTargetPosition(target)
+    if target:IsA("Model") then
+        if target.PrimaryPart then
+            return target.PrimaryPart.Position
+        end
+        return target:GetPivot().Position
+    end
+    return target.Position
+end
+
+local function IsAlreadyLit(target)
+    local flag = target:FindFirstChild("IsIgnited")
+    return flag and flag:IsA("BoolValue") and flag.Value == true
+end
+
+-- Section 3 of 5: Sync prompts to lit-state (visual)
+
+local function GetPromptFor(target)
+    if target:IsA("Model") then
+        local holder = target:FindFirstChild("lightholder")
+        if holder then
+            return holder:FindFirstChild("IgniteCandlePrompt")
+        end
+    else
+        return target:FindFirstChild("IgniteCandlePrompt")
+    end
+    return nil
+end
+
+local function SyncPrompts()
+    for _, target in ipairs(IgniteTargets) do
+        if target and target.Parent then
+            local prompt = GetPromptFor(target)
+            if prompt and prompt:IsA("ProximityPrompt") then
+                if IsAlreadyLit(target) then
+                    prompt.Enabled = false
+                else
+                    prompt.Enabled = true
+                    prompt.HoldDuration = 0
+                    prompt.MaxActivationDistance = 10
+                end
+            end
+        end
+    end
+end
+
+RunService:BindToRenderStep(
+    "AutoIgnitedCandles_PromptSync",
+    Enum.RenderPriority.Last.Value,
+    SyncPrompts
+)
+
+-- Section 4 of 5: Manual ignite function (fired by keybind E)
+
+local MANUAL_RANGE = 15
+
+local function IgniteNearestManual()
+    local root = GetCharacterRoot()
+    if not root then return end
+    local myPos = root.Position
+
+    local best, bestDist = nil, MANUAL_RANGE
+    for _, target in ipairs(IgniteTargets) do
+        if target and target.Parent and not IsAlreadyLit(target) then
+            local dist = (GetTargetPosition(target) - myPos).Magnitude
+            if dist <= bestDist then
+                bestDist = dist
+                best = target
+            end
+        end
+    end
+
+    if best then
+        local ok, err = pcall(function()
+            LightCandle:FireServer(best)
+        end)
+        if not ok then
+            warn("[AutoIgnitedCandles] manual ignite error:", err)
+        end
+    end
+end
+
+-- Section 5 of 5: Bind key E to manual ignite (registered early,
+
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.E then
+        IgniteNearestManual()
+    end
+end)
+
+-- Section 6 of 6: AUTO ignite loop (toggle LeftAlt)
+
+
+local AutoIgniteEnabled = false   -- starts OFF; press LeftAlt to toggle
+local AUTO_RANGE = 20
+local AUTO_STEP_DELAY = 0.1      -- seconds between auto passes
+
+-- (UserInputService is already declared at the top in Section 1)
+
+local function TryAutoIgnite()
+    if not AutoIgniteEnabled then return end
+
+    local root = GetCharacterRoot()
+    if not root then return end
+    local myPos = root.Position
+
+    for _, target in ipairs(IgniteTargets) do
+        if target and target.Parent and not IsAlreadyLit(target) then
+            local dist = (GetTargetPosition(target) - myPos).Magnitude
+            if dist <= AUTO_RANGE then
+                local ok, err = pcall(function()
+                    LightCandle:FireServer(target)
+                end)
+                if not ok then
+                    warn("[AutoIgnitedCandles] auto ignite error:", err)
+                end
+            end
+        end
+    end
+end
+
+local lastAuto = 0
+RunService.Heartbeat:Connect(function(dt)
+    lastAuto = lastAuto + dt
+    if lastAuto >= AUTO_STEP_DELAY then
+        lastAuto = 0
+        local ok, err = pcall(TryAutoIgnite)
+        if not ok then
+            warn("[AutoIgnitedCandles] auto loop error:", err)
+        end
+    end
+end)
+
+-- LeftAlt toggles auto-ignite on/off (gameProcessed guard kept
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.LeftAlt then
+        AutoIgniteEnabled = not AutoIgniteEnabled
+    end
+end)
+
+
+--[[
+    GhostWalkspeedDetection (v3)
+--]]
+
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local GHOST_NAME = "Ghost"
+
+local COL_BASE   = Color3.fromRGB(255, 255, 255) -- stable
+local COL_UP     = Color3.fromRGB(255, 80, 80)  -- increased
+local COL_DOWN   = Color3.fromRGB(80, 255, 120)   -- decreased
+
+local active = {
+    ghost = nil,
+    gui = nil,
+    text = nil,
+    colorTween = nil,
+    speedConn = nil,
+    rtConn = nil,
+    lastSpeed = nil,
+}
+
+local function safeDestroy(inst)
+    if inst and inst:IsA("Instance") and inst.Parent then
+        inst:Destroy()
+    end
+end
+
+local function cleanup()
+    if active.speedConn then active.speedConn:Disconnect() active.speedConn = nil end
+    if active.rtConn then active.rtConn:Disconnect() active.rtConn = nil end
+    if active.colorTween then active.colorTween:Cancel() active.colorTween = nil end
+    safeDestroy(active.gui)
+    active.gui = nil
+    active.text = nil
+    active.ghost = nil
+    active.lastSpeed = nil
+end
+
+-- minimal: just a speed text label, no backgrounds
+local function createBillboard(ghost)
+    local adornee = ghost:FindFirstChild("HumanoidRootPart")
+        or ghost:FindFirstChild("Head")
+        or ghost.PrimaryPart
+
+    local text = Instance.new("TextLabel")
+    text.Name = "SpeedText"
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.BorderSizePixel = 0
+    text.Font = Enum.Font.GothamBold
+    text.TextSize = 24
+    text.Text = "-"
+    text.TextColor3 = COL_BASE
+    text.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    text.TextStrokeTransparency = 0.35
+    text.TextScaled = false
+
+    local gui = Instance.new("BillboardGui")
+    gui.Name = "GhostSpeedUI"
+    gui.Size = UDim2.new(0, 220, 0, 60)
+    gui.StudsOffset = Vector3.new(0, 3.2, 0)
+    gui.AlwaysOnTop = true
+    gui.MaxDistance = 0          -- INFINITE range: never invisible when far
+    gui.LightInfluence = 0
+    gui.Adornee = adornee
+    text.Parent = gui
+    gui.Parent = adornee or ghost
+    return gui, text
+end
+
+local function setColor(target)
+    if active.colorTween then active.colorTween:Cancel() end
+    active.colorTween = TweenService:Create(
+        active.text,
+        TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        { TextColor3 = target }
+    )
+    active.colorTween:Play()
+    -- settle back to base white after the flash
+    task.delay(0.45, function()
+        if active.text and active.text.Parent then
+            if active.colorTween then active.colorTween:Cancel() end
+            active.colorTween = TweenService:Create(
+                active.text,
+                TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                { TextColor3 = COL_BASE }
+            )
+            active.colorTween:Play()
+        end
+    end)
+end
+
+local function refresh(ghost)
+    local hum = ghost:FindFirstChildOfClass("Humanoid")
+    if not hum or not active.text then return end
+
+    local ws = hum.WalkSpeed
+    active.text.Text = string.format("%.2f", ws)
+
+    if active.lastSpeed ~= nil then
+        if ws > active.lastSpeed + 1e-4 then
+            setColor(COL_UP)
+        elseif ws < active.lastSpeed - 1e-4 then
+            setColor(COL_DOWN)
+        end
+    end
+    active.lastSpeed = ws
+end
+
+local function attach(ghost)
+    if active.ghost == ghost then return end -- already tracking
+    cleanup()                                -- no duplicates
+    active.ghost = ghost
+
+    local gui, text = createBillboard(ghost)
+    active.gui = gui
+    active.text = text
+
+    local hum = ghost:FindFirstChildOfClass("Humanoid")
+        or ghost:WaitForChild("Humanoid", 5)
+    if hum then
+        active.speedConn = hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            refresh(ghost)
+        end)
+        refresh(ghost) -- init
+    end
+
+    active.rtConn = ghost.AncestryChanged:Connect(function()
+        if not ghost:IsDescendantOf(workspace) then
+            cleanup()
+        end
+    end)
+end
+
+-- spawn detection
+workspace.ChildAdded:Connect(function(child)
+    if child.Name == GHOST_NAME and child:IsA("Model") then
+        task.defer(attach, child)
+    end
+end)
+
+local existing = workspace:FindFirstChild(GHOST_NAME)
+if existing then task.defer(attach, existing) end
+
+-- safety cleanup if ghost destroyed
+RunService.Heartbeat:Connect(function()
+    if active.ghost and not active.ghost:IsDescendantOf(workspace) then
+        cleanup()
+    end
+end)
+
+
+
+-- Player ESP with fixed toggle functionality
+-- Updated: shows DisplayName, anchored to Workspace so ESP survives death
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+-- Configuration
+local TOGGLE_KEY = Enum.KeyCode.Six
+local ESP_ENABLED = true
+local SHINY_COLOR = Color3.fromRGB(255, 255, 90) -- Light yellow
+
+-- Storage folder at Workspace (NOT inside characters) so ESP survives death
+local ESP_FOLDER = Instance.new("Folder")
+ESP_FOLDER.Name = "PlayerESP_Storage"
+ESP_FOLDER.Parent = Workspace
+
+-- Table of active ESP entries: player -> { billboard, dispLabel, userLabel, uiGradient, uiGradientBottom, anim }
+local espEntries = {}
+
+-- Get the current root part for a player's Workspace model (re-acquired every frame)
+local function getRootPart(player)
+    local model = Workspace:FindFirstChild(player.Name)
+    if not model or not model:IsA("Model") then return nil end
+    local hrp = model:FindFirstChild("HumanoidRootPart")
+    if hrp and hrp:IsA("BasePart") then return hrp end
+    -- Fallback: find any BasePart so dead/limbless models still show ESP
+    for _, child in ipairs(model:GetChildren()) do
+        if child:IsA("BasePart") then return child end
+    end
+    return nil
+end
+
+-- Function to toggle ESP visibility
+local function toggleESP()
+    ESP_ENABLED = not ESP_ENABLED
+    for _, entry in pairs(espEntries) do
+        if entry.billboard then
+            entry.billboard.Enabled = ESP_ENABLED
+        end
+    end
+end
+
+-- Set up keybind
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == TOGGLE_KEY then
+        toggleESP()
+    end
+end)
+
+-- Function to create ESP for a player (lives in Workspace ESP_FOLDER)
+local function createPlayerESP(player)
+    if player == Players.LocalPlayer then return end
+    if espEntries[player] then return end -- already created
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = player.Name .. "_ESP"
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Enabled = ESP_ENABLED
+    billboard.Parent = ESP_FOLDER
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundTransparency = 1
+    frame.Parent = billboard
+
+    -- Top line: DisplayName (big)
+    local displayNameLabel = Instance.new("TextLabel")
+    displayNameLabel.Size = UDim2.new(1, 0, 0.5, -5)
+    displayNameLabel.Position = UDim2.new(0, 0, 0, 0)
+    displayNameLabel.BackgroundTransparency = 1
+    displayNameLabel.Font = Enum.Font.GothamBold
+    displayNameLabel.Text = player.DisplayName
+    displayNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    displayNameLabel.TextSize = 14
+    displayNameLabel.TextStrokeTransparency = 0.7
+    displayNameLabel.TextXAlignment = Enum.TextXAlignment.Center
+    displayNameLabel.TextYAlignment = Enum.TextYAlignment.Bottom
+    displayNameLabel.Parent = frame
+
+    -- Bottom line: username (small) â€” kept for reference, DisplayName is primary
+    local usernameLabel = Instance.new("TextLabel")
+    usernameLabel.Size = UDim2.new(1, 0, 0.5, -5)
+    usernameLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    usernameLabel.BackgroundTransparency = 1
+    usernameLabel.Font = Enum.Font.GothamBold
+    usernameLabel.Text = ""
+    usernameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    usernameLabel.TextSize = 12
+    usernameLabel.TextStrokeTransparency = 0.7
+    usernameLabel.TextXAlignment = Enum.TextXAlignment.Center
+    usernameLabel.TextYAlignment = Enum.TextYAlignment.Top
+    usernameLabel.Parent = frame
+
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Parent = displayNameLabel
+    uiGradient.Rotation = 0
+    uiGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, SHINY_COLOR),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    })
+
+    local uiGradientBottom = Instance.new("UIGradient")
+    uiGradientBottom.Parent = usernameLabel
+    uiGradientBottom.Rotation = 0
+    uiGradientBottom.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(0.5, SHINY_COLOR),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+    })
+
+    local entry = {
+        billboard = billboard,
+        dispLabel = displayNameLabel,
+        userLabel = usernameLabel,
+        uiGradient = uiGradient,
+        uiGradientBottom = uiGradientBottom,
+        anim = nil,
+    }
+    espEntries[player] = entry
+
+    -- Animation function (runs until billboard is destroyed)
+    local function animate()
+        while billboard and billboard.Parent do
+            if ESP_ENABLED then
+                for i = -1, 1, 0.02 do
+                    if not billboard or not billboard.Parent then return end
+                    uiGradient.Offset = Vector2.new(i, 0)
+                    uiGradientBottom.Offset = Vector2.new(i, 0)
+                    task.wait(0.05)
+                end
+            else
+                task.wait(0.1)
+            end
+        end
+    end
+    entry.anim = spawn(animate)
+end
+
+-- Function to remove ESP when player leaves (model gone from Workspace)
+local function removePlayerESP(player)
+    local entry = espEntries[player]
+    if entry then
+        if entry.billboard then entry.billboard:Destroy() end
+        espEntries[player] = nil
+    end
+end
+
+-- Refresh Adornee each frame so ESP follows the player's current Workspace model
+-- (keeps ESP alive when dead, since the model stays in Workspace)
+local function syncESP()
+    for player, entry in pairs(espEntries) do
+        if not player or not player.Parent then
+            -- Player removed from Players service entirely -> clean up
+            removePlayerESP(player)
+        else
+            local root = getRootPart(player)
+            if root and entry.billboard then
+                entry.billboard.Adornee = root
+            end
+        end
+    end
+end
+
+-- Set up ESP for existing players
+for _, player in pairs(Players:GetPlayers()) do
+    createPlayerESP(player)
+end
+
+-- Set up events for new / leaving players
+Players.PlayerAdded:Connect(function(player)
+    createPlayerESP(player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    removePlayerESP(player)
+end)
+
+-- Keep ESP attached while model exists in Workspace (survives death)
+game:GetService("RunService").Heartbeat:Connect(syncESP)
+
+-- TeleportItems (Ghost Room Edition)
+-- Detects the coldest zone (Ghost Room) and teleports target items there.
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+-- Names of items to teleport
+local targetNames = {
+	["EMF Reader"] = true,
+	["Flashlight"] = true,
+	["SLS Camera"] = true,
+	["Spirit Box"] = true,
+	["Strong Flashlight"] = true,
+	["Thermometer"] = true,
+	["UV Light"] = true,
+}
+
+-- Special items to teleport (Crucifix)
+local specialtargetNames = {
+	["Crucifix"] = true,
+}
+
+-- Folder that holds the target items
+local itemsFolder = workspace:WaitForChild("Map"):WaitForChild("Items")
+
+-- Folder that holds all zones (each has _____Temperature + _____LocalBaseTemp)
+local zonesFolder = workspace:WaitForChild("Map"):WaitForChild("Zones")
+
+-- Find the coldest zone (lowest _____Temperature). That is the Ghost Room.
+-- Returns the zone Part, its temperature, and a CFrame to teleport to.
+local function GetGhostRoom()
+	local coldestZone = nil
+	local coldestTemp = math.huge
+
+	for _, zone in ipairs(zonesFolder:GetChildren()) do
+		-- Each zone is a Part with a _____Temperature NumberValue
+		local tempValue = zone:FindFirstChild("_____Temperature")
+		if tempValue and tempValue:IsA("NumberValue") then
+			local temp = tempValue.Value
+			local baseTemp = tempValue:FindFirstChild("_____LocalBaseTemp")
+			-- baseTemp available if you want to compare against baseline later
+
+			if temp < coldestTemp then
+				coldestTemp = temp
+				coldestZone = zone
+			end
+		end
+	end
+
+	if not coldestZone then
+		return nil, nil, nil
+	end
+
+	-- Prefer a SpawnPoint inside the zone, otherwise use the zone center
+	local spawnPoint = coldestZone:FindFirstChild("SpawnPoint")
+	local targetCFrame
+	if spawnPoint and spawnPoint:IsA("BasePart") then
+		targetCFrame = spawnPoint.CFrame + Vector3.new(0, 3, 0)
+	else
+		targetCFrame = coldestZone.CFrame + Vector3.new(0, 3, 0)
+	end
+
+	return coldestZone, coldestTemp, targetCFrame
+end
+
+-- Teleport items to the Ghost Room
+local running = false
+local cooldown = false
+local COOLDOWN_TIME = 2
+
+local function TeleportItems(itemList)
+	if running or cooldown then
+		return
+	end
+
+	running = true
+	cooldown = true
+
+	local character = player.Character
+	if not character then
+		running = false
+		cooldown = false
+		return
+	end
+
+	-- Detect the Ghost Room (coldest zone) right before teleporting
+	local ghostZone, ghostTemp, targetCFrame = GetGhostRoom()
+	if not ghostZone or not targetCFrame then
+		warn("Ghost Room not found!")
+		running = false
+		cooldown = false
+		return
+	end
+
+	-- Collect target items with handles
+	local targetItems = {}
+	for _, item in ipairs(itemsFolder:GetChildren()) do
+		if itemList[item.Name] then
+			local handle = item:FindFirstChild("Handle")
+			if handle then
+				table.insert(targetItems, handle)
+			end
+		end
+	end
+
+	-- Technique 1: direct CFrame set
+	for _, handle in ipairs(targetItems) do
+		if handle and handle.Parent then
+			handle.Anchored = false -- Unanchor for physics
+			
+			local finalCFrame = targetCFrame * CFrame.new(
+				math.random(-5, 5),
+				3,
+				math.random(-5, 5)
+			)
+			
+			handle.CFrame = finalCFrame
+		end
+	end
+
+	-- Technique 2: BodyPosition fallback to force movement
+	task.spawn(function()
+		task.wait(0.1)
+		for _, handle in ipairs(targetItems) do
+			if handle and handle.Parent then
+				local bodyPos = handle:FindFirstChild("TeleportBodyPos") or Instance.new("BodyPosition")
+				bodyPos.Name = "TeleportBodyPos"
+				bodyPos.Position = (targetCFrame * CFrame.new(
+					math.random(-5, 5),
+					3,
+					math.random(-5, 5)
+				)).Position
+				bodyPos.MaxForce = Vector3.new(4000, 4000, 4000)
+				bodyPos.D = 100
+				bodyPos.P = 1000
+				bodyPos.Parent = handle
+
+				task.spawn(function()
+					task.wait(0.5)
+					if bodyPos.Parent then
+						bodyPos:Destroy()
+					end
+				end)
+			end
+		end
+	end)
+
+	-- Technique 3: network ownership workaround
+	task.spawn(function()
+		task.wait(0.2)
+		for _, handle in ipairs(targetItems) do
+			if handle and handle.Parent then
+				pcall(function()
+					handle:SetNetworkOwner(player)
+				end)
+			end
+		end
+	end)
+
+	-- Cooldown
+	task.spawn(function()
+		task.wait(COOLDOWN_TIME)
+		cooldown = false
+	end)
+
+	running = false
+end
+
+-- PC KEYBINDS
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+	
+	-- Teleport normal items ([)
+	if input.KeyCode == Enum.KeyCode.LeftBracket then
+		TeleportItems(targetNames)
+	end
+	
+	-- Teleport special items (L)
+	if input.KeyCode == Enum.KeyCode.L then
+		TeleportItems(specialtargetNames)
+	end
+end)
+
+-- Section 1: Find the GhostRoom ImageLabel
+local ghostRoom = game:GetService("CoreGui"):WaitForChild("ToggleUI")
+	:WaitForChild("TFrame")
+	:WaitForChild("ToogleUI")
+	:WaitForChild("GhostRoom")
+
+-- Section 2 + 3: Run on a separate thread so the main script never blocks
+task.spawn(function()
+	local saltStepped = game:GetService("Workspace"):WaitForChild("SaltStepped", math.huge)
+
+	ghostRoom.ImageColor3 = Color3.fromRGB(255, 182, 193)
+end)
+
+-- SelectGhostCmd by Cobalt-style helper
+-- Step 1: paths + core functions (data layer)
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Step 0: prevent duplicates â€” destroy any existing CmdUI + clear old refs
+do
+	local CoreGui = game:GetService("CoreGui")
+	local old = CoreGui:FindFirstChild("SelectGhostCmdUI")
+	if old then old:Destroy() end
+	-- explicit safety net: remove any leftover SelectedGhost label
+	local oldLabel = CoreGui:FindFirstChild("SelectedGhost")
+	if oldLabel then oldLabel:Destroy() end
+	-- disconnect a previous keybind connection if we stored one
+	if _G.SGC and _G.SGC.inputConn then
+		pcall(function() _G.SGC.inputConn:Disconnect() end)
+	end
+	_G.SGC = nil
+end
+
+-- Remote (confirmed RemoteEvent)
+local SelectGhostEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SelectGhost1")
+
+-- Ghost list container for READING names (Ghosts tab has NameLabel children)
+local function getGhostNamesFrame()
+	local pg = LocalPlayer:FindFirstChild("PlayerGui")
+	if not pg then return nil end
+	local j = pg:FindFirstChild("Journal")
+	if not j then return nil end
+	local bg = j:FindFirstChild("Background")
+	if not bg then return nil end
+	local mc = bg:FindFirstChild("MainContent")
+	if not mc then return nil end
+	local main = mc:FindFirstChild("Main")
+	if not main then return nil end
+	local others = main:FindFirstChild("Others")
+	if not others then return nil end
+	local contents = others:FindFirstChild("Contents")
+	if not contents then return nil end
+	local frames = contents:FindFirstChild("Frames")
+	if not frames then return nil end
+	local ghosts = frames:FindFirstChild("Ghosts")
+	if not ghosts then return nil end
+	local content = ghosts:FindFirstChild("Content")
+	if not content then return nil end
+	local rightContent = content:FindFirstChild("RightContent")
+	if not rightContent then return nil end
+	local itemsFrame = rightContent:FindFirstChild("ItemsFrame")
+	if not itemsFrame then return nil end
+	local itemList = itemsFrame:FindFirstChild("ItemList")
+	if not itemList then return nil end
+	return itemList
+end
+
+-- Ghost list container for SELECTION STATE (Evidence tab uses BackgroundColor3/Transparency on buttons directly)
+local function getGhostSelectionFrame()
+	local pg = LocalPlayer:FindFirstChild("PlayerGui")
+	if not pg then return nil end
+	local j = pg:FindFirstChild("Journal")
+	if not j then return nil end
+	local bg = j:FindFirstChild("Background")
+	if not bg then return nil end
+	local mc = bg:FindFirstChild("MainContent")
+	if not mc then return nil end
+	local main = mc:FindFirstChild("Main")
+	if not main then return nil end
+	local others = main:FindFirstChild("Others")
+	if not others then return nil end
+	local contents = others:FindFirstChild("Contents")
+	if not contents then return nil end
+	local frames = contents:FindFirstChild("Frames")
+	if not frames then return nil end
+	local evidence = frames:FindFirstChild("Evidence")
+	if not evidence then return nil end
+	local right = evidence:FindFirstChild("Right")
+	if not right then return nil end
+	local content = right:FindFirstChild("Content")
+	if not content then return nil end
+	local cg = content:FindFirstChild("CanvasGroup")
+	if not cg then return nil end
+	return cg:FindFirstChild("Frame")
+end
+
+-- Get all ghost ImageButtons from the names frame (Ghosts tab - has NameLabel)
+local function getAllGhostButtonsForNames()
+	local itemList = getGhostNamesFrame()
+	local buttons = {}
+	if not itemList then return buttons end
+	for _, child in ipairs(itemList:GetDescendants()) do
+		if child:IsA("ImageButton") and child:FindFirstChild("NameLabel") then
+			table.insert(buttons, child)
+		end
+	end
+	return buttons
+end
+
+-- Get all ghost ImageButtons from the selection frame (Evidence tab - uses button Name)
+local function getAllGhostButtonsForSelection()
+	local frame = getGhostSelectionFrame()
+	local buttons = {}
+	if not frame then return buttons end
+	for _, child in ipairs(frame:GetChildren()) do
+		if child:IsA("ImageButton") then
+			table.insert(buttons, child)
+		end
+	end
+	return buttons
+end
+
+-- Read all ghost names from the template buttons
+-- Read all ghost names from the ImageButton children (NEW UI: buttons are in ItemList > ScrollerRow > ImageButton)
+-- Read all ghost names from the ImageButton children (Ghosts tab - has NameLabel)
+local function getGhostNames()
+	local buttons = getAllGhostButtonsForNames()
+	local names = {}
+	for _, btn in ipairs(buttons) do
+		local nameLabel = btn:FindFirstChild("NameLabel")
+		local txt = nameLabel and nameLabel.Text or btn.Name
+		if txt and txt ~= "" then
+			table.insert(names, txt)
+		end
+	end
+	return names
+end
+
+-- Returns the ImageButton whose NameLabel.Text == target (case-insensitive)
+-- Returns the ImageButton whose NameLabel.Text == target (case-insensitive) - searches in Ghosts tab
+local function findGhostTemplate(name)
+	local buttons = getAllGhostButtonsForNames()
+	local lowered = string.lower(name)
+	for _, btn in ipairs(buttons) do
+		local nameLabel = btn:FindFirstChild("NameLabel")
+		local btnName = nameLabel and nameLabel.Text or btn.Name
+		if string.lower(btnName) == lowered then
+			return btn
+		end
+	end
+	return nil
+end
+
+-- Sync the selection visual for all ghost buttons based on chosen name
+-- NEW UI: Selected = BackgroundColor3 (52, 78, 58), BackgroundTransparency = 0.25
+-- Unselected = BackgroundColor3 (25, 25, 25), BackgroundTransparency = 0.2
+local function syncSelection(chosenName)
+	local buttons = getAllGhostButtonsForSelection()
+	local lowered = chosenName and string.lower(chosenName) or ""
+	
+	local SELECTED_COLOR = Color3.fromRGB(52, 78, 58)
+	local SELECTED_TRANSPARENCY = 0.25
+	local UNSELECTED_COLOR = Color3.fromRGB(25, 25, 25)
+	local UNSELECTED_TRANSPARENCY = 0.2
+	
+	for _, btn in ipairs(buttons) do
+		-- Evidence tab buttons use their Name property directly
+		local isMatch = (lowered ~= "" and string.lower(btn.Name) == lowered)
+		
+		if isMatch then
+			btn.BackgroundColor3 = SELECTED_COLOR
+			btn.BackgroundTransparency = SELECTED_TRANSPARENCY
+		else
+			btn.BackgroundColor3 = UNSELECTED_COLOR
+			btn.BackgroundTransparency = UNSELECTED_TRANSPARENCY
+		end
+	end
+end
+
+-- Fire the remote; if not found send "No Ghost Found"
+local function selectGhost(name)
+	local template = findGhostTemplate(name)
+	if template then
+		SelectGhostEvent:FireServer(name)
+		syncSelection(name)
+		return true, name
+	else
+		SelectGhostEvent:FireServer("No Ghost Found")
+		syncSelection("") -- clear all
+		return false, name
+	end
+end
+
+-- expose for later steps
+_G.SGC = {
+	getGhostNames = getGhostNames,
+	selectGhost = selectGhost,
+	syncSelection = syncSelection,
+	findGhostTemplate = findGhostTemplate,
+}
+
+-- Step 2: build the CmdUI (left corner, small + modern)
+local CoreGui = game:GetService("CoreGui")
+local gui = Instance.new("ScreenGui")
+gui.Name = "SelectGhostCmdUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+-- parent to CoreGui (survives respawn / not tied to PlayerGui)
+gui.Parent = CoreGui
+
+-- main container (left corner)
+local container = Instance.new("Frame")
+container.Name = "CmdContainer"
+container.Size = UDim2.new(0, 260, 0, 38)
+container.Position = UDim2.new(0, 14, 0, 14)
+container.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+container.BackgroundTransparency = 0.5
+container.BorderSizePixel = 0
+container.Visible = false
+container.Parent = gui
+
+local uicorner = Instance.new("UICorner")
+uicorner.CornerRadius = UDim.new(0, 8)
+uicorner.Parent = container
+
+local uistroke = Instance.new("UIStroke")
+uistroke.Color = Color3.fromRGB(90, 90, 120)
+uistroke.Thickness = 1
+uistroke.Transparency = 0.4
+uistroke.Parent = container
+
+-- prompt label
+local prompt = Instance.new("TextLabel")
+prompt.Name = "Prompt"
+prompt.Size = UDim2.new(0, 22, 0, 38)
+prompt.Position = UDim2.new(0, 0, 0, 0)
+prompt.BackgroundTransparency = 1
+prompt.Text = ";"
+prompt.TextColor3 = Color3.fromRGB(120, 220, 160)
+prompt.Font = Enum.Font.GothamBold
+prompt.TextSize = 18
+prompt.Parent = container
+
+-- input box
+local box = Instance.new("TextBox")
+box.Name = "Input"
+box.Size = UDim2.new(1, -28, 0, 38)
+box.Position = UDim2.new(0, 26, 0, 0)
+box.BackgroundTransparency = 1
+box.Text = ""
+box.PlaceholderText = "ghost name..."
+box.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+box.TextColor3 = Color3.fromRGB(235, 235, 245)
+box.Font = Enum.Font.Gotham
+box.TextSize = 15
+box.ClearTextOnFocus = false
+box.TextXAlignment = Enum.TextXAlignment.Left
+box.Parent = container
+
+-- dropdown frame (holds suggestions)
+local dropdown = Instance.new("Frame")
+dropdown.Name = "Dropdown"
+dropdown.Size = UDim2.new(1, 0, 0, 0)
+dropdown.Position = UDim2.new(0, 0, 1, 4)
+dropdown.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+dropdown.BackgroundTransparency = 0.5
+dropdown.BorderSizePixel = 0
+dropdown.Visible = false
+dropdown.ClipsDescendants = true
+dropdown.Parent = container
+
+local dcorner = Instance.new("UICorner")
+dcorner.CornerRadius = UDim.new(0, 8)
+dcorner.Parent = dropdown
+
+local dstroke = Instance.new("UIStroke")
+dstroke.Color = Color3.fromRGB(90, 90, 120)
+dstroke.Thickness = 1
+dstroke.Transparency = 0.4
+dstroke.Parent = dropdown
+
+local dlayout = Instance.new("UIListLayout")
+dlayout.SortOrder = Enum.SortOrder.LayoutOrder
+dlayout.Padding = UDim.new(0, 2)
+dlayout.Parent = dropdown
+
+_G.SGC.gui = gui
+_G.SGC.container = container
+_G.SGC.box = box
+_G.SGC.dropdown = dropdown
+_G.SGC.dlayout = dlayout
+
+-- Step 3: autocomplete dropdown logic
+local MIN_CHARS = 1
+local selectedIndex = 0
+local currentSuggestions = {}
+
+local function clearDropdown()
+	for _, c in ipairs(dropdown:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+end
+
+local function highlightItems()
+	for i, item in ipairs(currentSuggestions) do
+		local btn = item.button
+		if i == selectedIndex then
+			btn.BackgroundColor3 = Color3.fromRGB(60, 80, 110)
+			btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		else
+			btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+			btn.TextColor3 = Color3.fromRGB(210, 210, 225)
+		end
+	end
+end
+
+local function makeItem(name, index)
+	local btn = Instance.new("TextButton")
+	btn.Name = "Item"
+	btn.Size = UDim2.new(1, -8, 0, 26)
+	btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+	btn.BorderSizePixel = 0
+	btn.AutoButtonColor = false
+	btn.Font = Enum.Font.Gotham
+	btn.TextSize = 14
+	btn.TextColor3 = Color3.fromRGB(210, 210, 225)
+	btn.TextXAlignment = Enum.TextXAlignment.Left
+	btn.Text = "  " .. name
+	btn.LayoutOrder = index
+	btn.Parent = dropdown
+
+	local bc = Instance.new("UICorner")
+	bc.CornerRadius = UDim.new(0, 6)
+	bc.Parent = btn
+
+	btn.MouseButton1Click:Connect(function()
+		box.Text = name
+		_G.SGC.selectGhost(name)
+		closeUI()
+	end)
+	return btn
+end
+
+local function refreshDropdown()
+	clearDropdown()
+	currentSuggestions = {}
+	local txt = string.lower(string.sub(box.Text, 1, -1))
+	local names = getGhostNames()
+
+	if #box.Text >= MIN_CHARS then
+		for _, name in ipairs(names) do
+			if string.find(string.lower(name), txt, 1, true) then
+				local idx = #currentSuggestions + 1
+				local btn = makeItem(name, idx)
+				table.insert(currentSuggestions, {name = name, button = btn})
+			end
+		end
+	end
+
+	if #currentSuggestions > 0 then
+		dropdown.Visible = true
+		dropdown.Size = UDim2.new(1, 0, 0, math.min(#currentSuggestions, 8) * 28 + 6)
+		selectedIndex = 1
+		highlightItems()
+	else
+		dropdown.Visible = false
+		selectedIndex = 0
+	end
+end
+
+-- strip any ";" that lands in the box (e.g. from the trigger key)
+box:GetPropertyChangedSignal("Text"):Connect(function()
+	local t = box.Text
+	if string.find(t, ";", 1, true) then
+		box.Text = string.gsub(t, ";", "")
+	end
+	refreshDropdown()
+end)
+
+-- Step 4: open/close + keybind handling
+local open = false
+
+local function openUI()
+	open = true
+	container.Visible = true
+	box.Text = ""
+	dropdown.Visible = false
+	currentSuggestions = {}
+	selectedIndex = 0
+	-- defer focus to next frame so the ";" keystroke isn't captured into the box
+	task.defer(function()
+		if open then box:CaptureFocus() end
+	end)
+end
+
+local function closeUI()
+	open = false
+	container.Visible = false
+	dropdown.Visible = false
+	box:ReleaseFocus()
+	clearDropdown()
+	currentSuggestions = {}
+	selectedIndex = 0
+end
+
+_G.SGC.inputConn = UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+
+	-- toggle with ;
+	if input.KeyCode == Enum.KeyCode.Semicolon then
+		if open then
+			closeUI()
+		else
+			openUI()
+		end
+		return
+	end
+
+	if not open then return end
+
+	if input.KeyCode == Enum.KeyCode.Escape then
+		closeUI()
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.Return or input.KeyCode == Enum.KeyCode.KeypadEnter then
+		if selectedIndex > 0 and currentSuggestions[selectedIndex] then
+			local name = currentSuggestions[selectedIndex].name
+			box.Text = name
+			_G.SGC.selectGhost(name)
+		else
+			-- submit raw text (min 1 char)
+			local raw = string.gsub(box.Text, ";", "")
+			if #raw >= MIN_CHARS then
+				_G.SGC.selectGhost(raw)
+			end
+		end
+		closeUI()
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.Up then
+		if #currentSuggestions > 0 then
+			selectedIndex = selectedIndex - 1
+			if selectedIndex < 1 then selectedIndex = #currentSuggestions end
+			highlightItems()
+		end
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.Down then
+		if #currentSuggestions > 0 then
+			selectedIndex = selectedIndex + 1
+			if selectedIndex > #currentSuggestions then selectedIndex = 1 end
+			highlightItems()
+		end
+		return
+	end
+end)
+
+-- Step 5: selected-ghost label (bottom-left of screen)
+local selectedLabel = Instance.new("TextLabel")
+selectedLabel.Name = "SelectedGhost"
+selectedLabel.Size = UDim2.new(0, 260, 0, 22)
+selectedLabel.Position = UDim2.new(0.270000011, 0, 0.0200000014, 0) -- bottom-left corner
+selectedLabel.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+selectedLabel.BackgroundTransparency = 1
+selectedLabel.BorderSizePixel = 0
+selectedLabel.Text = "Selected: -"
+selectedLabel.TextColor3 = Color3.fromRGB(120, 220, 160)
+selectedLabel.Font = Enum.Font.Gotham
+selectedLabel.TextSize = 14
+selectedLabel.TextXAlignment = Enum.TextXAlignment.Left
+selectedLabel.Parent = gui
+
+local slCorner = Instance.new("UICorner")
+slCorner.CornerRadius = UDim.new(0, 8)
+slCorner.Parent = selectedLabel
+
+local slStroke = Instance.new("UIStroke")
+slStroke.Color = Color3.fromRGB(90, 90, 120)
+slStroke.Thickness = 1
+slStroke.Transparency = 0.4
+slStroke.Parent = selectedLabel
+
+local function updateSelectedLabel(name)
+	if name and name ~= "" and name ~= "No Ghost Found" then
+		selectedLabel.Text = "Selected: " .. name
+	else
+		selectedLabel.Text = "Selected: None"
+	end
+end
+
+-- hook into selectGhost so the label updates on every selection
+local _origSelect = _G.SGC.selectGhost
+_G.SGC.selectGhost = function(name)
+	local ok, nm = _origSelect(name)
+	updateSelectedLabel(ok and nm or "")
+	return ok, nm
+end
+
+-- watch journal Selection (BackgroundColor3 + BackgroundTransparency on ImageButton in Evidence tab) so manual clicks in the Journal sync the label
+local SELECTED_COLOR = Color3.fromRGB(52, 78, 58)
+local SELECTED_TRANSPARENCY = 0.25
+local DEFAULT_COLOR = Color3.fromRGB(25, 25, 25)
+local DEFAULT_TRANSPARENCY = 0.2
+
+local function isSelected(btn)
+	-- More robust check: ignore small floating point errors for both color and transparency
+	local colorMatch = (btn.BackgroundColor3.R > SELECTED_COLOR.R - 0.01 and btn.BackgroundColor3.R < SELECTED_COLOR.R + 0.01) and
+		           (btn.BackgroundColor3.G > SELECTED_COLOR.G - 0.01 and btn.BackgroundColor3.G < SELECTED_COLOR.G + 0.01) and
+		           (btn.BackgroundColor3.B > SELECTED_COLOR.B - 0.01 and btn.BackgroundColor3.B < SELECTED_COLOR.B + 0.01)
+	local transMatch = math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05
+	return colorMatch and transMatch
+end
+
+local function getGhostName(btn)
+	-- Evidence tab buttons use their Name property directly
+	return btn.Name
+end
+
+local function watchTemplate(template)
+	if not template:IsA("ImageButton") then return end
+	
+	local function checkSelection()
+		if isSelected(template) then
+			-- a manual click happened. Forcefully deselect EVERY other button first to prevent duplicates
+			local buttons = getAllGhostButtonsForSelection()
+			for _, c in ipairs(buttons) do
+				if c ~= template then
+					c.BackgroundColor3 = DEFAULT_COLOR
+					c.BackgroundTransparency = DEFAULT_TRANSPARENCY
+				end
+			end
+			updateSelectedLabel(getGhostName(template))
+		else
+			-- template was deselected. Check if any other button is now the sole selected one
+			local stillSelected = nil
+			local buttons = getAllGhostButtonsForSelection()
+			for _, c in ipairs(buttons) do
+				if isSelected(c) then
+					stillSelected = getGhostName(c)
+					break
+				end
+			end
+			updateSelectedLabel(stillSelected or "")
+		end
+	end
+	
+	template:GetPropertyChangedSignal("BackgroundColor3"):Connect(checkSelection)
+	template:GetPropertyChangedSignal("BackgroundTransparency"):Connect(checkSelection)
+	
+	-- initial check
+	task.defer(checkSelection)
+end
+
+local function watchAllTemplates()
+	for _, c in ipairs(getAllGhostButtonsForSelection()) do
+		watchTemplate(c)
+	end
+end
+
+watchAllTemplates()
+
+-- in case buttons are (re)created later (e.g. journal rebuild), watch for new buttons
+-- we need to find a stable parent to listen for ChildAdded (the Evidence tab's CanvasGroup.Frame)
+local itemList = LocalPlayer:FindFirstChild("PlayerGui") 
+	and LocalPlayer.PlayerGui:FindFirstChild("Journal")
+	and LocalPlayer.PlayerGui.Journal:FindFirstChild("Background")
+	and LocalPlayer.PlayerGui.Journal.Background:FindFirstChild("MainContent")
+	and LocalPlayer.PlayerGui.Journal.Background.MainContent:FindFirstChild("Main")
+	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main:FindFirstChild("Others")
+	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others:FindFirstChild("Contents")
+	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents:FindFirstChild("Frames")
+	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames:FindFirstChild("Evidence")
+	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames.Evidence:FindFirstChild("Right")
+	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames.Evidence.Right:FindFirstChild("Content")
+	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames.Evidence.Right.Content:FindFirstChild("CanvasGroup")
+	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames.Evidence.Right.Content.CanvasGroup:FindFirstChild("Frame")
+
+if itemList then
+	itemList.ChildAdded:Connect(function(child)
+		if child:IsA("ImageButton") then
+			watchTemplate(child)
+		end
+	end)
+end
+
+print("Done")
