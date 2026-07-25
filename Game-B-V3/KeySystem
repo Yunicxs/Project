@@ -115,8 +115,8 @@ local function ExecuteMainScript()
 	--// =========================================
 
 	local Scripts = {
-	    [6348640020] = "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/Loaders.lua",
-	    [6137321701] = "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V4/lb1",
+	    [6348640020] = "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V5/Loaders.lua",
+	    [6137321701] = "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V5/lb1",
 		}
 		
 		local URL = Scripts[game.PlaceId]
