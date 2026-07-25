@@ -1,0 +1,417 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local ClientGateway = require(LocalPlayer.PlayerGui.MenuClient.MenuClientInitialize.Dependencies.ClientGateway)
+
+-- Custom Fonts
+local LabelFont = Font.new("rbxasset://fonts/families/Balthazar.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+local ButtonFont = Font.new("rbxasset://fonts/families/Kalam.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+
+-- UI Variables
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UIListLayout = Instance.new("UIListLayout")
+local Padding = Instance.new("UIPadding")
+
+-- State
+local CurrentSettings = {
+    IsLocked = false,
+    Description = "",
+    MinLevel = 0
+}
+
+-- UI Construction
+ScreenGui.Name = "ModernUI_LobbySettings"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Enabled = false
+ScreenGui.ResetOnSpawn = false
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.Position = UDim2.new(0.78, 0, 0.05, 0)
+MainFrame.Size = UDim2.new(0, 260, 0, 280) -- More compact size
+MainFrame.BorderSizePixel = 0
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 8)
+Corner.Parent = MainFrame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(60, 60, 60)
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+UIStroke.Parent = MainFrame
+
+UIListLayout.Parent = MainFrame
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 8)
+
+Padding.Parent = MainFrame
+Padding.PaddingLeft = UDim.new(0, 12)
+Padding.PaddingRight = UDim.new(0, 12)
+Padding.PaddingTop = UDim.new(0, 12)
+Padding.PaddingBottom = UDim.new(0, 12)
+
+local function createLabel(text)
+    local label = Instance.new("TextLabel")
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, 0, 0, 18)
+    label.FontFace = LabelFont
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    return label
+end
+
+local function createButton(text, value, callback)
+    local btn = Instance.new("TextButton")
+    btn.Text = text
+    btn.Size = UDim2.new(0, 75, 0, 25)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.FontFace = ButtonFont
+    btn.TextSize = 14
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = btn
+	
+	local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 1
+UIStroke.Color = Color3.fromRGB(60, 60, 60)
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+UIStroke.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        callback(value, btn)
+    end)
+
+    return btn
+end
+
+-- Privacy Section
+local PrivacyLabel = createLabel("Privacy configuration")
+PrivacyLabel.Parent = MainFrame
+
+local PrivacyContainer = Instance.new("Frame")
+PrivacyContainer.Size = UDim2.new(1, 0, 0, 30)
+PrivacyContainer.BackgroundTransparency = 1
+PrivacyContainer.Parent = MainFrame
+
+local PublicBtn = createButton("Public", false, function(val, btn)
+    CurrentSettings.IsLocked = val
+    for _, child in pairs(PrivacyContainer:GetChildren()) do
+        if child:IsA("TextButton") then
+            child.BackgroundColor3 = (child == btn) and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(50, 50, 50)
+        end
+    end
+end)
+PublicBtn.Position = UDim2.new(0, 0, 0, 0)
+PublicBtn.Parent = PrivacyContainer
+PublicBtn.BackgroundColor3 = Color3.fromRGB(80, 150, 80) -- Darker green
+
+local LockedBtn = createButton("Locked", true, function(val, btn)
+    CurrentSettings.IsLocked = val
+    for _, child in pairs(PrivacyContainer:GetChildren()) do
+        if child:IsA("TextButton") then
+            child.BackgroundColor3 = (child == btn) and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(50, 50, 50)
+        end
+    end
+end)
+LockedBtn.Position = UDim2.new(0, 85, 0, 0)
+LockedBtn.Parent = PrivacyContainer
+
+-- Description Section
+local DescLabel = createLabel("Lobby Description")
+DescLabel.Parent = MainFrame
+
+local DescInput = Instance.new("TextBox")
+DescInput.PlaceholderText = "Optional description"
+DescInput.Size = UDim2.new(1, 0, 0, 25)
+DescInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+DescInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+DescInput.Text = ""
+DescInput.FontFace = ButtonFont
+DescInput.TextSize = 14
+DescInput.Parent = MainFrame
+
+local DescCorner = Instance.new("UICorner")
+DescCorner.CornerRadius = UDim.new(0, 4)
+DescCorner.Parent = DescInput
+
+-- Level Section
+local LevelLabel = createLabel("Minimum level to join")
+LevelLabel.Parent = MainFrame
+
+local LevelContainer = Instance.new("Frame")
+LevelContainer.Size = UDim2.new(1, 0, 0, 60)
+LevelContainer.BackgroundTransparency = 1
+LevelContainer.Parent = MainFrame
+
+local levelOptions = {
+    {"All", 0}, {"Lv.10", 10}, {"Lv.25", 25}, {"Lv.50", 50}, {"Lv.75", 75}, {"Lv.100", 100}
+}
+
+local levelButtons = {}
+for i, opt in ipairs(levelOptions) do
+    local btn = createButton(opt[1], opt[2], function(val, btn)
+        CurrentSettings.MinLevel = val
+        for _, b in pairs(levelButtons) do
+            b.BackgroundColor3 = (b == btn) and Color3.fromRGB(80, 150, 80) or Color3.fromRGB(50, 50, 50)
+        end
+    end)
+    btn.Position = UDim2.new(0, (i-1)%3 * 80, 0, math.floor((i-1)/3) * 30)
+    btn.Parent = LevelContainer
+    table.insert(levelButtons, btn)
+end
+levelButtons[1].BackgroundColor3 = Color3.fromRGB(80, 150, 80)
+
+-- Save Button
+local SaveBtn = Instance.new("TextButton")
+SaveBtn.Text = "Save Changes"
+SaveBtn.Size = UDim2.new(1, 0, 0, 35)
+SaveBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveBtn.FontFace = LabelFont
+SaveBtn.TextSize = 16
+SaveBtn.Parent = MainFrame
+
+local SaveCorner = Instance.new("UICorner")
+SaveCorner.CornerRadius = UDim.new(0, 4)
+SaveCorner.Parent = SaveBtn
+
+-- Save Functionality
+SaveBtn.MouseButton1Click:Connect(function()
+    CurrentSettings.Description = DescInput.Text
+    
+    local settings = {
+        MaxPlayers = 99,
+        IsLocked = CurrentSettings.IsLocked,
+        MinLevel = CurrentSettings.MinLevel,
+        VoiceChatOnly = false,
+        Description = CurrentSettings.Description,
+        DisabledGamepasses = {}
+    }
+    
+    local success, err = ClientGateway:Invoke("hostUpdateSettings", settings)
+    if success then
+        print("Lobby Settings Saved!")
+    else
+        warn("Failed: " .. tostring(err))
+    end
+    ScreenGui.Enabled = false -- Close UI after saving
+end)
+
+-- Toggle Logic
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Six then
+        ScreenGui.Enabled = not ScreenGui.Enabled
+    end
+end)
+
+local function captureLobbyId()
+    ClientGateway:Subscribe("updateLobbyPlayers", function() end)
+    ClientGateway:Subscribe("updateLobbySettings", function() end)
+end
+
+captureLobbyId()
+
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local function runRemote()
+    print("Running Remote Script...")
+
+    -- Auto Room Settings
+    local args1 = {
+        {
+            Map = "The Aldridge Hotel",
+            Challenges = {
+                "slowPlayer",
+                "noHiding",
+                "noLights",
+                "noCrucifixes",
+                "noSanity",
+                "noGracePeriod",
+                "evidencelessOne",
+                "evidencelessTwo"
+            },
+            Difficulty = "Nightmare"
+        }
+    }
+
+    ReplicatedStorage:WaitForChild("Remotes")
+        :WaitForChild("GatewayService")
+        :WaitForChild("hostSetContract")
+        :FireServer(unpack(args1))
+
+    -- Auto Put Items
+    local args2 = {
+        {
+            Thermometer = 1/0,
+            GlowStick = 1/0,
+            ["Trail Camera"] = 1/0,
+            ["Parabolic Microphone"] = 1/0,
+            Lighter = 1/0,
+            ["Incense Burner"] = 1/0,
+            ["SLS Camera"] = 1/0,
+            Salt = 1/0,
+            ["Ghost Writing Book"] = 1/0,
+            ["UV Light"] = 1/0,
+            Crucifix = 1/0,
+            ["EMF Reader"] = 1/0,
+            ["Sanity Soda"] = 1/0,
+            ["Photo Camera"] = 1/0,
+            ["Video Camera"] = 1/0,
+            ["Strong Flashlight"] = 1/0,
+            ["Spirit Box"] = 1/0
+        }
+    }
+
+    ReplicatedStorage:WaitForChild("Remotes")
+        :WaitForChild("GatewayService")
+        :WaitForChild("equipmentChange")
+        :FireServer(unpack(args2))
+end
+
+local function runRemote_Map2()
+
+    local args1 = {
+        {
+            Map = "Dunwich Sanatorium",
+            Challenges = {
+                "noHiding",
+                "noCrucifixes",
+                "noSanity",
+                "noGracePeriod",
+                "evidencelessOne",
+                "evidencelessTwo"
+            },
+            Difficulty = "Nightmare"
+        }
+    }
+
+    ReplicatedStorage:WaitForChild("Remotes")
+        :WaitForChild("GatewayService")
+        :WaitForChild("hostSetContract")
+        :FireServer(unpack(args1))
+
+    -- Auto Put Items
+    local args2 = {
+        {
+            Thermometer = 1/0,
+            GlowStick = 1/0,
+            ["Trail Camera"] = 1/0,
+            ["Parabolic Microphone"] = 1/0,
+            Lighter = 1/0,
+            ["Incense Burner"] = 1/0,
+            ["SLS Camera"] = 1/0,
+            Salt = 1/0,
+            ["Ghost Writing Book"] = 1/0,
+            ["UV Light"] = 1/0,
+            Crucifix = 1/0,
+            ["EMF Reader"] = 1/0,
+            ["Sanity Soda"] = 1/0,
+            ["Photo Camera"] = 1/0,
+            ["Video Camera"] = 1/0,
+            ["Strong Flashlight"] = 1/0,
+            ["Spirit Box"] = 1/0
+        }
+    }
+
+    ReplicatedStorage:WaitForChild("Remotes")
+        :WaitForChild("GatewayService")
+        :WaitForChild("equipmentChange")
+        :FireServer(unpack(args2))
+end
+
+local function forceStartGame()
+    print("Force starting game for all players...")
+
+    local Players = game:GetService("Players")
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        ReplicatedStorage:WaitForChild("Remotes")
+            :WaitForChild("GatewayService")
+            :WaitForChild("forceStart")
+            :FireServer(plr)
+    end
+end
+
+-- =========================
+-- 📱 MOBILE BUTTON UI
+-- =========================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "RemoteButtonGUI"
+gui.Parent = playerGui
+gui.ResetOnSpawn = false
+
+local button = Instance.new("TextButton")
+button.Parent = gui
+button.Size = UDim2.new(0, 30, 0, 30)
+button.Position = UDim2.new(1, -40, 1, -40) -- bottom-right
+button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+button.BackgroundTransparency = 0.5
+button.Text = ""
+
+-- Rounded corners
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = button
+
+-- 🎬 Click Animation
+local function animateClick()
+    button:TweenSize(
+        UDim2.new(0, 26, 0, 26),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.08,
+        true,
+        function()
+            button:TweenSize(
+                UDim2.new(0, 30, 0, 30),
+                Enum.EasingDirection.Out,
+                Enum.EasingStyle.Quad,
+                0.08,
+                true
+            )
+        end
+    )
+end
+
+button.MouseButton1Click:Connect(function()
+    animateClick()
+    runRemote()
+end)
+
+-- =========================
+-- 💻 PC KEYBIND (1)
+-- =========================
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        
+        if input.KeyCode == Enum.KeyCode.Two then
+            runRemote()
+        end
+
+        if input.KeyCode == Enum.KeyCode.Three then
+            runRemote_Map2()
+        end
+
+        if input.KeyCode == Enum.KeyCode.Five then
+            forceStartGame()
+        end
+
+    end
+end)
