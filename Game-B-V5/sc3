@@ -1712,34 +1712,6 @@ end
 -- Connect to InputBegan event
 game:GetService("UserInputService").InputBegan:Connect(onInputBegan)
 
-
--- Created in Real
-local UserInputService = game:GetService("UserInputService")
-
-local FreeCamLoaded = false
-local ChatUILoaded = false
-
--- FreeCam Loader
-local function FC()
-	print("Loading FC...")
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/FreeCam"))()
-end
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then
-		return
-	end
-
-	-- Z = FreeCam
-	if input.KeyCode == Enum.KeyCode.Z and not FreeCamLoaded then
-		FreeCamLoaded = true
-
-		task.spawn(function()
-			FC()
-		end)
-	end
-end)
-
 -- Function to add billboards to objects
 local function trackObject(object, text, color)
     if not object:FindFirstChild(text) then
