@@ -292,156 +292,33 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- AFKSelect by Cobalt-style helper (standalone)
--- Section 1: services, ghost detection, selection helpers
+-- AFKAutoSelectGhost StandAloneScript
+-- Based on logic from Tab 6 and User requirements
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
+-- Constants
+local AFK_TIMEOUT = 15
+local SELECTED_COLOR = Color3.fromRGB(52, 78, 58)
+local SELECTED_TRANSPARENCY = 0.25
+local DEFAULT_COLOR = Color3.fromRGB(25, 25, 25)
+local DEFAULT_TRANSPARENCY = 0.2
+
 -- Remotes
-local RadioEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Radio")
-local SystemMessage = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Radio"):WaitForChild("Remotes"):WaitForChild("SystemMessage")
 local SelectGhostEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SelectGhost1")
--- Ghost list container (same path as SelectGhostCmd)
-local function getGhostFrame()
-	local pg = LocalPlayer:FindFirstChild("PlayerGui")
-	if not pg then return nil end
-	local j = pg:FindFirstChild("Journal")
-	if not j then return nil end
-	local bg = j:FindFirstChild("Background")
-	if not bg then return nil end
-	local mc = bg:FindFirstChild("MainContent")
-	if not mc then return nil end
-	local main = mc:FindFirstChild("Main")
-	if not main then return nil end
-	local others = main:FindFirstChild("Others")
-	if not others then return nil end
-	local contents = others:FindFirstChild("Contents")
-	if not contents then return nil end
-	local frames = contents:FindFirstChild("Frames")
-	if not frames then return nil end
-	local evidence = frames:FindFirstChild("Evidence")
-	if not evidence then return nil end
-	local right = evidence:FindFirstChild("Right")
-	if not right then return nil end
-	local content = right:FindFirstChild("Content")
-	if not content then return nil end
-	local cg = content:FindFirstChild("CanvasGroup")
-	if not cg then return nil end
-	return cg:FindFirstChild("Frame")
-end
+local SystemMessageEvent = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Radio"):WaitForChild("Remotes"):WaitForChild("SystemMessage")
 
-local function getGhostNames()
-	local frame = getGhostFrame()
-	local names = {}
-	if not frame then return names end
-	for _, child in ipairs(frame:GetChildren()) do
-		if child:IsA("ImageButton") and child.Name == "GhostTemplate" then
-			local more = child:FindFirstChild("More")
-			if more then
-				local tl = more:FindFirstChild("TextLabel")
-				if tl and tl:IsA("TextLabel") then
-					local txt = tl.Text
-					if txt and txt ~= "" then
-						table.insert(names, txt)
-					end
-				end
-			end
-		end
-	end
-	return names
-end
-
--- extract ghost name from various message formats (handles punctuation and prefixes)
-local function extractGhostFromMessage(msg)
-	if not msg or type(msg) ~= "string" then return nil end
-	
-	-- Pattern 1: "The Ghost is a [GhostName]" (Direct search)
-	local marker = "The Ghost is a "
-	local s, e = string.find(msg, marker, 1, true)
-	if s then
-		local rest = string.sub(msg, e + 1)
-		-- Trim and remove trailing punctuation (.,!?)
-		rest = string.match(rest, "^%s*(.-)%s*$")
-		if rest and rest ~= "" then 
-			rest = string.gsub(rest, "[%p]+$", "")
-			return rest 
-		end
-	end
-	
-	-- Pattern 2: Regex fallback for "[QUICK CHAT] X: The Ghost is a ZoZo"
-	local ghost = string.match(msg, "The Ghost is a%s+([%w%s']+)")
-	if ghost then 
-		return string.match(ghost, "^%s*(.-)%s*$")
-	end
-
-	return nil
-end
--- validate extracted name against known ghost list (case-insensitive)
-local function matchGhostInList(name)
-	if not name then return nil end
-	local lowered = string.lower(name)
-	for _, n in ipairs(getGhostNames()) do
-		if string.lower(n) == lowered then
-			return n
-		end
-	end
-	return nil
-end
-
--- Standalone Brain Logic (Moved from Tab 4)
--- Standalone Brain Logic (Moved from Tab 4)
-local function syncSelection(chosenName)
-	-- If chosenName is empty, we don't force clear everything 
-	-- unless specifically called for a "No Ghost Found" scenario,
-	-- to avoid fighting with manual Journal clicks.
-	if not chosenName or chosenName == "" then return end
-
-	local frame = getGhostFrame()
-	if not frame then return end
-	local lowered = string.lower(chosenName)
-	for _, child in ipairs(frame:GetChildren()) do
-		if child:IsA("ImageButton") and child.Name == "GhostTemplate" then
-			local sel = child:FindFirstChild("Selection")
-			if sel and sel:IsA("ImageLabel") then
-				local more = child:FindFirstChild("More")
-				local tl = more and more:FindFirstChild("TextLabel")
-				if tl and tl:IsA("TextLabel") then
-					-- ONLY update if it's the target or needs to be hidden
-					local isMatch = (string.lower(tl.Text) == lowered)
-					sel.ImageTransparency = isMatch and 0 or 1
-				end
-			end
-		end
-	end
-end
-
-local function selectGhostStandalone(name)
-	local names = getGhostNames()
-	local found = false
-	for _, n in ipairs(names) do
-		if string.lower(n) == string.lower(name or "") then
-			found = true
-			break
-		end
-	end
-	
-	if found then
-		SelectGhostEvent:FireServer(name)
-		syncSelection(name)
-		return true, name
-	else
-		SelectGhostEvent:FireServer("No Ghost Found")
-		syncSelection("")
-		return false, name
-	end
-end
--- Section 2: AFKSelect UI (center screen)
-local CoreGui = game:GetService("CoreGui")
+--------------------------------------------------------------------------------
+-- UI Section (AFKSelectUI)
+--------------------------------------------------------------------------------
+-- Prevent duplicate UI
+local existingUI = CoreGui:FindFirstChild("AFKSelectUI")
+if existingUI then existingUI:Destroy() end
 
 local afkGui = Instance.new("ScreenGui")
 afkGui.Name = "AFKSelectUI"
@@ -475,7 +352,7 @@ afkTitle.Name = "Title"
 afkTitle.Size = UDim2.new(1, 0, 0, 44)
 afkTitle.Position = UDim2.new(0, 0, 0, 4)
 afkTitle.BackgroundTransparency = 1
-afkTitle.Text = "Your'e at AFK Farm"
+afkTitle.Text = "You're at AFK Farm"
 afkTitle.TextColor3 = Color3.fromRGB(190, 150, 255)
 afkTitle.Font = Enum.Font.GothamBold
 afkTitle.TextSize = 24
@@ -493,186 +370,358 @@ afkSelected.TextSize = 18
 afkSelected.Parent = afkFrame
 
 local function setAFKVisible(v)
-	afkFrame.Visible = v
+    afkFrame.Visible = v
 end
 
-local function setAFKSelected(name)
-	if name and name ~= "" and name ~= "No Ghost Found" then
-		afkSelected.Text = "Selected: " .. name
-	else
-		afkSelected.Text = "Selected: None"
-	end
+local function getGhostNamesFrame()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local j = pg:FindFirstChild("Journal")
+    if not j then return nil end
+    local bg = j:FindFirstChild("Background")
+    if not bg then return nil end
+    local mc = bg:FindFirstChild("MainContent")
+    if not mc then return nil end
+    local main = mc:FindFirstChild("Main")
+    if not main then return nil end
+    local others = main:FindFirstChild("Others")
+    if not others then return nil end
+    local contents = others:FindFirstChild("Contents")
+    if not contents then return nil end
+    local frames = contents:FindFirstChild("Frames")
+    if not frames then return nil end
+    local ghosts = frames:FindFirstChild("Ghosts")
+    if not ghosts then return nil end
+    local content = ghosts:FindFirstChild("Content")
+    if not content then return nil end
+    local rightContent = content:FindFirstChild("RightContent")
+    if not rightContent then return nil end
+    local itemsFrame = rightContent:FindFirstChild("ItemsFrame")
+    if not itemsFrame then return nil end
+    local itemList = itemsFrame:FindFirstChild("ItemList")
+    if not itemList then return nil end
+    return itemList
 end
 
--- Section 3: AFK state + timer
-local AFK_ACTIVE = false
-local AFK_TIMEOUT = 15        -- seconds of no input before auto-activate
-local lastInputTime = tick()
-local latestGhost = nil         -- last ghost read from Quick Chat
-
-local function setAFK(active)
-	AFK_ACTIVE = active
-	setAFKVisible(active)
-	if active then
-		-- re-apply last known ghost on (re)activation
-		setAFKSelected(latestGhost)
-	else
-		setAFKSelected(nil)
-	end
+local function getGhostSelectionFrame()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local j = pg:FindFirstChild("Journal")
+    if not j then return nil end
+    local bg = j:FindFirstChild("Background")
+    if not bg then return nil end
+    local mc = bg:FindFirstChild("MainContent")
+    if not mc then return nil end
+    local main = mc:FindFirstChild("Main")
+    if not main then return nil end
+    local others = main:FindFirstChild("Others")
+    if not others then return nil end
+    local contents = others:FindFirstChild("Contents")
+    if not contents then return nil end
+    local frames = contents:FindFirstChild("Frames")
+    if not frames then return nil end
+    local evidence = frames:FindFirstChild("Evidence")
+    if not evidence then return nil end
+    local right = evidence:FindFirstChild("Right")
+    if not right then return nil end
+    local content = right:FindFirstChild("Content")
+    if not content then return nil end
+    local cg = content:FindFirstChild("CanvasGroup")
+    if not cg then return nil end
+    return cg:FindFirstChild("Frame")
 end
 
--- update latest ghost + (if AFK active) immediately select it via standalone brain
-local function onGhostDetected(name)
-	local matched = matchGhostInList(name)
-	if not matched then return end
-	
-	latestGhost = matched
-	
-	-- Only auto-select if AFK is active to prevent overriding manual play
-	if AFK_ACTIVE then
-		-- Now using the standalone selection function instead of _G.SGC
-		local success, selectedName = selectGhostStandalone(matched)
-		if success then
-			setAFKSelected(selectedName)
-		end
-	end
-	
-	-- Always update the AFK label if it's visible, to show we "saw" the ghost
-	setAFKSelected(getSelectedGhostName())
+local function getAllGhostButtonsForNames()
+    local itemList = getGhostNamesFrame()
+    local buttons = {}
+    if not itemList then return buttons end
+    for _, child in ipairs(itemList:GetDescendants()) do
+        if child:IsA("ImageButton") and child:FindFirstChild("NameLabel") then
+            table.insert(buttons, child)
+        end
+    end
+    return buttons
 end
 
--- Section 4: input tracking, toggle/cancel, auto-activate timer
-UserInputService.InputBegan:Connect(function(input, processed)
-	-- any key press counts as activity
-	lastInputTime = tick()
+local function getAllGhostButtonsForSelection()
+    local frame = getGhostSelectionFrame()
+    local buttons = {}
+    if not frame then return buttons end
+    for _, child in ipairs(frame:GetChildren()) do
+        if child:IsA("ImageButton") then
+            table.insert(buttons, child)
+        end
+    end
+    return buttons
+end
 
-	-- cancel AFK if active and ANY key is pressed
-	if AFK_ACTIVE then
-		setAFK(false)
-		return
-	end
+local function getGhostNames()
+    local buttons = getAllGhostButtonsForNames()
+    local names = {}
+    for _, btn in ipairs(buttons) do
+        local nameLabel = btn:FindFirstChild("NameLabel")
+        local txt = nameLabel and nameLabel.Text or btn.Name
+        if txt and txt ~= "" then
+            table.insert(names, txt)
+        end
+    end
+    return names
+end
 
-	-- toggle AFK with ]
-	if input.KeyCode == Enum.KeyCode.RightBracket then
-		setAFK(true)
-	end
-end)
+local function findGhostTemplate(name)
+    local buttons = getAllGhostButtonsForNames()
+    local lowered = string.lower(name)
+    for _, btn in ipairs(buttons) do
+        local nameLabel = btn:FindFirstChild("NameLabel")
+        local btnName = nameLabel and nameLabel.Text or btn.Name
+        if string.lower(btnName) == lowered then
+            return btn
+        end
+    end
+    return nil
+end
 
--- auto-activate after 1 minute of no input (skip while already active)
-RunService.Heartbeat:Connect(function()
-	if AFK_ACTIVE then return end
-	if tick() - lastInputTime >= AFK_TIMEOUT then
-		setAFK(true)
-	end
-end)
-
--- Section 5: listen to chat + quick chat remotes
--- Quick Chat: SystemMessage.OnClientEvent("QuickChat", {Message=..., Author=...})
-SystemMessage.OnClientEvent:Connect(function(channel, data)
-	-- Optimization: Process ALL messages to see if they contain ghost info, 
-	-- even if the channel isn't explicitly "QuickChat", just in case.
-	local msg = ""
-	if channel == "QuickChat" and type(data) == "table" then
-		msg = data.Message
-	elseif type(data) == "string" then
-		msg = data
-	end
-	
-	if msg == "" then return end
-	
-	local ghost = extractGhostFromMessage(msg)
-	if ghost then
-		onGhostDetected(ghost)
-	end
-end)
-
--- Normal chat: Radio.OnClientEvent(player, text)
-RadioEvent.OnClientEvent:Connect(function(player, text)
-	if type(text) ~= "string" then return end
-	local ghost = extractGhostFromMessage(text)
-	if ghost then
-		onGhostDetected(ghost)
-	end
-end)
-
--- Section 6: AutoSelectedGhost watcher
--- READ-ONLY: mirror the Journal Selection state into the AFK center-screen label.
--- The actual selection + sync is owned by _G.SGC (SelectGhostCmd, Tab 4).
 local function getSelectedGhostName()
-	local frame = getGhostFrame()
-	if not frame then return nil end
-	for _, c in ipairs(frame:GetChildren()) do
-		if c:IsA("ImageButton") and c.Name == "GhostTemplate" then
-			local sel = c:FindFirstChild("Selection")
-			local more = c:FindFirstChild("More")
-			local tl = more and more:FindFirstChild("TextLabel")
-			if sel and sel:IsA("ImageLabel") and sel.ImageTransparency == 0 and tl then
-				return tl.Text
-			end
-		end
-	end
-	return nil
+    local frame = getGhostSelectionFrame()
+    if not frame then return nil end
+    for _, btn in ipairs(frame:GetChildren()) do
+        if btn:IsA("ImageButton") then
+            if (btn.BackgroundColor3.R - SELECTED_COLOR.R)^2 < 0.0001
+                and (btn.BackgroundColor3.G - SELECTED_COLOR.G)^2 < 0.0001
+                and (btn.BackgroundColor3.B - SELECTED_COLOR.B)^2 < 0.0001
+                and math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05 then
+                return btn.Name
+            end
+        end
+    end
+    return nil
 end
 
-local function refreshAFKSelected()
-	local cur = getSelectedGhostName()
-	latestGhost = cur
-	setAFKSelected(cur)
+local function updateSelectedText()
+    local name = getSelectedGhostName()
+    if name then
+        afkSelected.Text = "Selected: " .. name
+    else
+        afkSelected.Text = "Selected: None"
+    end
 end
 
--- watch journal Selection boxes so manual clicks in the Journal sync the label
-local function watchTemplate(template)
-	local sel = template:FindFirstChild("Selection")
-	if not sel or not sel:IsA("ImageLabel") then return end
-	local more = template:FindFirstChild("More")
-	local nameTL = more and more:FindFirstChild("TextLabel")
-	if not nameTL then return end
 
-	sel:GetPropertyChangedSignal("ImageTransparency"):Connect(function()
-		local current = nil
-		if sel.ImageTransparency == 0 then
-			-- Enforce Single Selection: deselect all other templates to prevent "duplicate 0s"
-			local frame = getGhostFrame()
-			if frame then
-				for _, c in ipairs(frame:GetChildren()) do
-					if c ~= template and c:IsA("ImageButton") and c.Name == "GhostTemplate" then
-						local s = c:FindFirstChild("Selection")
-						if s and s:IsA("ImageLabel") and s.ImageTransparency == 0 then
-							s.ImageTransparency = 1
-						end
-					end
-				end
-			end
-			current = nameTL.Text
-		else
-			-- If deselected, check if anyone else is still selected
-			current = getSelectedGhostName()
-		end
-		
-		latestGhost = current
-		setAFKSelected(current)
-	end)
+
+local function selectGhost(name)
+    local template = findGhostTemplate(name)
+    if template then
+        SelectGhostEvent:FireServer(name)
+        -- Update Journal visual: highlight the selected ghost, reset others
+        local selFrame = getGhostSelectionFrame()
+        if selFrame then
+            for _, btn in ipairs(selFrame:GetChildren()) do
+                if btn:IsA("ImageButton") then
+                    if string.lower(btn.Name) == string.lower(name) then
+                        btn.BackgroundColor3 = SELECTED_COLOR
+                        btn.BackgroundTransparency = SELECTED_TRANSPARENCY
+                    else
+                        btn.BackgroundColor3 = DEFAULT_COLOR
+                        btn.BackgroundTransparency = DEFAULT_TRANSPARENCY
+                    end
+                end
+            end
+        end
+        return true, name
+    else
+        SelectGhostEvent:FireServer("No Ghost Found")
+        return false, name
+    end
 end
 
-local function watchAllTemplates()
-	local frame = getGhostFrame()
-	if not frame then return end
-	for _, c in ipairs(frame:GetChildren()) do
-		if c:IsA("ImageButton") and c.Name == "GhostTemplate" then
-			watchTemplate(c)
-		end
-	end
+--------------------------------------------------------------------------------
+-- AFK Execution Logic
+--------------------------------------------------------------------------------
+
+local isAFK = false
+local UserInputService = game:GetService("UserInputService")
+local lastInputTime = tick()
+
+local function toggleAFK(state)
+    isAFK = state
+    setAFKVisible(state)
+    if state then
+        print("[AFK] Mode Enabled")
+    else
+        print("[AFK] Mode Disabled")
+    end
 end
 
-watchAllTemplates()
-
--- watch for journal rebuilding its templates later
-local gf = getGhostFrame()
-if gf then
-	gf.ChildAdded:Connect(function(child)
-		if child:IsA("ImageButton") and child.Name == "GhostTemplate" then
-			watchTemplate(child)
-		end
-	end)
+-- Hook ghost button clicks to enforce single selection
+local function isBtnSelected(btn)
+    return (btn.BackgroundColor3.R - SELECTED_COLOR.R)^2 < 0.0001
+        and (btn.BackgroundColor3.G - SELECTED_COLOR.G)^2 < 0.0001
+        and (btn.BackgroundColor3.B - SELECTED_COLOR.B)^2 < 0.0001
+        and math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05
 end
+
+local function hookGhostClicks()
+    local frame = getGhostSelectionFrame()
+    if not frame then return end
+    for _, btn in ipairs(frame:GetChildren()) do
+        if btn:IsA("ImageButton") and not btn:GetAttribute("MCPHook") then
+            btn:SetAttribute("MCPHook", true)
+            btn.Activated:Connect(function()
+                for _, other in ipairs(frame:GetChildren()) do
+                    if other:IsA("ImageButton") and other ~= btn and isBtnSelected(other) then
+                        other.BackgroundColor3 = DEFAULT_COLOR
+                        other.BackgroundTransparency = DEFAULT_TRANSPARENCY
+                    end
+                end
+            end)
+        end
+    end
+end
+
+task.spawn(function()
+    while true do
+        hookGhostClicks()
+        task.wait(2)
+    end
+end)
+
+-- Realtime watcher: reads the actual Journal selection every frame
+RunService.Heartbeat:Connect(updateSelectedText)
+
+-- Vote-based auto-select logic
+local function getGhostVoteCount(ghostName)
+    local frame = getGhostSelectionFrame()
+    if not frame then return 0 end
+    local btn = frame:FindFirstChild(ghostName)
+    if not btn or not btn:IsA("ImageButton") then return 0 end
+    local pi = btn:FindFirstChild("PlayerIcons")
+    if not pi then return 0 end
+
+    local iconCount = 0
+    for _, c in ipairs(pi:GetChildren()) do
+        if c:IsA("ImageLabel") and c.Name ~= "IconTemplate" then
+            iconCount = iconCount + 1
+        end
+    end
+
+    local overflow = pi:FindFirstChild("Overflow")
+    local overflowNum = 0
+    if overflow and overflow.Visible then
+        local numStr = overflow.Text:match("%+(%d+)")
+        if numStr then
+            overflowNum = tonumber(numStr) or 0
+        end
+    end
+
+    return iconCount + overflowNum
+end
+
+local function getMostVotedGhost()
+    local frame = getGhostSelectionFrame()
+    if not frame then return nil, 0 end
+
+    local bestName = nil
+    local bestVotes = 0
+    for _, btn in ipairs(frame:GetChildren()) do
+        if btn:IsA("ImageButton") then
+            local votes = getGhostVoteCount(btn.Name)
+            if votes > bestVotes then
+                bestVotes = votes
+                bestName = btn.Name
+            end
+        end
+    end
+    return bestName, bestVotes
+end
+
+local function isGhostSelectedFromUI(name)
+    local frame = getGhostSelectionFrame()
+    if not frame then return false end
+    local btn = frame:FindFirstChild(name)
+    if not btn or not btn:IsA("ImageButton") then return false end
+    return (btn.BackgroundColor3.R - SELECTED_COLOR.R)^2 < 0.0001
+        and (btn.BackgroundColor3.G - SELECTED_COLOR.G)^2 < 0.0001
+        and (btn.BackgroundColor3.B - SELECTED_COLOR.B)^2 < 0.0001
+        and math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05
+end
+
+task.spawn(function()
+    while true do
+        task.wait(3)
+        if not isAFK then continue end
+        local name, votes = getMostVotedGhost()
+        if name and votes >= 3 and not isGhostSelectedFromUI(name) then
+            selectGhost(name)
+        end
+    end
+end)
+
+-- Listen for SystemMessage (QuickChat)
+SystemMessageEvent.OnClientEvent:Connect(function(type, data)
+    if not isAFK then return end -- Only auto-select if AFK mode is active
+    
+    if type == "QuickChat" and data and data.Message then
+        local msg = data.Message
+        if string.find(msg, "The Ghost is a") then
+            -- Vote-based logic takes priority: if a ghost has >= 3 votes and is selected, ignore QuickChat
+            local votedName, votedCount = getMostVotedGhost()
+            if votedName and votedCount >= 3 and isGhostSelectedFromUI(votedName) then
+                return
+            end
+
+            local ghostName = msg:match("The Ghost is a%s+(.+)$")
+            if ghostName then
+                ghostName = string.gsub(ghostName, "[%p%s]+$", "")
+                selectGhost(ghostName)
+            end
+        end
+    end
+end)
+
+-- Input Detection to disable AFK (catches ALL keyboard, mouse, GUI, and chat input)
+UserInputService.InputBegan:Connect(function(input, processed)
+    -- ']' toggles AFK (only when unprocessed to avoid accidental toggle while typing)
+    if input.KeyCode == Enum.KeyCode.RightBracket and not processed then
+        toggleAFK(not isAFK)
+        lastInputTime = tick()
+        return
+    end
+
+    -- H broadcasts the selected ghost name via QuickChat
+    if input.KeyCode == Enum.KeyCode.H and not processed then
+        local name = getSelectedGhostName()
+        if name then
+            local QuickChatSent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("QuickChatSent")
+            if QuickChatSent then
+                QuickChatSent:FireServer({
+                    Id = "GhostCertain",
+                    ButtonText = "The Ghost is a ＿＿",
+                    Message = "The Ghost is a %s",
+                    ExtraDetailsType = "Ghosts"
+                }, name)
+            end
+        end
+        return
+    end
+
+    -- Any input at all disables AFK and resets idle timer
+    lastInputTime = tick()
+    if isAFK then
+        toggleAFK(false)
+    end
+end)
+
+
+
+-- AFK Idle Timer Logic
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if not isAFK and (tick() - lastInputTime) >= AFK_TIMEOUT then
+            toggleAFK(true)
+        end
+    end
+end)
+
+
 print("AUTO FARM ACYIVATE")
