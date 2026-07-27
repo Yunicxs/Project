@@ -546,9 +546,9 @@ local function toggleAFK(state)
     isAFK = state
     setAFKVisible(state)
     if state then
-        print("[AFK] Mode Enabled")
+        
     else
-        print("[AFK] Mode Disabled")
+        
     end
 end
 
