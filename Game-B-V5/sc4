@@ -1705,4 +1705,68 @@ if itemList then
 	end)
 end
 
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+
+local MapNameLabel = Workspace.Map.Van.CoreElements.TimerModel.Monitor.SurfaceGui.MapName
+if MapNameLabel.Text ~= "DUNWICH SANATORIUM" then
+    return
+end
+
+local LocalPlayer = Players.LocalPlayer
+local OutsidePart = Workspace.Map.Zones.Outside
+local ZoneValue = LocalPlayer:WaitForChild("Zone")
+
+local origCFrame = OutsidePart.CFrame
+local origSize = OutsidePart.Size
+
+local isEnabled = false
+local bringRunning = false
+
+local function restoreOriginal()
+    OutsidePart.Size = origSize
+    OutsidePart.CFrame = origCFrame
+end
+
+local function bringToCharacter()
+    if bringRunning then return end
+    bringRunning = true
+    while isEnabled do
+        local ok, err = pcall(function()
+            local zoneName = ZoneValue.Value and ZoneValue.Value.Name or ""
+            if zoneName ~= "Outside" then
+                restoreOriginal()
+                task.wait(0.3)
+                if not isEnabled then return end
+            end
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                OutsidePart.Size = Vector3.new(1, 1, 1)
+                OutsidePart.CFrame = CFrame.new(char.HumanoidRootPart.Position)
+            end
+        end)
+        if not ok then break end
+        task.wait(0.05)
+    end
+    restoreOriginal()
+    bringRunning = false
+end
+
+local function toggle()
+    isEnabled = not isEnabled
+    if isEnabled then
+        bringToCharacter()
+    else
+        restoreOriginal()
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if input.KeyCode == Enum.KeyCode.X and not processed then
+        toggle()
+    end
+end)
+
 print("Done")
