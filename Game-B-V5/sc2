@@ -1950,18 +1950,77 @@ task.spawn(function()
 	end
 end)
 
+local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = Game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
 
-local disruptionValue = ReplicatedStorage:WaitForChild("Disruption")
-local isToggled = true
+local Disruption = ReplicatedStorage:WaitForChild("Disruption")
+local GHOST_FOOTSTEPS = {"HeavyFootstepsVar01", "HeavyFootstepsVar02", "HeavyFootstepsVar03", "HeavyFootstepsVar04", "HeavyFootstepsVar05"}
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.Y then
-        isToggled = not isToggled
-        disruptionValue.Value = isToggled
-    end
+local isEnabled = false
+local watching = false
+
+local function processFoot(foot)
+	if not foot then return end
+	for _, sound in ipairs(foot:GetChildren()) do
+		if sound:IsA("Sound") then
+			for _, pattern in ipairs(GHOST_FOOTSTEPS) do
+				if sound.Name == pattern or string.find(sound.Name, pattern) then
+					sound.Volume = 0.6
+					sound.RollOffMaxDistance = 9e9
+					break
+				end
+			end
+		end
+	end
+end
+
+local function processGhost()
+	local ghost = Workspace:FindFirstChild("Ghost")
+	if not ghost then return end
+	Disruption.Value = false
+	processFoot(ghost:FindFirstChild("LeftFoot"))
+	processFoot(ghost:FindFirstChild("RightFoot"))
+end
+
+local function startWatching()
+	if watching then return end
+	watching = true
+	task.spawn(function()
+		processGhost()
+		local ghostAdded = Workspace.ChildAdded:Connect(function(child)
+			if child.Name == "Ghost" then
+				processGhost()
+			end
+		end)
+		while isEnabled do
+			local ghost = Workspace:FindFirstChild("Ghost")
+			if not ghost then
+				isEnabled = false
+				break
+			end
+			processGhost()
+			task.wait(0.1)
+		end
+		ghostAdded:Disconnect()
+		Disruption.Value = true
+		watching = false
+	end)
+end
+
+local function toggle()
+	isEnabled = not isEnabled
+	if isEnabled then
+		startWatching()
+	else
+		Disruption.Value = true
+	end
+end
+
+UserInputService.InputBegan:Connect(function(input, processed)
+	if input.KeyCode == Enum.KeyCode.Y and not processed then
+		toggle()
+	end
 end)
 
 print("done")
