@@ -263,47 +263,47 @@ end)
 
 
 -- info script
--- ChangeTemp Script
--- Keybind: K
--- Sets Outside zone temperature to 0.1 for 3 seconds
--- Uses wait(0.01) for smooth timing like old script
--- end info script
-
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local RunService = game:GetService("RunService")
 
--- Find temperature path
-local temperaturePath = game.Workspace:FindFirstChild("Map")
-    and game.Workspace.Map:FindFirstChild("Zones")
-    and game.Workspace.Map.Zones:FindFirstChild("Outside")
-    and game.Workspace.Map.Zones.Outside:FindFirstChild("_____Temperature")
+-- How long to hold the temperature override
+local HOLD_SECONDS = 3
 
-if temperaturePath and temperaturePath:IsA("NumberValue") then
-else
-    warn("Temperature path not found")
+local function getCurrentZoneTemperature()
+    local zone = LocalPlayer:FindFirstChild("Zone")
+    if not zone or not zone.Value then
+        return nil, "Player has no Zone ObjectValue"
+    end
+
+    local zonePart = zone.Value
+    local temperature = zonePart:FindFirstChild("_____Temperature")
+
+    if not temperature or not temperature:IsA("NumberValue") then
+        return nil, ("Zone %s has no _____Temperature"):format(zonePart.Name)
+    end
+
+    return temperature, nil
 end
 
 local function changeTemperature()
-    if not temperaturePath or not temperaturePath:IsA("NumberValue") then
+    local temperaturePath, err = getCurrentZoneTemperature()
+    if not temperaturePath then
+        warn("ZoneTemperature: " .. err)
         return
     end
-    
-    -- Get current value
-    local currentTemperature = temperaturePath.Value
-    
-    -- Set to 0.1 for 3 seconds
+
+    local zoneName = temperaturePath.Parent.Name
     local startTime = tick()
-    while tick() - startTime < 3 do
+    while tick() - startTime < HOLD_SECONDS do
         temperaturePath.Value = 0.1
-        wait(0.01)  -- Wait for smooth timing
+        RunService.Heartbeat:Wait()
     end
+    
 end
 
--- PC Keybind
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    
     if input.KeyCode == Enum.KeyCode.K then
         changeTemperature()
     end
