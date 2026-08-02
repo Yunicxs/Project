@@ -20,7 +20,7 @@ local function loadInfiniteYield()
 end
 
 local function loadRemoteSpy()
-    safeLoad("RemoteSpy", "https://github.com/notpoiu/cobalt/releases/latest/download/Cobalt.luau")
+    safeLoad("RemoteSpy", "https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/Cobalts.luau")
 end
 
 local function loadDex()
