@@ -1,4 +1,4 @@
-loadstring(game:HttpGet("https://github.com/notpoiu/cobalt/releases/latest/download/Cobalt.luau"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/RandomV1/Cobalts.luau"))()
 
 local UserInputService = game:GetService("UserInputService")
 
