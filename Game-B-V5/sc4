@@ -1710,11 +1710,6 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 
-local MapNameLabel = Workspace.Map.Van.CoreElements.TimerModel.Monitor.SurfaceGui.MapName
-if MapNameLabel.Text ~= "DUNWICH SANATORIUM" then
-    return
-end
-
 local LocalPlayer = Players.LocalPlayer
 local OutsidePart = Workspace.Map.Zones.Outside
 local ZoneValue = LocalPlayer:WaitForChild("Zone")
