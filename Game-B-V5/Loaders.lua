@@ -46,7 +46,8 @@ local urls = {
 	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V5/sc1",
 	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V5/sc2",
 	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V5/sc3",
-	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V5/sc4"
+	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V5/sc4",
+	"https://raw.githubusercontent.com/Yunicxs/Project/refs/heads/main/Game-B-V5/sc5"
 }
 
 local maxRetries = 10
