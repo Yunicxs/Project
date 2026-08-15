@@ -1,0 +1,979 @@
+if game.PlaceId ~= 6348640020 then return end
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Dead = LocalPlayer:WaitForChild("Dead")
+local Revive = PlayerGui:WaitForChild("Revive")
+local CanvasGroup = Revive:WaitForChild("CanvasGroup")
+local Menu = CanvasGroup:WaitForChild("Menu")
+local YesButton = Menu:WaitForChild("YesButton")
+local NoButton = Menu:WaitForChild("NoButton")
+local TimerLabel = Menu:WaitForChild("Timer")
+local Description = Menu:WaitForChild("Description")
+local YouDiedHeader = Menu:WaitForChild("YouDiedHeader")
+local UIScale = YouDiedHeader and YouDiedHeader:FindFirstChild("UIScale")
+local PromptRevivePurchase = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PromptRevivePurchase")
+
+local ReviveHandler = Revive:FindFirstChild("ReviveHandler")
+if ReviveHandler then
+	ReviveHandler:Destroy()
+end
+
+local TIMEOUT = 20
+local FADE_DURATION = 0.5
+local FALLEN_DEFAULT = -5000
+
+local function healFallenHeight()
+	if workspace.FallenPartsDestroyHeight ~= workspace.FallenPartsDestroyHeight then
+		workspace.FallenPartsDestroyHeight = _G.reviveFallenGood or FALLEN_DEFAULT
+	else
+		_G.reviveFallenGood = workspace.FallenPartsDestroyHeight
+	end
+end
+
+YesButton.Text = "Revive"
+Description.Text = "Press Y or Button to Revive."
+
+local GEN = (_G.reviveTakeoverGen or 0) + 1
+_G.reviveTakeoverGen = GEN
+local stillMine = function()
+	return _G.reviveTakeoverGen == GEN
+end
+
+local getRoot = function(char)
+	local hum = char:FindFirstChildWhichIsA("Humanoid")
+	if hum then
+		return hum, hum.RootPart
+	end
+	if char.PrimaryPart then
+		return nil, char.PrimaryPart
+	end
+	return nil, nil
+end
+
+local function explodeRespawn()
+	local char = LocalPlayer.Character
+	if not char then
+		return false, "no character"
+	end
+	local hum, root = getRoot(char)
+	if not hum or not root then
+		return false, "no humanoid/root"
+	end
+
+	healFallenHeight()
+	local archive = workspace.FallenPartsDestroyHeight
+	local camType = workspace.CurrentCamera.CameraType
+	local restore = function()
+		workspace.FallenPartsDestroyHeight = archive
+		_G.reviveFallenGood = archive
+		if workspace.CurrentCamera.CameraType == Enum.CameraType.Scriptable then
+			workspace.CurrentCamera.CameraType = camType
+		end
+	end
+	workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+	workspace.FallenPartsDestroyHeight = 0 / 0
+	local push = function()
+		root.Anchored = false
+		root.AssemblyLinearVelocity = Vector3.new(0, -250, 0)
+		root.CFrame = CFrame.new(0, archive - 3000, 0)
+	end
+	hum:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+	push()
+	local deadline = os.clock() + 3
+	while os.clock() < deadline do
+		if not root.Parent then
+			break
+		end
+		push()
+		task.wait(0.05)
+	end
+	local success, err = pcall(function()
+		restore()
+		root.CFrame = CFrame.new(0, archive - 100, 0)
+		local t = os.clock()
+		while os.clock() - t < 5 do
+			if not root.Parent then
+				return
+			end
+			if hum.Health <= 0 or not hum.Parent then
+				return
+			end
+			task.wait(0.1)
+		end
+	end)
+	if not success then
+		restore()
+		return false, err
+	end
+	if not root.Parent or hum.Health <= 0 or not hum.Parent then
+		return true
+	end
+	return false, "character survived"
+end
+
+local function respawn()
+	task.spawn(function()
+		for attempt = 1, 3 do
+			local ok, info = pcall(explodeRespawn)
+			if ok and info ~= "no character" and info ~= "no humanoid/root" then
+				print("Respawned (attempt " .. attempt .. ")")
+				return
+			end
+			warn("Respawn attempt " .. attempt .. " failed: " .. tostring(info))
+			task.wait(0.8)
+		end
+		warn("Respawn gave up after 3 attempts")
+	end)
+end
+
+local showing = false
+local timedOut = false
+local inFade = false
+local timerTask = nil
+
+local DOUBLE_TAP_WINDOW = 0.75
+local lastYTime = 0
+local pendingReopen = nil
+
+local function cancelTimer()
+	if timerTask then
+		task.cancel(timerTask)
+	end
+	timerTask = nil
+end
+
+local function setTransparency(target)
+	inFade = true
+	local twn = TweenService:Create(
+		CanvasGroup,
+		TweenInfo.new(FADE_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ GroupTransparency = target }
+	)
+	twn:Play()
+	twn.Completed:Once(function()
+		inFade = false
+	end)
+end
+
+local function closePrompt()
+	if not stillMine() then
+		return
+	end
+	showing = false
+	cancelTimer()
+	_G.freemouse = false
+	setTransparency(1)
+	task.spawn(function()
+		task.wait(FADE_DURATION)
+		if stillMine() then
+			Revive.Enabled = false
+		end
+	end)
+end
+
+local function playHeaderAnim()
+	if UIScale then
+		UIScale.Scale = 5
+		TweenService:Create(
+			UIScale,
+			TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Scale = 1.2 }
+		):Play()
+	end
+end
+
+local function openPrompt()
+	if not stillMine() then
+		return
+	end
+	showing = true
+	timedOut = false
+	Revive.Enabled = true
+	CanvasGroup.GroupTransparency = 1
+	playHeaderAnim()
+	setTransparency(0)
+	_G.freemouse = true
+	cancelTimer()
+	local remaining = TIMEOUT
+	TimerLabel.Text = tostring(remaining)
+	timerTask = task.spawn(function()
+		while remaining > 0 do
+			task.wait(1)
+			if not stillMine() then
+				return
+			end
+			remaining = remaining - 1
+			if not showing then
+				return
+			end
+			TimerLabel.Text = tostring(remaining)
+			if remaining == 5 then
+				TimerLabel.TextColor3 = Color3.fromRGB(152, 40, 37)
+			end
+		end
+		if showing then
+
+			timerTask = nil
+			closePrompt()
+			timedOut = true
+		end
+	end)
+end
+
+local function callRespawn()
+	closePrompt()
+	respawn()
+end
+
+local function scheduleReopen()
+	pendingReopen = task.spawn(function()
+		task.wait(DOUBLE_TAP_WINDOW)
+		pendingReopen = nil
+		if stillMine() and not showing and timedOut and LocalPlayer.Dead.Value then
+			openPrompt()
+		end
+	end)
+end
+
+-- Server still tells us when to open/close; we just handle it ourselves.
+PromptRevivePurchase.OnClientEvent:Connect(function(state)
+	if not stillMine() then
+		return
+	end
+	if state == "Open" then
+		openPrompt()
+	elseif state == "Close" then
+		closePrompt()
+	end
+end)
+
+-- Fallback: if Dead goes true directly, open the screen too.
+Dead.Changed:Connect(function(changed)
+	if not stillMine() then
+		return
+	end
+	if changed then
+		if not showing then
+			openPrompt()
+		end
+	else
+		closePrompt()
+	end
+end)
+
+healFallenHeight()
+if workspace.CurrentCamera.CameraType == Enum.CameraType.Scriptable then
+	workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+end
+
+if Dead.Value then
+	openPrompt()
+end
+
+YesButton.MouseButton1Click:Connect(function()
+	if not stillMine() then
+		return
+	end
+	if showing then
+		callRespawn()
+	end
+end)
+
+NoButton.MouseButton1Click:Connect(function()
+	if not stillMine() then
+		return
+	end
+	if showing then
+		closePrompt()
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not stillMine() then
+		return
+	end
+	if gameProcessed then
+		return
+	end
+	if input.KeyCode == Enum.KeyCode.Y then
+		if showing then
+			callRespawn()
+		elseif timedOut and LocalPlayer.Dead.Value then
+			local now = os.clock()
+			if pendingReopen and now - lastYTime <= DOUBLE_TAP_WINDOW then
+				-- Second Y inside the window: skip the UI entirely, respawn now.
+				task.cancel(pendingReopen)
+				pendingReopen = nil
+				timedOut = false
+				respawn()
+			else
+				lastYTime = now
+				scheduleReopen()
+			end
+		end
+	elseif input.KeyCode == Enum.KeyCode.N then
+		if showing then
+			closePrompt()
+		end
+	end
+end)
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local RED = Color3.fromRGB(255, 0, 0)
+local SCAN_INTERVAL = 0.15
+
+-- reload-safe generation token (stale handlers from a previous run early-return)
+local stateRoot = _G.__NookTraitsState
+if not stateRoot then
+	stateRoot = { gen = 0 }
+	_G.__NookTraitsState = stateRoot
+end
+stateRoot.gen = stateRoot.gen + 1
+local MY_GEN = stateRoot.gen
+
+-- instance -> { name, className, state }
+-- state: "seen" (on map / currently unaccounted), "held" (a player holds it), "stolen", "consumed"
+local seen = {}
+local stolen = false
+local appearAt = {}
+local pendingMissing = {}
+local THROW_GRACE = 2.0
+local baselineDone = false
+-- leftover-handle baseline: handle instances we have already accounted for this round
+local knownRootHandles = {}
+local roundHasFreshHandle = false
+local getRootHandles
+local function takeRootHandleSnapshot()
+	knownRootHandles = getRootHandles()
+	roundHasFreshHandle = false
+end
+
+local function getItemsFolder()
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return nil end
+	local items = map:FindFirstChild("Items")
+	return items
+end
+
+local function getNookLabel()
+	local plr = Players.LocalPlayer
+	if not plr then return nil end
+	local j = plr:FindFirstChild("PlayerGui") and plr.PlayerGui:FindFirstChild("Journal")
+	if not j then return nil end
+	local ev = j:FindFirstChild("Background") and j.Background:FindFirstChild("MainContent")
+		and j.Background.MainContent:FindFirstChild("Main") and j.Background.MainContent.Main:FindFirstChild("Others")
+		and j.Background.MainContent.Main.Others:FindFirstChild("Contents")
+		and j.Background.MainContent.Main.Others.Contents:FindFirstChild("Frames")
+		and j.Background.MainContent.Main.Others.Contents.Frames:FindFirstChild("Evidence")
+	if not ev then return nil end
+	local right = ev:FindFirstChild("Right") and ev.Right:FindFirstChild("Content")
+		and ev.Right.Content:FindFirstChild("CanvasGroup")
+		and ev.Right.Content.CanvasGroup:FindFirstChild("Frame")
+	if not right then return nil end
+	local nook = right:FindFirstChild("Nook")
+	if not nook then return nil end
+	return nook:FindFirstChild("More") and nook.More:FindFirstChild("TextLabel")
+end
+
+local function paintRed()
+	local lbl = getNookLabel()
+	if lbl then
+		lbl.TextColor3 = RED
+	end
+end
+
+local function paintWhite()
+	local lbl = getNookLabel()
+	if lbl then
+		lbl.TextColor3 = Color3.new(1, 1, 1)
+	end
+end
+
+local function isConsumableTool(tool)
+	if tool.Name == "Salt" then
+		return true
+	end
+	for _, d in ipairs(tool:GetDescendants()) do
+		if d:IsA("NumberValue") and d.Name == "Capacity" then
+			return true
+		end
+	end
+	return false
+end
+
+-- orphan handles at the workspace root (direct children), the salt-consumed leftover
+getRootHandles = function()
+	local handles = {}
+	for _, child in ipairs(Workspace:GetChildren()) do
+		if child:IsA("BasePart") and child.Name == "Handle" then
+			handles[child] = true
+		end
+	end
+	return handles
+end
+
+takeRootHandleSnapshot()
+
+-- is this tool instance held by any player, in any of the three holding spots?
+local function isHeldCampaign(tool)
+	for _, plr in ipairs(Players:GetPlayers()) do
+		-- Slot1..Slot5 ObjectValue references
+		for i = 1, 5 do
+			local slot = plr:FindFirstChild("Slot" .. i)
+			if slot and slot.Value == tool then
+				return true
+			end
+		end
+		-- backpack children (indexing a held tool)
+		for _, child in ipairs(plr.Backpack:GetChildren()) do
+			if child == tool then
+				return true
+			end
+		end
+		-- equipped in the workspace player model
+		local model = Workspace:FindFirstChild(plr.Name)
+		if model then
+			for _, child in ipairs(model:GetChildren()) do
+				if child == tool then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+task.spawn(function()
+	paintWhite()
+	while stateRoot.gen == MY_GEN do
+		local items = getItemsFolder()
+		if items then
+			-- tools currently present on the map (same instances we track)
+			local present = {}
+			for _, child in ipairs(items:GetChildren()) do
+				if child:IsA("Tool") then
+					present[child] = true
+					if not seen[child] then
+						seen[child] = { name = child.Name, className = child.ClassName, state = "seen", consumable = isConsumableTool(child) }
+
+						appearAt[child] = baselineDone and tick() or 0
+					end
+				end
+			end
+			baselineDone = true
+
+			local liveCount = 0
+			for inst in pairs(seen) do
+				if present[inst] then
+					liveCount = liveCount + 1
+				end
+			end
+			local totalSeen = 0
+			for _ in pairs(seen) do totalSeen = totalSeen + 1 end
+			if totalSeen > 0 and liveCount == 0 and #items:GetChildren() > 0 then
+				-- map completely rebuilt -> new round: reset tracking AND the latch
+				for inst in pairs(seen) do seen[inst] = nil end
+				for inst in pairs(pendingMissing) do pendingMissing[inst] = nil end
+				for inst in pairs(appearAt) do appearAt[inst] = nil end
+				for child, _ in pairs(present) do
+					seen[child] = { name = child.Name, className = child.ClassName, state = "seen", consumable = isConsumableTool(child) }
+					appearAt[child] = 0
+				end
+				stolen = false
+				paintWhite()
+				takeRootHandleSnapshot()
+			else
+				-- scan tracked instances: gone AND not held anywhere => stolen
+				local mapToolsLeft = 0
+				for _, child in ipairs(items:GetChildren()) do
+					if child:IsA("Tool") then
+						mapToolsLeft = mapToolsLeft + 1
+					end
+				end
+				-- any NEW orphan handle counts as a "consumable used up" witness
+				-- any NEW orphan handle marks consumables as "used up" for the whole round
+				local freshHandles = getRootHandles()
+				for h in pairs(freshHandles) do
+					if not knownRootHandles[h] then
+						roundHasFreshHandle = true
+						break
+					end
+				end
+				knownRootHandles = freshHandles
+
+				local function findThrowReplacement(inst, meta, since)
+					for child, _ in pairs(present) do
+						if child ~= inst and child.Name == meta.name then
+							local at = appearAt[child]
+							if at and at >= since then
+								return child
+							end
+						end
+					end
+					return nil
+				end
+
+				for inst, meta in pairs(seen) do
+					if not present[inst] and meta.state ~= "stolen" and meta.state ~= "consumed" then
+						if isHeldCampaign(inst) then
+							meta.state = "held"
+						elseif meta.consumable and roundHasFreshHandle then
+							-- salt ran out: destroyed, Handle left behind -> used up, not stolen
+							meta.state = "consumed"
+							print(("[NookTraits] CONSUMED: %s  -- tools left on map: %d"):format(meta.name, mapToolsLeft))
+						elseif meta.name == "GlowStick" then
+							-- a freshly-spawned same-named instance is the throw's
+							-- replacement: the old one was destroyed by the game
+							if findThrowReplacement(inst, meta, tick() - THROW_GRACE) then
+								seen[inst] = nil
+								
+							elseif not pendingMissing[inst] then
+								-- wait a moment for the replacement to spawn
+								pendingMissing[inst] = tick()
+								meta.state = "pending"
+							end
+						elseif meta.name == "Sanity Soda" then
+
+							if meta.state == "held" then
+								meta.state = "consumed"
+								print(("[NookTraits] CONSUMED: %s  -- tools left on map: %d"):format(meta.name, mapToolsLeft))
+							else
+								meta.state = "stolen"
+								stolen = true
+								print(("[NookTraits] STOLEN: %s  -- tools left on map: %d"):format(meta.name, mapToolsLeft))
+							end
+						else
+							meta.state = "stolen"
+							stolen = true
+							print(("[NookTraits] STOLEN: %s  -- tools left on map: %d"):format(meta.name, mapToolsLeft))
+						end
+					end
+				end
+
+				-- resolve pending GlowStick throws: if a replacement appeared since
+				-- the instance went missing, it was thrown, not stolen
+				local now = tick()
+				for inst, since in pairs(pendingMissing) do
+					local meta = seen[inst]
+					if not meta then
+						pendingMissing[inst] = nil
+					elseif present[inst] then
+						-- came back on its own: safe again
+						meta.state = "seen"
+						pendingMissing[inst] = nil
+					else
+						local replacement = findThrowReplacement(inst, meta, since)
+						if replacement then
+							seen[inst] = nil
+							pendingMissing[inst] = nil
+							
+						elseif now - since > THROW_GRACE then
+							-- no replacement in time: real steal
+							meta.state = "stolen"
+							stolen = true
+							pendingMissing[inst] = nil
+							print(("[NookTraits] STOLEN: %s  -- tools left on map: %d"):format(meta.name, mapToolsLeft))
+						end
+					end
+				end
+
+				-- a previously-held tool dropped back between scans is safe again
+				for inst, meta in pairs(seen) do
+					if present[inst] and meta.state == "held" then
+						meta.state = "seen"
+					end
+				end
+			end
+
+			if stolen then
+				paintRed()
+			end
+		end
+		task.wait(SCAN_INTERVAL)
+	end
+end)
+
+local api = {
+	name = "NookTraitsDetector",
+	gen = MY_GEN,
+	isStolen = function() return stolen end,
+	trackedCount = function()
+		local n = 0
+		for _ in pairs(seen) do n = n + 1 end
+		return n
+	end,
+}
+_G.__NookTraitsAPI = api
+_G.__NookTraitsState.api = api
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local RED = Color3.fromRGB(255, 0, 0)
+local SCAN_INTERVAL = 0.15
+
+-- reload-safe generation token (stale handlers from a previous run early-return)
+local stateRoot = _G.__FaejkurTraitsState
+if not stateRoot then
+	stateRoot = { gen = 0 }
+	_G.__FaejkurTraitsState = stateRoot
+end
+stateRoot.gen = stateRoot.gen + 1
+local MY_GEN = stateRoot.gen
+
+local active = false
+
+local function getItemsFolder()
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return nil end
+	return map:FindFirstChild("Items")
+end
+
+-- maps held across scans; a full instance-replacement sweep means a new round
+local lastItemsSnapshot = nil
+
+local function getFaejkurLabel()
+	local plr = Players.LocalPlayer
+	if not plr then return nil end
+	local j = plr:FindFirstChild("PlayerGui") and plr.PlayerGui:FindFirstChild("Journal")
+	if not j then return nil end
+	local ev = j:FindFirstChild("Background") and j.Background:FindFirstChild("MainContent")
+		and j.Background.MainContent:FindFirstChild("Main") and j.Background.MainContent.Main:FindFirstChild("Others")
+		and j.Background.MainContent.Main.Others:FindFirstChild("Contents")
+		and j.Background.MainContent.Main.Others.Contents:FindFirstChild("Frames")
+		and j.Background.MainContent.Main.Others.Contents.Frames:FindFirstChild("Evidence")
+	if not ev then return nil end
+	local right = ev:FindFirstChild("Right") and ev.Right:FindFirstChild("Content")
+		and ev.Right.Content:FindFirstChild("CanvasGroup")
+		and ev.Right.Content.CanvasGroup:FindFirstChild("Frame")
+	if not right then return nil end
+	local fae = right:FindFirstChild("Faejkur")
+	if not fae then return nil end
+	return fae:FindFirstChild("More") and fae.More:FindFirstChild("TextLabel")
+end
+
+local function paintRed()
+	local lbl = getFaejkurLabel()
+	if lbl then
+		lbl.TextColor3 = RED
+	end
+end
+
+local function paintDefault()
+	local lbl = getFaejkurLabel()
+	if lbl then
+
+		lbl.TextColor3 = Color3.fromRGB(210, 232, 214)
+	end
+end
+
+local function soundPartPresent()
+	return Workspace:FindFirstChild("SoundPart") ~= nil
+end
+
+task.spawn(function()
+	paintDefault()
+	while stateRoot.gen == MY_GEN do
+		local items = getItemsFolder()
+		if items then
+			local children = items:GetChildren()
+			if lastItemsSnapshot then
+				-- if every previously-seen instance is gone AND new ones took their
+				-- place, it was a round rebuild: reset the latch
+				local sawOld = false
+				for _, inst in ipairs(lastItemsSnapshot) do
+					if inst.Parent == items then
+						sawOld = true
+						break
+					end
+				end
+				local anyNew = false
+				for _, c in ipairs(children) do
+					if not table.find(lastItemsSnapshot, c) then
+						anyNew = true
+						break
+					end
+				end
+				if not sawOld and anyNew then
+					active = false
+					paintDefault()
+				end
+			end
+			lastItemsSnapshot = children
+		end
+		if soundPartPresent() then
+			active = true
+			paintRed()
+		end
+		task.wait(SCAN_INTERVAL)
+	end
+end)
+
+local api = {
+	name = "FaejkurTraitsDetector",
+	gen = MY_GEN,
+	isActive = function() return active end,
+}
+_G.__FaejkurTraitsAPI = api
+_G.__FaejkurTraitsState.api = api
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local GREEN = Color3.fromRGB(144, 238, 144)
+local SCAN_INTERVAL = 0.15
+
+local state = _G.__EvidenceDetectorState
+if not state then
+	state = { gen = 0 }
+	_G.__EvidenceDetectorState = state
+end
+state.gen = state.gen + 1
+local MY_GEN = state.gen
+
+local evidence = {
+	["EMF Level 5"] = true,
+	["Ghost Orb"] = true,
+	["SLS Anomaly"] = true,
+	["Ultraviolet"] = true,
+	["Freezing Temp."] = true,
+	["Ghost Writing"] = true,
+	["Spirit Box"] = true,
+}
+
+-- latched states: once an evidence trips true it stays true.
+local detected = {}
+
+local function bothEvidenceChallengesActive()
+	local challenges = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Van")
+		and Workspace.Map.Van:FindFirstChild("CoreElements") and Workspace.Map.Van.CoreElements:FindFirstChild("TimerModel")
+		and Workspace.Map.Van.CoreElements.TimerModel:FindFirstChild("Monitor")
+		and Workspace.Map.Van.CoreElements.TimerModel.Monitor:FindFirstChild("SurfaceGui")
+		and Workspace.Map.Van.CoreElements.TimerModel.Monitor.SurfaceGui:FindFirstChild("Challenges")
+	if not challenges then return false end
+	local minus1 = challenges:FindFirstChild("-1 Evidence")
+	local minus2 = challenges:FindFirstChild("-2 Evidence") or challenges:FindFirstChild("-2 Evidences")
+	return minus1 ~= nil and minus2 ~= nil
+end
+
+local function findEvidenceFrame()
+	local plr = Players.LocalPlayer
+	if not plr then return nil end
+	local j = plr:FindFirstChild("PlayerGui") and plr.PlayerGui:FindFirstChild("Journal")
+	if not j then return nil end
+	local ev = j:FindFirstChild("Background") and j.Background:FindFirstChild("MainContent")
+		and j.Background.MainContent:FindFirstChild("Main") and j.Background.MainContent.Main:FindFirstChild("Others")
+		and j.Background.MainContent.Main.Others:FindFirstChild("Contents")
+		and j.Background.MainContent.Main.Others.Contents:FindFirstChild("Frames")
+		and j.Background.MainContent.Main.Others.Contents.Frames:FindFirstChild("Evidence")
+	if not ev then return nil end
+	local left = ev:FindFirstChild("Left") and ev.Left:FindFirstChild("ItemEvidence")
+		and ev.Left.ItemEvidence:FindFirstChild("CanvasGroup")
+		and ev.Left.ItemEvidence.CanvasGroup:FindFirstChild("Frame")
+	return left
+end
+
+local function markEvidence(name)
+	if detected[name] then
+		local frame = findEvidenceFrame()
+		if not frame then return end
+		local item = frame:FindFirstChild(name)
+		if item then
+			local txt = item:FindFirstChild("More") and item.More:FindFirstChild("TextLabel")
+			if txt then
+				txt.TextColor3 = GREEN
+			end
+		end
+		return
+	end
+	local frame = findEvidenceFrame()
+	if not frame then return end
+	local item = frame:FindFirstChild(name)
+	if item then
+		local txt = item:FindFirstChild("More") and item.More:FindFirstChild("TextLabel")
+		if txt then
+			txt.TextColor3 = GREEN
+		end
+	end
+	detected[name] = true
+end
+
+-- individual checks
+local function checkEMF()
+	local items = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Items")
+	if not items then return false end
+	local emf = items:FindFirstChild("EMF Reader")
+	return emf ~= nil and emf:FindFirstChild("RecentlyLevelFive") ~= nil and emf.RecentlyLevelFive.Value == true
+end
+
+local function checkGhostWriting()
+	local items = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Items")
+	if not items then return false end
+	local book = items:FindFirstChild("Ghost Writing Book")
+	return book ~= nil and book:FindFirstChild("Written") ~= nil and book.Written.Value == true
+end
+
+local function checkUV()
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return false end
+	local prints = map:FindFirstChild("Prints")
+	return prints ~= nil and #prints:GetChildren() > 0
+end
+
+local function checkOrbs()
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return false end
+	local orbs = map:FindFirstChild("Orbs")
+	return orbs ~= nil and #orbs:GetChildren() > 0
+end
+
+local function checkFreezing()
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return false end
+	local zones = map:FindFirstChild("Zones")
+	for _, descendant in ipairs(map:GetDescendants()) do
+		if descendant:IsA("NumberValue") and descendant.Name == "_____Temperature" and descendant.Value < 0.05 then
+			-- the Outside safe-zone does not count toward Freezing Temp. evidence
+			if zones and descendant:IsDescendantOf(zones) then
+				local ancestor = descendant.Parent
+				while ancestor and ancestor ~= zones do
+					if ancestor.Name == "Outside" then
+						break
+					end
+					ancestor = ancestor.Parent
+				end
+				if ancestor == zones then
+					-- never passed through a zone named Outside
+					return true
+				end
+			else
+				return true
+			end
+		end
+	end
+	return false
+end
+
+local function checkSpiritBox()
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return false end
+	local items = map:FindFirstChild("Items")
+	if not items then return false end
+	local sb = items:FindFirstChild("Spirit Box")
+	if not sb then return false end
+	local gt = sb:FindFirstChild("GhostTalk")
+	if not gt then return false end
+	for _, child in ipairs(gt:GetChildren()) do
+		if child:IsA("Sound") and child.Playing then
+			return true
+		end
+	end
+	return false
+end
+
+local function checkSLS()
+	local sls = Workspace:FindFirstChild("SLS_GHOST")
+	return sls ~= nil
+end
+
+local checks = {
+	["EMF Level 5"] = checkEMF,
+	["Ghost Orb"] = checkOrbs,
+	["SLS Anomaly"] = checkSLS,
+	["Ultraviolet"] = checkUV,
+	["Freezing Temp."] = checkFreezing,
+	["Ghost Writing"] = checkGhostWriting,
+	["Spirit Box"] = checkSpiritBox,
+}
+
+task.spawn(function()
+	while state.gen == MY_GEN do
+		if not bothEvidenceChallengesActive() then
+			for name, fn in pairs(checks) do
+				if not detected[name] then
+					local ok, res = pcall(fn)
+					if ok and res then
+						detected[name] = true
+					end
+				end
+
+				if detected[name] then
+					markEvidence(name)
+				end
+			end
+		end
+		task.wait(SCAN_INTERVAL)
+	end
+end)
+
+local api = {
+	name = "EvidenceDetector",
+	gen = MY_GEN,
+	setDetected = function(name) detected[name] = true end,
+	isDetected = function(name) return detected[name] or false end,
+}
+_G.__EvidenceDetectorAPI = api
+_G.__EvidenceDetectorState.api = api
+
+local UserInputService = game:GetService("UserInputService")
+
+local doorsFolder = game.Workspace:FindFirstChild("Map") and game.Workspace.Map:FindFirstChild("Doors")
+if not doorsFolder then
+    warn("Doors folder not found at game.Workspace.Map.Doors")
+    return
+end
+
+local storedDoors = {}
+local isRemoved = false
+
+-- Reference to the NoClip ImageLabel for color feedback
+local noClipLabel = game:GetService("CoreGui"):FindFirstChild("ToggleUI") 
+    and game:GetService("CoreGui").ToggleUI:FindFirstChild("TFrame") 
+    and game:GetService("CoreGui").ToggleUI.TFrame:FindFirstChild("ToogleUI") 
+    and game:GetService("CoreGui").ToggleUI.TFrame.ToogleUI:FindFirstChild("NoClip")
+
+local function toggleDoors()
+    isRemoved = not isRemoved
+    
+    if isRemoved then
+        -- Remove and store doors
+        for _, door in ipairs(doorsFolder:GetChildren()) do
+            table.insert(storedDoors, door)
+            door.Parent = nil
+        end
+        
+        
+        -- Set color to 255, 128, 128 (Reddish)
+        if noClipLabel then
+            noClipLabel.ImageColor3 = Color3.fromRGB(255, 128, 128)
+        end
+    else
+        -- Restore doors from storage
+        for _, door in ipairs(storedDoors) do
+            door.Parent = doorsFolder
+        end
+        table.clear(storedDoors)
+        
+        
+        -- Set color back to white
+        if noClipLabel then
+            noClipLabel.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.N then
+        toggleDoors()
+    end
+end)
