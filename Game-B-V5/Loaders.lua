@@ -725,3 +725,334 @@ end)
 
 
 print("AUTO FARM ACYIVATE")
+
+local player = game.Players.LocalPlayer
+
+local function setBool(name)
+	local value = player:FindFirstChild(name)
+	if value and value:IsA("BoolValue") then
+		value.Value = true
+		
+	else
+		warn(("%s BoolValue not found on LocalPlayer"):format(name))
+	end
+end
+
+setBool("DoubleStamina")
+setBool("SanityTracker")
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+-- NightVision setup (same as mobile version)
+local function setupNightVision()
+    -- Set NightVision ownership to true
+    local NV = Player:FindFirstChild("NightVision")
+    if NV then
+        NV.Value = true
+    else
+        local newNV = Instance.new("BoolValue")
+        newNV.Name = "NightVision"
+        newNV.Value = true
+        newNV.Parent = Player
+    end
+
+    -- Remove the noLights challenge that blocks NV
+    local challenges = ReplicatedStorage:FindFirstChild("ActiveChallenges")
+    if challenges then
+        local noLights = challenges:FindFirstChild("noLights")
+        if noLights then
+            noLights:Destroy()
+        end
+    end
+
+    -- Enable the NVG battery GUI
+    local NVGBattery = PlayerGui:FindFirstChild("NVGBattery")
+    if NVGBattery then
+        NVGBattery.Enabled = true
+    end
+
+    -- Toggle NightVision value to force .Changed event
+    task.defer(function()
+        local nv = Player:FindFirstChild("NightVision")
+        if nv and nv.Value == true then
+            nv.Value = false
+            task.wait(0.1)
+            nv.Value = true
+        end
+    end)
+end
+
+local function protectAtmosphere()
+    local atmos = Lighting:FindFirstChildOfClass("Atmosphere")
+
+    local function onRemoved(instance)
+        if instance.ClassName == "Atmosphere" and not instance.Parent then
+            task.defer(function()
+                if not Lighting:FindFirstChildOfClass("Atmosphere") then
+                    local a = Instance.new("Atmosphere")
+                    a.Density = 0.3
+                    a.Offset = 0.25
+                    a.Color = Color3.fromRGB(199, 199, 199)
+                    a.Decay = Color3.fromRGB(92, 60, 43)
+                    a.Glare = 0
+                    a.Haze = 1
+                    a.Parent = Lighting
+                end
+            end)
+        end
+    end
+
+    if atmos then
+        pcall(function()
+            atmos.AncestryChanged:Connect(function(_, parent)
+                if not parent then onRemoved(atmos) end
+            end)
+        end)
+    end
+
+    -- Also watch for new Atmosphere instances being added (in case it recreated externally)
+    Lighting.ChildAdded:Connect(function(child)
+        if child:IsA("Atmosphere") then
+            pcall(function()
+                child.AncestryChanged:Connect(function(_, parent)
+                    if not parent then onRemoved(child) end
+                end)
+            end)
+        end
+    end)
+
+    -- Safety net: periodic check
+    task.spawn(function()
+        while task.wait(0.5) do
+            if not Lighting:FindFirstChildOfClass("Atmosphere") then
+                pcall(function()
+                    local a = Instance.new("Atmosphere")
+                    a.Density = 0.3
+                    a.Offset = 0.25
+                    a.Color = Color3.fromRGB(199, 199, 199)
+                    a.Decay = Color3.fromRGB(92, 60, 43)
+                    a.Glare = 0
+                    a.Haze = 1
+                    a.Parent = Lighting
+                end)
+            end
+        end
+    end)
+end
+
+-- Initialize both features
+setupNightVision()
+protectAtmosphere()
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local StarterGui = game:GetService("StarterGui")
+
+local GEN = (_G.videoCamerasAnywhereGen or 0) + 1
+_G.videoCamerasAnywhereGen = GEN
+local function decoy()
+	return _G.videoCamerasAnywhereGen ~= GEN
+end
+
+local function getKeyboard()
+	local map = workspace:FindFirstChild("Map")
+	local van = map and map:FindFirstChild("Van")
+	local core = van and van:FindFirstChild("CoreElements")
+	return core and core:FindFirstChild("Keyboard") or nil
+end
+
+local function getPrompt()
+	local kb = getKeyboard()
+	if not kb then
+		return nil
+	end
+	local p = kb:FindFirstChild("VanKeyboardViewCamerasPrompt")
+	if p and p:IsA("ProximityPrompt") then
+		return p
+	end
+	return kb:FindFirstChildOfClass("ProximityPrompt")
+end
+
+local function getVideoCameraGui()
+	return LocalPlayer.PlayerGui:FindFirstChild("VideoCamera")
+end
+
+local function isViewing()
+	local vc = getVideoCameraGui()
+	return vc ~= nil and vc.Enabled == true
+end
+
+local function getBindable(name)
+	local b = ReplicatedStorage:FindFirstChild("Bindables")
+	return b and b:FindFirstChild(name) or nil
+end
+
+local function safeToView()
+	local rv = ReplicatedStorage:FindFirstChild("ReplicatedValues")
+	if rv and rv:FindFirstChild("ServerLoaded") and not rv.ServerLoaded.Value then
+		return false
+	end
+	if _G.IntroCutscene then
+		return false
+	end
+	if LocalPlayer:GetAttribute("CutsceneActive") then
+		return false
+	end
+	if LocalPlayer:FindFirstChild("Dead") and LocalPlayer.Dead.Value then
+		return false
+	end
+	local char = LocalPlayer.Character
+	if not char then
+		return false
+	end
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health == 0 then
+		return false
+	end
+	return true
+end
+
+local function openCameras()
+	if not safeToView() then
+		return false
+	end
+	local prompt = getPrompt()
+	if not prompt then
+		return false
+	end
+	if not prompt.Enabled then
+		prompt.Enabled = true
+	end
+	fireproximityprompt(prompt)
+	return true
+end
+
+local function closeCameras()
+	local b = getBindable("ToggleVideoCamera")
+	if b then
+		b:Fire()
+	end
+end
+
+local function toggle()
+	if isViewing() then
+		closeCameras()
+	else
+		openCameras()
+	end
+end
+
+-- ---- Remove the "Confirm" purchase popup ----
+local function purgeConfirm()
+	-- Delete the StarterGui template (the frame the user wants gone).
+	pcall(function()
+		local j = StarterGui:FindFirstChild("Journal")
+		if not j then
+			return
+		end
+		local frames = j.Background.MainContent.Main.Others.Contents.Frames
+		local confirm = frames:FindFirstChild("Confirm")
+		if confirm then
+			confirm:Destroy()
+		end
+	end)
+	-- Live PlayerGui clone: keep the instance (game has live connections to it) but hide it.
+	pcall(function()
+		local j = LocalPlayer.PlayerGui:FindFirstChild("Journal")
+		if not j then
+			return
+		end
+		local frames = j.Background.MainContent.Main.Others.Contents.Frames
+		local confirm = frames and frames:FindFirstChild("Confirm")
+		if confirm then
+			confirm.Visible = false
+		end
+	end)
+end
+purgeConfirm()
+
+-- Keep any re-cloned journal's Confirm hidden
+task.spawn(function()
+	while not decoy() do
+		pcall(function()
+			local j = LocalPlayer.PlayerGui:FindFirstChild("Journal")
+			if j then
+				local frames = j.Background.MainContent.Main.Others.Contents.Frames
+				local confirm = frames and frames:FindFirstChild("Confirm")
+				if confirm then
+					confirm.Visible = false
+				end
+			end
+		end)
+		task.wait(3)
+	end
+end)
+
+local weClosedJournal = false
+local vcGui = LocalPlayer.PlayerGui:WaitForChild("VideoCamera", 30)
+if vcGui then
+	vcGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+		if decoy() then
+			return
+		end
+		if vcGui.Enabled == false and weClosedJournal then
+			weClosedJournal = false
+			local j = LocalPlayer.PlayerGui:FindFirstChild("Journal")
+			if j then
+				j.Enabled = true
+			end
+		end
+	end)
+end
+
+-- ---- KeyCode.U toggle ----
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if decoy() then
+		return
+	end
+	if gameProcessed then
+		return
+	end
+	if input.KeyCode ~= Enum.KeyCode.U then
+		return
+	end
+	if UserInputService:GetFocusedTextBox() then
+		return
+	end
+	toggle()
+end)
+
+-- ---- VideoCamera ImageButton click opens cameras ----
+pcall(function()
+	local j = LocalPlayer.PlayerGui:WaitForChild("Journal", 30)
+	if not j then
+		return
+	end
+	local btn = j.Background.MainContent.Main.Others.Contents.SideBar.VideoCamera
+	if not btn then
+		return
+	end
+	btn.Activated:Connect(function()
+		if decoy() then
+			return
+		end
+		if isViewing() then
+			return
+		end
+		if openCameras() then
+			local journal = LocalPlayer.PlayerGui:FindFirstChild("Journal")
+			if journal and journal.Enabled then
+				journal.Enabled = false
+				weClosedJournal = true
+			end
+		end
+	end)
+end)
