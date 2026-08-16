@@ -343,6 +343,9 @@ local MY_GEN = stateRoot.gen
 -- state: "seen" (on map / currently unaccounted), "held" (a player holds it), "stolen", "consumed"
 local seen = {}
 local stolen = false
+-- GlowStick throw: the server destroys the held instance and spawns a fresh
+-- same-named one on the map. Track per-instance appearance time so a thrown
+-- GlowStick's replacement is recognized instead of flagging a false steal.
 local appearAt = {}
 local pendingMissing = {}
 local THROW_GRACE = 2.0
@@ -395,6 +398,74 @@ local function paintWhite()
 	if lbl then
 		lbl.TextColor3 = Color3.new(1, 1, 1)
 	end
+end
+
+local TweenService = game:GetService("TweenService")
+
+-- Achievement-style popup cloned from the game's own AchievementsClient
+-- template. Title = the stolen tool's name, Description = tools left on map.
+-- Mirrors CreateNotification() in Players.Shypuu.PlayerGui.AchievementUI:
+-- slide in, hold ~7.5s, slide out, destroy.
+local function showStolenNotification(toolName, toolsLeft)
+	local plr = Players.LocalPlayer
+	if not plr then return end
+	local pg = plr:FindFirstChild("PlayerGui")
+	if not pg then return end
+	local ach = pg:FindFirstChild("AchievementUI")
+	if not ach then return end
+	local client = ach:FindFirstChild("AchievementsClient")
+	local container = ach:FindFirstChild("NotificationContainer")
+	if not client or not container then return end
+	local template = client:FindFirstChild("NotificationLane")
+	if not template then return end
+
+	local function play()
+		local lane = template:Clone()
+		local plate = lane.NotificationPlate
+		plate.Labels.Title.Text = ("Items Stolen: %s"):format(toolName)
+		plate.Labels.Description.Text = ("Items left: %d"):format(toolsLeft)
+		local thumb = plate.Thumbnail
+		if thumb then
+			thumb.Image = "rbxassetid://80346439255353"
+		end
+		local prog = plate.Labels:FindFirstChild("Progress")
+		if prog then
+			prog.Visible = false
+			plate.Labels.Description.Visible = true
+		end
+		-- "Brutal" difficulty glow, exactly like AchievementsClient does for
+		-- Brutal achievements: red BooBooGlow, fade to 20%, hold, fade back out
+		local glowHalo = lane:FindFirstChild("GlowContainer")
+		if glowHalo then
+			local glow = glowHalo:FindFirstChild("Glow")
+			if glow then
+				glowHalo.Visible = true
+				glow.ImageColor3 = Color3.fromRGB(255, 85, 111)
+				glow.ImageTransparency = 1
+				task.spawn(function()
+					local fadeIn = TweenService:Create(glow, TweenInfo.new(1.25), { ImageTransparency = 0.2 })
+					fadeIn:Play()
+					fadeIn.Completed:Wait()
+					task.wait(1)
+					TweenService:Create(glow, TweenInfo.new(0.5), { ImageTransparency = 1 }):Play()
+				end)
+			end
+		end
+		lane.Parent = container
+		local slideIn = TweenService:Create(plate, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {
+			Position = UDim2.new(1, -20, 0, 0),
+		})
+		slideIn:Play()
+		task.wait(3)
+		local slideOut = TweenService:Create(plate, TweenInfo.new(0.25), {
+			Position = UDim2.new(1, plate.AbsoluteSize.X + 10, 0, 0),
+		})
+		slideOut:Play()
+		slideOut.Completed:Wait()
+		lane:Destroy()
+	end
+
+	task.spawn(play)
 end
 
 local function isConsumableTool(tool)
@@ -463,13 +534,17 @@ task.spawn(function()
 					present[child] = true
 					if not seen[child] then
 						seen[child] = { name = child.Name, className = child.ClassName, state = "seen", consumable = isConsumableTool(child) }
-
+						-- record when this instance first showed up on the map;
+						-- baseline instances (script start) get 0 so they are never
+						-- mistaken for a throw replacement
 						appearAt[child] = baselineDone and tick() or 0
 					end
 				end
 			end
 			baselineDone = true
 
+			-- round-reset safety: if nearly the whole tracked set disappeared in one
+			-- sweep and was replaced by fresh instances, it was a new round, not Nook.
 			local liveCount = 0
 			for inst in pairs(seen) do
 				if present[inst] then
@@ -509,6 +584,11 @@ task.spawn(function()
 				end
 				knownRootHandles = freshHandles
 
+				-- GlowStick throw: the server destroys the held tool and spawns a
+				-- fresh same-named instance on the map. A held GlowStick that goes
+				-- missing is a throw (replacement appears) or a pending real steal
+				-- (nothing appears) - never an immediate steal. Only GlowStick has
+				-- this throw mechanic.
 				local function findThrowReplacement(inst, meta, since)
 					for child, _ in pairs(present) do
 						if child ~= inst and child.Name == meta.name then
@@ -534,25 +614,30 @@ task.spawn(function()
 							-- replacement: the old one was destroyed by the game
 							if findThrowReplacement(inst, meta, tick() - THROW_GRACE) then
 								seen[inst] = nil
-								
+								print(("[NookTraits] THROWN: %s returned to the map"):format(meta.name))
 							elseif not pendingMissing[inst] then
 								-- wait a moment for the replacement to spawn
 								pendingMissing[inst] = tick()
 								meta.state = "pending"
 							end
 						elseif meta.name == "Sanity Soda" then
-
+							-- drinking destroys the tool with no leftover Handle and no
+							-- replacement (verified: orphan Handles stay 0). A soda that
+							-- was held right up until it vanished was drunk, not stolen;
+							-- a map soda vanishing unpicked is a real theft.
 							if meta.state == "held" then
 								meta.state = "consumed"
 								print(("[NookTraits] CONSUMED: %s  -- tools left on map: %d"):format(meta.name, mapToolsLeft))
 							else
 								meta.state = "stolen"
 								stolen = true
+								showStolenNotification(meta.name, mapToolsLeft)
 								print(("[NookTraits] STOLEN: %s  -- tools left on map: %d"):format(meta.name, mapToolsLeft))
 							end
 						else
 							meta.state = "stolen"
 							stolen = true
+							showStolenNotification(meta.name, mapToolsLeft)
 							print(("[NookTraits] STOLEN: %s  -- tools left on map: %d"):format(meta.name, mapToolsLeft))
 						end
 					end
@@ -574,12 +659,13 @@ task.spawn(function()
 						if replacement then
 							seen[inst] = nil
 							pendingMissing[inst] = nil
-							
+							print(("[NookTraits] THROWN: %s returned to the map"):format(meta.name))
 						elseif now - since > THROW_GRACE then
 							-- no replacement in time: real steal
 							meta.state = "stolen"
 							stolen = true
 							pendingMissing[inst] = nil
+							showStolenNotification(meta.name, mapToolsLeft)
 							print(("[NookTraits] STOLEN: %s  -- tools left on map: %d"):format(meta.name, mapToolsLeft))
 						end
 					end
@@ -610,6 +696,7 @@ local api = {
 		for _ in pairs(seen) do n = n + 1 end
 		return n
 	end,
+	showStolenNotification = showStolenNotification,
 }
 _G.__NookTraitsAPI = api
 _G.__NookTraitsState.api = api
@@ -675,6 +762,72 @@ local function paintDefault()
 	end
 end
 
+local TweenService = game:GetService("TweenService")
+
+-- Achievement-style popup cloned from the game's own AchievementsClient
+-- template. Mirrors CreateNotification() in Players.Shypuu.PlayerGui.AchievementUI.
+local function showMimicNotification()
+	local plr = Players.LocalPlayer
+	if not plr then return end
+	local pg = plr:FindFirstChild("PlayerGui")
+	if not pg then return end
+	local ach = pg:FindFirstChild("AchievementUI")
+	if not ach then return end
+	local client = ach:FindFirstChild("AchievementsClient")
+	local container = ach:FindFirstChild("NotificationContainer")
+	if not client or not container then return end
+	local template = client:FindFirstChild("NotificationLane")
+	if not template then return end
+
+	local function play()
+		local lane = template:Clone()
+		local plate = lane.NotificationPlate
+		plate.Labels.Title.Text = "Faejkur Mimic Sound"
+		plate.Labels.Description.Text = "Detected"
+		local thumb = plate.Thumbnail
+		if thumb then
+			thumb.Image = "rbxassetid://80346439255353"
+		end
+		local prog = plate.Labels:FindFirstChild("Progress")
+		if prog then
+			prog.Visible = false
+			plate.Labels.Description.Visible = true
+		end
+		-- "Brutal" difficulty glow, exactly like AchievementsClient does for
+		-- Brutal achievements: red BooBooGlow, fade to 20%, hold, fade back out
+		local glowHalo = lane:FindFirstChild("GlowContainer")
+		if glowHalo then
+			local glow = glowHalo:FindFirstChild("Glow")
+			if glow then
+				glowHalo.Visible = true
+				glow.ImageColor3 = Color3.fromRGB(255, 85, 111)
+				glow.ImageTransparency = 1
+				task.spawn(function()
+					local fadeIn = TweenService:Create(glow, TweenInfo.new(1.25), { ImageTransparency = 0.2 })
+					fadeIn:Play()
+					fadeIn.Completed:Wait()
+					task.wait(1)
+					TweenService:Create(glow, TweenInfo.new(0.5), { ImageTransparency = 1 }):Play()
+				end)
+			end
+		end
+		lane.Parent = container
+		local slideIn = TweenService:Create(plate, TweenInfo.new(0.5, Enum.EasingStyle.Exponential), {
+			Position = UDim2.new(1, -20, 0, 0),
+		})
+		slideIn:Play()
+		task.wait(3)
+		local slideOut = TweenService:Create(plate, TweenInfo.new(0.25), {
+			Position = UDim2.new(1, plate.AbsoluteSize.X + 10, 0, 0),
+		})
+		slideOut:Play()
+		slideOut.Completed:Wait()
+		lane:Destroy()
+	end
+
+	task.spawn(play)
+end
+
 local function soundPartPresent()
 	return Workspace:FindFirstChild("SoundPart") ~= nil
 end
@@ -710,6 +863,9 @@ task.spawn(function()
 			lastItemsSnapshot = children
 		end
 		if soundPartPresent() then
+			if not active then
+				showMimicNotification()
+			end
 			active = true
 			paintRed()
 		end
@@ -721,9 +877,338 @@ local api = {
 	name = "FaejkurTraitsDetector",
 	gen = MY_GEN,
 	isActive = function() return active end,
+	showMimicNotification = showMimicNotification,
 }
 _G.__FaejkurTraitsAPI = api
 _G.__FaejkurTraitsState.api = api
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local state = _G.__InventoryViewerState
+if not state then
+	state = { gen = 0, frame = nil, button = nil, sideConns = {} }
+	_G.__InventoryViewerState = state
+end
+-- reload-safety: tear down the previous run's gui + side-connections first
+if state.frame then pcall(function() state.frame:Destroy() end) end
+if state.button then pcall(function() state.button:Destroy() end) end
+for _, c in ipairs(state.sideConns) do pcall(function() c:Disconnect() end) end
+state.sideConns = {}
+for _, c in ipairs(state.tipConns or {}) do pcall(function() c:Disconnect() end) end
+state.tipConns = {}
+state.gen = state.gen + 1
+local MY_GEN = state.gen
+
+local SLOT_COUNT = 5
+local SLOT_PADDING = UDim.new(0.0459999964, 0)
+local INVENTORY_ICON = "rbxassetid://18474502697" -- classic roblox backpack icon
+local KIT_COLORS = {
+	["The Big Pockets"] = Color3.fromRGB(255, 0, 0),
+	["The Wimp"] = Color3.fromRGB(255, 0, 0),
+	["The Cat"] = Color3.fromRGB(255, 0, 0),
+	["The Joker"] = Color3.fromRGB(255, 0, 0),
+	["The Summoner"] = Color3.fromRGB(255, 0, 0),
+	Whisperwalk = Color3.fromRGB(255, 0, 0),
+	["The Fox"] = Color3.fromRGB(255, 0, 0),
+	["The All Seeings"] = Color3.fromRGB(122, 166, 204),
+	["Ghost Whisperer"] = Color3.fromRGB(122, 166, 204),
+	Priest = Color3.fromRGB(122, 166, 204),
+	["The Sentry"] = Color3.fromRGB(122, 166, 204),
+	["The Videographer"] = Color3.fromRGB(122, 166, 204),
+	["Ouija Master"] = Color3.fromRGB(161, 161, 161),
+	["The Doctor"] = Color3.fromRGB(161, 161, 161),
+	["The Technician"] = Color3.fromRGB(161, 161, 161),
+	["The Engineer"] = Color3.fromRGB(161, 161, 161),
+	Brave = Color3.fromRGB(161, 161, 161),
+}
+
+local PLR = Players.LocalPlayer
+local Journal = PLR:WaitForChild("PlayerGui"):WaitForChild("Journal")
+local Contents = Journal.Background.MainContent.Main.Others.Contents
+local Frames = Contents:WaitForChild("Frames")
+local SideBar = Contents:WaitForChild("SideBar")
+local sideBarLayout = SideBar:FindFirstChildOfClass("UIListLayout")
+if sideBarLayout then
+	sideBarLayout.Padding = UDim.new(0.048, 0)
+end
+local SanityTracker = Frames:WaitForChild("SanityTracker")
+local ItemList = Frames.Tools.Content.RightContent.ItemsFrame.ItemList
+
+local function buildIconMap()
+	local map = {}
+	for _, btn in ipairs(ItemList:GetChildren()) do
+		if btn:IsA("ImageButton") then
+			local pi = btn:FindFirstChild("PlaceholderIcon")
+			if pi and pi:IsA("ImageLabel") then
+				local grad = pi:FindFirstChildOfClass("UIGradient")
+				map[btn.Name] = { image = pi.Image, gradient = grad and grad:Clone() or nil }
+			end
+		end
+	end
+	return map
+end
+
+local iconData = buildIconMap()
+
+local statGradient
+do
+	for _, v in pairs(iconData) do
+		if v.gradient then
+			statGradient = v.gradient:Clone()
+			break
+		end
+	end
+end
+
+local InventoryPlayer = SanityTracker:Clone()
+InventoryPlayer.Name = "InventoryPlayer"
+InventoryPlayer.LayoutOrder = 2
+for _, c in ipairs(InventoryPlayer:GetDescendants()) do
+	if c:IsA("BaseScript") then
+		c:Destroy()
+	end
+end
+local header = InventoryPlayer:FindFirstChild("AvgSanity")
+if header then
+	header.Name = "Title"
+	header.Text = "Player Inventory"
+end
+local scroller = InventoryPlayer:FindFirstChild("Scroller")
+if scroller then
+	scroller:ClearAllChildren()
+	local grid = Instance.new("UIGridLayout")
+	grid.Parent = scroller
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
+	grid.CellSize = UDim2.new(0.48, 0, 0.3, 0)
+	grid.CellPadding = UDim2.fromScale(0.02, 0.02)
+end
+local frameLayout = InventoryPlayer:FindFirstChildOfClass("UIListLayout")
+if frameLayout then
+	frameLayout.Padding = SLOT_PADDING
+end
+InventoryPlayer.Parent = Frames
+
+local function buildCellTemplate()
+	local t = ReplicatedStorage:FindFirstChild("CreateSanityCell") and ReplicatedStorage.CreateSanityCell:FindFirstChild("Cell")
+	if not t then return nil end
+	t = t:Clone()
+	t.Name = "InventoryCard"
+	t.LayoutOrder = 0
+	local sb = t:FindFirstChild("SanityBar")
+	if sb then sb:Destroy() end
+	local bar = Instance.new("Frame")
+	bar.Name = "SlotsBar"
+	bar.AnchorPoint = Vector2.new(0, 1)
+	bar.Position = UDim2.new(0, 0, 1, 0)
+	bar.Size = UDim2.new(1, 0, 0.5, 0)
+	bar.BackgroundTransparency = 0.9
+	bar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	bar.BorderSizePixel = 0
+	bar.ZIndex = 1
+	Instance.new("UICorner").Parent = bar
+	local ul = Instance.new("UIListLayout")
+	ul.FillDirection = Enum.FillDirection.Horizontal
+	ul.Padding = SLOT_PADDING
+	ul.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	ul.VerticalAlignment = Enum.VerticalAlignment.Center
+	ul.Parent = bar
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0.02, 0)
+	pad.PaddingRight = UDim.new(0.02, 0)
+	pad.PaddingTop = UDim.new(0.02, 0)
+	pad.PaddingBottom = UDim.new(0.02, 0)
+	pad.Parent = bar
+	for i = 1, SLOT_COUNT do
+		local slot = Instance.new("Frame")
+		slot.Name = "Slot" .. i
+		slot.Size = UDim2.new(0.16, 0, 1, -4)
+		slot.BackgroundTransparency = 0.55
+		slot.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		slot.BorderSizePixel = 0
+		Instance.new("UICorner").Parent = slot
+		local icon = Instance.new("ImageLabel")
+		icon.Name = "Icon"
+		icon.Size = UDim2.fromScale(0.9, 0.9)
+		icon.Position = UDim2.fromScale(0.5, 0.5)
+		icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		icon.BackgroundTransparency = 1
+		icon.BorderSizePixel = 0
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.Parent = slot
+		if statGradient then
+			statGradient:Clone().Parent = icon
+		end
+		slot.Parent = bar
+	end
+	bar.Parent = t
+	return t
+end
+
+local cellTemplate = buildCellTemplate()
+
+local cells = {}
+local slotConns = {}
+
+local function refreshSlots(player, cell)
+	local bar = cell:FindFirstChild("SlotsBar")
+	if not bar then return end
+	for i = 1, SLOT_COUNT do
+		local slotVal = player:FindFirstChild("Slot" .. i)
+		local slot = bar:FindFirstChild("Slot" .. i)
+		if slot then
+			local icon = slot:FindFirstChild("Icon")
+			local tool = slotVal and slotVal.Value
+			local data = tool and tool.Name and iconData[tool.Name]
+			if icon then
+				if data then
+					icon.Image = data.image
+					icon.ImageTransparency = 0
+				else
+					icon.Image = ""
+					icon.ImageTransparency = 0.75
+				end
+			end
+		end
+	end
+end
+
+local function makeCard(player)
+	local cell = cellTemplate:Clone()
+	cell.Parent = scroller
+	cell.Visible = true
+	cell.Name = player.Name
+	local tc = cell:FindFirstChild("TopContent")
+	if tc then
+		local thumb = tc:FindFirstChild("PlayerThumbnail")
+		if thumb then
+			thumb.Image = string.format("rbxthumb://type=AvatarHeadShot&id=%d&w=60&h=60", player.UserId)
+		end
+		local labels = tc:FindFirstChild("Labels")
+		if labels then
+			local uname = labels:FindFirstChild("UsernameLabel")
+			local kitLabel = labels:FindFirstChild("KitLabel")
+			if uname then uname.Text = player.DisplayName end
+			local kit = player:FindFirstChild("Kit")
+			if kitLabel then
+				kitLabel.Text = kit and kit.Value or ""
+				kitLabel.TextColor3 = KIT_COLORS[kit and kit.Value or ""] or Color3.fromRGB(161, 161, 161)
+			end
+		end
+	end
+	refreshSlots(player, cell)
+	local conns = {}
+	for i = 1, SLOT_COUNT do
+		local slotVal = player:FindFirstChild("Slot" .. i)
+		if slotVal then
+			table.insert(conns, slotVal:GetPropertyChangedSignal("Value"):Connect(function()
+				if state.gen ~= MY_GEN then return end
+				refreshSlots(player, cell)
+			end))
+		end
+	end
+	local kit = player:FindFirstChild("Kit")
+	if kit then
+		table.insert(conns, kit.Changed:Connect(function()
+			if state.gen ~= MY_GEN then return end
+			local labels = cell:FindFirstChild("TopContent") and cell.TopContent:FindFirstChild("Labels")
+			local kitLabel = labels and labels:FindFirstChild("KitLabel")
+			if kitLabel then kitLabel.Text = kit.Value or "" end
+		end))
+	end
+	local uid = player.UserId
+	cells[uid] = cell
+	slotConns[uid] = conns
+end
+
+local function removeCard(player)
+	local uid = player.UserId
+	if cells[uid] then
+		cells[uid]:Destroy()
+		cells[uid] = nil
+	end
+	if slotConns[uid] then
+		for _, c in ipairs(slotConns[uid]) do
+			pcall(function() c:Disconnect() end)
+		end
+		slotConns[uid] = nil
+	end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+	if state.gen == MY_GEN then makeCard(p) end
+end
+
+local playerAddedConn = Players.PlayerAdded:Connect(function(p)
+	if state.gen ~= MY_GEN then return end
+	removeCard(p)
+	makeCard(p)
+end)
+local playerRemovingConn = Players.PlayerRemoving:Connect(function(p)
+	if state.gen ~= MY_GEN then return end
+	removeCard(p)
+end)
+
+local zSanity = SideBar:FindFirstChild("ZSanityTracker")
+local btn
+if zSanity then
+	btn = zSanity:Clone()
+	btn.Name = "Inventory"
+	btn.Image = INVENTORY_ICON
+	btn.LayoutOrder = 3
+	local tip = btn:FindFirstChild("ToolTipLabel")
+	if tip then
+		tip.Text = "Inventory"
+		tip.Visible = false
+		table.insert(state.tipConns, btn.MouseEnter:Connect(function()
+			if state.gen ~= MY_GEN then return end
+			tip.Visible = true
+		end))
+		table.insert(state.tipConns, btn.MouseLeave:Connect(function()
+			if state.gen ~= MY_GEN then return end
+			tip.Visible = false
+		end))
+	end
+	local clickSound = Instance.new("Sound")
+	clickSound.Name = "ClickSound"
+	clickSound.SoundId = "rbxassetid://115916891254154"
+	clickSound.Volume = 0.8
+	clickSound.Parent = btn
+	btn.Parent = SideBar
+	state.button = btn
+end
+
+if btn then
+	btn.Activated:Connect(function()
+		if state.gen ~= MY_GEN then return end
+		local cs = btn:FindFirstChild("ClickSound")
+		if cs then
+			task.spawn(function()
+				if not cs.IsLoaded then pcall(function() cs.Loaded:Wait() end) end
+				cs:Play()
+			end)
+		end
+		for _, f in ipairs(Frames:GetChildren()) do
+			if f:IsA("GuiObject") then f.Visible = false end
+		end
+		InventoryPlayer.Visible = true
+	end)
+	for _, other in ipairs(SideBar:GetChildren()) do
+		if other:IsA("ImageButton") and other ~= btn then
+			table.insert(state.sideConns, other.Activated:Connect(function()
+				if state.gen ~= MY_GEN then return end
+				InventoryPlayer.Visible = false
+			end))
+		end
+	end
+else
+	for _, f in ipairs(Frames:GetChildren()) do
+		if f:IsA("GuiObject") then f.Visible = false end
+	end
+	InventoryPlayer.Visible = true
+end
+
+state.frame = InventoryPlayer
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
