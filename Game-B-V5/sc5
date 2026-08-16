@@ -977,6 +977,7 @@ end
 local scroller = InventoryPlayer:FindFirstChild("Scroller")
 if scroller then
 	scroller:ClearAllChildren()
+    scroller.Size = UDim2.new(1, 0, 0.9, 0)
 	local grid = Instance.new("UIGridLayout")
 	grid.Parent = scroller
 	grid.SortOrder = Enum.SortOrder.LayoutOrder
