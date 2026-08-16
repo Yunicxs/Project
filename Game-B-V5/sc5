@@ -766,7 +766,7 @@ local TweenService = game:GetService("TweenService")
 
 -- Achievement-style popup cloned from the game's own AchievementsClient
 -- template. Mirrors CreateNotification() in Players.Shypuu.PlayerGui.AchievementUI.
-local function showMimicNotification()
+local function showMimicNotification(zoneName)
 	local plr = Players.LocalPlayer
 	if not plr then return end
 	local pg = plr:FindFirstChild("PlayerGui")
@@ -783,7 +783,7 @@ local function showMimicNotification()
 		local lane = template:Clone()
 		local plate = lane.NotificationPlate
 		plate.Labels.Title.Text = "Faejkur Mimic Sound"
-		plate.Labels.Description.Text = "Detected"
+		plate.Labels.Description.Text = zoneName and ("Detected Zones: %s"):format(zoneName) or "Detected"
 		local thumb = plate.Thumbnail
 		if thumb then
 			thumb.Image = "rbxassetid://80346439255353"
@@ -832,6 +832,31 @@ local function soundPartPresent()
 	return Workspace:FindFirstChild("SoundPart") ~= nil
 end
 
+local function resolveZone(pos)
+	local zones = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Zones")
+	if not zones then return "Unknown" end
+	local best, bestVol = nil, math.huge
+	for _, z in ipairs(zones:GetChildren()) do
+		if z:IsA("BasePart") then
+			local isz = z:FindFirstChild("IsZone")
+			if isz and isz.Value then
+				local localPos = z.CFrame:PointToObjectSpace(pos)
+				local half = z.Size / 2
+				if math.abs(localPos.X) <= half.X and math.abs(localPos.Y) <= half.Y and math.abs(localPos.Z) <= half.Z then
+					local vol = z.Size.X * z.Size.Y * z.Size.Z
+					if vol < bestVol then
+						best, bestVol = z.Name, vol
+					end
+				end
+			end
+		end
+	end
+	return best or "Unknown"
+end
+
+local lastSoundPart = nil
+local lastZoneName = "Detected"
+
 task.spawn(function()
 	paintDefault()
 	while stateRoot.gen == MY_GEN do
@@ -857,14 +882,22 @@ task.spawn(function()
 				end
 				if not sawOld and anyNew then
 					active = false
+					lastSoundPart = nil
 					paintDefault()
 				end
 			end
 			lastItemsSnapshot = children
 		end
-		if soundPartPresent() then
-			if not active then
-				showMimicNotification()
+		local sp = Workspace:FindFirstChild("SoundPart")
+		if sp then
+			-- fire again on every new SoundPart appearance (a destroyed + re-spawned
+			-- part is a new instance, so comparing instances catches repeated sounds)
+			if sp ~= lastSoundPart then
+				local root = sp:IsA("BasePart") and sp or sp:FindFirstChild("PrimaryPart") or sp:FindFirstChildWhichIsA("BasePart")
+				local zone = resolveZone(root.Position)
+				lastZoneName = ("Detected Zones: %s"):format(zone)
+				showMimicNotification(zone)
+				lastSoundPart = sp
 			end
 			active = true
 			paintRed()
@@ -878,9 +911,11 @@ local api = {
 	gen = MY_GEN,
 	isActive = function() return active end,
 	showMimicNotification = showMimicNotification,
+	resolveZone = resolveZone,
 }
 _G.__FaejkurTraitsAPI = api
 _G.__FaejkurTraitsState.api = api
+
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
