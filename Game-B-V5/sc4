@@ -936,28 +936,25 @@ task.spawn(function()
 	ghostRoom.ImageColor3 = Color3.fromRGB(255, 182, 193)
 end)
 
--- SelectGhostCmd by Cobalt-style helper
--- Step 1: paths + core functions (data layer)
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Step 0: prevent duplicates â€” destroy any existing CmdUI + clear old refs
+-- Cleanup old UI / connections
 do
 	local CoreGui = game:GetService("CoreGui")
 	local old = CoreGui:FindFirstChild("SelectGhostCmdUI")
 	if old then old:Destroy() end
-	-- explicit safety net: remove any leftover SelectedGhost label
-	local oldLabel = CoreGui:FindFirstChild("SelectedGhost")
-	if oldLabel then oldLabel:Destroy() end
-	-- disconnect a previous keybind connection if we stored one
-	if _G.SGC and _G.SGC.inputConn then
-		pcall(function() _G.SGC.inputConn:Disconnect() end)
+	local old2 = CoreGui:FindFirstChild("SelectGhostHoverUI")
+	if old2 then old2:Destroy() end
+	if _G.SGC then
+		if _G.SGC.inputBeganConn then pcall(function() _G.SGC.inputBeganConn:Disconnect() end) end
+		if _G.SGC.inputEndedConn then pcall(function() _G.SGC.inputEndedConn:Disconnect() end) end
+		if _G.SGC.renderConn then pcall(function() _G.SGC.renderConn:Disconnect() end) end
+		if _G.SGC.inputConn then pcall(function() _G.SGC.inputConn:Disconnect() end) end
 	end
 	_G.SGC = nil
 end
@@ -996,7 +993,7 @@ local function getGhostNamesFrame()
 	return itemList
 end
 
--- Ghost list container for SELECTION STATE (Evidence tab uses BackgroundColor3/Transparency on buttons directly)
+-- Ghost list container for SELECTION STATE (Evidence tab uses BackgroundColor3/Transparency)
 local function getGhostSelectionFrame()
 	local pg = LocalPlayer:FindFirstChild("PlayerGui")
 	if not pg then return nil end
@@ -1025,7 +1022,6 @@ local function getGhostSelectionFrame()
 	return cg:FindFirstChild("Frame")
 end
 
--- Get all ghost ImageButtons from the names frame (Ghosts tab - has NameLabel)
 local function getAllGhostButtonsForNames()
 	local itemList = getGhostNamesFrame()
 	local buttons = {}
@@ -1038,7 +1034,6 @@ local function getAllGhostButtonsForNames()
 	return buttons
 end
 
--- Get all ghost ImageButtons from the selection frame (Evidence tab - uses button Name)
 local function getAllGhostButtonsForSelection()
 	local frame = getGhostSelectionFrame()
 	local buttons = {}
@@ -1051,9 +1046,6 @@ local function getAllGhostButtonsForSelection()
 	return buttons
 end
 
--- Read all ghost names from the template buttons
--- Read all ghost names from the ImageButton children (NEW UI: buttons are in ItemList > ScrollerRow > ImageButton)
--- Read all ghost names from the ImageButton children (Ghosts tab - has NameLabel)
 local function getGhostNames()
 	local buttons = getAllGhostButtonsForNames()
 	local names = {}
@@ -1067,8 +1059,6 @@ local function getGhostNames()
 	return names
 end
 
--- Returns the ImageButton whose NameLabel.Text == target (case-insensitive)
--- Returns the ImageButton whose NameLabel.Text == target (case-insensitive) - searches in Ghosts tab
 local function findGhostTemplate(name)
 	local buttons = getAllGhostButtonsForNames()
 	local lowered = string.lower(name)
@@ -1082,22 +1072,15 @@ local function findGhostTemplate(name)
 	return nil
 end
 
--- Sync the selection visual for all ghost buttons based on chosen name
--- NEW UI: Selected = BackgroundColor3 (52, 78, 58), BackgroundTransparency = 0.25
--- Unselected = BackgroundColor3 (25, 25, 25), BackgroundTransparency = 0.2
 local function syncSelection(chosenName)
 	local buttons = getAllGhostButtonsForSelection()
 	local lowered = chosenName and string.lower(chosenName) or ""
-	
 	local SELECTED_COLOR = Color3.fromRGB(52, 78, 58)
 	local SELECTED_TRANSPARENCY = 0.25
 	local UNSELECTED_COLOR = Color3.fromRGB(25, 25, 25)
 	local UNSELECTED_TRANSPARENCY = 0.2
-	
 	for _, btn in ipairs(buttons) do
-		-- Evidence tab buttons use their Name property directly
 		local isMatch = (lowered ~= "" and string.lower(btn.Name) == lowered)
-		
 		if isMatch then
 			btn.BackgroundColor3 = SELECTED_COLOR
 			btn.BackgroundTransparency = SELECTED_TRANSPARENCY
@@ -1108,7 +1091,6 @@ local function syncSelection(chosenName)
 	end
 end
 
--- Fire the remote; if not found send "No Ghost Found"
 local function selectGhost(name)
 	local template = findGhostTemplate(name)
 	if template then
@@ -1117,12 +1099,11 @@ local function selectGhost(name)
 		return true, name
 	else
 		SelectGhostEvent:FireServer("No Ghost Found")
-		syncSelection("") -- clear all
+		syncSelection("")
 		return false, name
 	end
 end
 
--- expose for later steps
 _G.SGC = {
 	getGhostNames = getGhostNames,
 	selectGhost = selectGhost,
@@ -1130,270 +1111,20 @@ _G.SGC = {
 	findGhostTemplate = findGhostTemplate,
 }
 
--- Step 2: build the CmdUI (left corner, small + modern)
+-- Hover UI (center screen, grid of ghost names)
 local CoreGui = game:GetService("CoreGui")
 local gui = Instance.new("ScreenGui")
-gui.Name = "SelectGhostCmdUI"
+gui.Name = "SelectGhostHoverUI"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
--- parent to CoreGui (survives respawn / not tied to PlayerGui)
+gui.IgnoreGuiInset = true
 gui.Parent = CoreGui
 
--- main container (left corner)
-local container = Instance.new("Frame")
-container.Name = "CmdContainer"
-container.Size = UDim2.new(0, 260, 0, 38)
-container.Position = UDim2.new(0, 14, 0, 14)
-container.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-container.BackgroundTransparency = 0.5
-container.BorderSizePixel = 0
-container.Visible = false
-container.Parent = gui
-
-local uicorner = Instance.new("UICorner")
-uicorner.CornerRadius = UDim.new(0, 8)
-uicorner.Parent = container
-
-local uistroke = Instance.new("UIStroke")
-uistroke.Color = Color3.fromRGB(90, 90, 120)
-uistroke.Thickness = 1
-uistroke.Transparency = 0.4
-uistroke.Parent = container
-
--- prompt label
-local prompt = Instance.new("TextLabel")
-prompt.Name = "Prompt"
-prompt.Size = UDim2.new(0, 22, 0, 38)
-prompt.Position = UDim2.new(0, 0, 0, 0)
-prompt.BackgroundTransparency = 1
-prompt.Text = ";"
-prompt.TextColor3 = Color3.fromRGB(120, 220, 160)
-prompt.Font = Enum.Font.GothamBold
-prompt.TextSize = 18
-prompt.Parent = container
-
--- input box
-local box = Instance.new("TextBox")
-box.Name = "Input"
-box.Size = UDim2.new(1, -28, 0, 38)
-box.Position = UDim2.new(0, 26, 0, 0)
-box.BackgroundTransparency = 1
-box.Text = ""
-box.PlaceholderText = "ghost name..."
-box.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
-box.TextColor3 = Color3.fromRGB(235, 235, 245)
-box.Font = Enum.Font.Gotham
-box.TextSize = 15
-box.ClearTextOnFocus = false
-box.TextXAlignment = Enum.TextXAlignment.Left
-box.Parent = container
-
--- dropdown frame (holds suggestions)
-local dropdown = Instance.new("Frame")
-dropdown.Name = "Dropdown"
-dropdown.Size = UDim2.new(1, 0, 0, 0)
-dropdown.Position = UDim2.new(0, 0, 1, 4)
-dropdown.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-dropdown.BackgroundTransparency = 0.5
-dropdown.BorderSizePixel = 0
-dropdown.Visible = false
-dropdown.ClipsDescendants = true
-dropdown.Parent = container
-
-local dcorner = Instance.new("UICorner")
-dcorner.CornerRadius = UDim.new(0, 8)
-dcorner.Parent = dropdown
-
-local dstroke = Instance.new("UIStroke")
-dstroke.Color = Color3.fromRGB(90, 90, 120)
-dstroke.Thickness = 1
-dstroke.Transparency = 0.4
-dstroke.Parent = dropdown
-
-local dlayout = Instance.new("UIListLayout")
-dlayout.SortOrder = Enum.SortOrder.LayoutOrder
-dlayout.Padding = UDim.new(0, 2)
-dlayout.Parent = dropdown
-
-_G.SGC.gui = gui
-_G.SGC.container = container
-_G.SGC.box = box
-_G.SGC.dropdown = dropdown
-_G.SGC.dlayout = dlayout
-
--- Step 3: autocomplete dropdown logic
-local MIN_CHARS = 1
-local selectedIndex = 0
-local currentSuggestions = {}
-
-local function clearDropdown()
-	for _, c in ipairs(dropdown:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
-	end
-end
-
-local function highlightItems()
-	for i, item in ipairs(currentSuggestions) do
-		local btn = item.button
-		if i == selectedIndex then
-			btn.BackgroundColor3 = Color3.fromRGB(60, 80, 110)
-			btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-		else
-			btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-			btn.TextColor3 = Color3.fromRGB(210, 210, 225)
-		end
-	end
-end
-
-local function makeItem(name, index)
-	local btn = Instance.new("TextButton")
-	btn.Name = "Item"
-	btn.Size = UDim2.new(1, -8, 0, 26)
-	btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-	btn.BorderSizePixel = 0
-	btn.AutoButtonColor = false
-	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 14
-	btn.TextColor3 = Color3.fromRGB(210, 210, 225)
-	btn.TextXAlignment = Enum.TextXAlignment.Left
-	btn.Text = "  " .. name
-	btn.LayoutOrder = index
-	btn.Parent = dropdown
-
-	local bc = Instance.new("UICorner")
-	bc.CornerRadius = UDim.new(0, 6)
-	bc.Parent = btn
-
-	btn.MouseButton1Click:Connect(function()
-		box.Text = name
-		_G.SGC.selectGhost(name)
-		closeUI()
-	end)
-	return btn
-end
-
-local function refreshDropdown()
-	clearDropdown()
-	currentSuggestions = {}
-	local txt = string.lower(string.sub(box.Text, 1, -1))
-	local names = getGhostNames()
-
-	if #box.Text >= MIN_CHARS then
-		for _, name in ipairs(names) do
-			if string.find(string.lower(name), txt, 1, true) then
-				local idx = #currentSuggestions + 1
-				local btn = makeItem(name, idx)
-				table.insert(currentSuggestions, {name = name, button = btn})
-			end
-		end
-	end
-
-	if #currentSuggestions > 0 then
-		dropdown.Visible = true
-		dropdown.Size = UDim2.new(1, 0, 0, math.min(#currentSuggestions, 8) * 28 + 6)
-		selectedIndex = 1
-		highlightItems()
-	else
-		dropdown.Visible = false
-		selectedIndex = 0
-	end
-end
-
--- strip any ";" that lands in the box (e.g. from the trigger key)
-box:GetPropertyChangedSignal("Text"):Connect(function()
-	local t = box.Text
-	if string.find(t, ";", 1, true) then
-		box.Text = string.gsub(t, ";", "")
-	end
-	refreshDropdown()
-end)
-
--- Step 4: open/close + keybind handling
-local open = false
-
-local function openUI()
-	open = true
-	container.Visible = true
-	box.Text = ""
-	dropdown.Visible = false
-	currentSuggestions = {}
-	selectedIndex = 0
-	-- defer focus to next frame so the ";" keystroke isn't captured into the box
-	task.defer(function()
-		if open then box:CaptureFocus() end
-	end)
-end
-
-local function closeUI()
-	open = false
-	container.Visible = false
-	dropdown.Visible = false
-	box:ReleaseFocus()
-	clearDropdown()
-	currentSuggestions = {}
-	selectedIndex = 0
-end
-
-_G.SGC.inputConn = UserInputService.InputBegan:Connect(function(input, processed)
-	if processed then return end
-
-	-- toggle with ;
-	if input.KeyCode == Enum.KeyCode.Semicolon then
-		if open then
-			closeUI()
-		else
-			openUI()
-		end
-		return
-	end
-
-	if not open then return end
-
-	if input.KeyCode == Enum.KeyCode.Escape then
-		closeUI()
-		return
-	end
-
-	if input.KeyCode == Enum.KeyCode.Return or input.KeyCode == Enum.KeyCode.KeypadEnter then
-		if selectedIndex > 0 and currentSuggestions[selectedIndex] then
-			local name = currentSuggestions[selectedIndex].name
-			box.Text = name
-			_G.SGC.selectGhost(name)
-		else
-			-- submit raw text (min 1 char)
-			local raw = string.gsub(box.Text, ";", "")
-			if #raw >= MIN_CHARS then
-				_G.SGC.selectGhost(raw)
-			end
-		end
-		closeUI()
-		return
-	end
-
-	if input.KeyCode == Enum.KeyCode.Up then
-		if #currentSuggestions > 0 then
-			selectedIndex = selectedIndex - 1
-			if selectedIndex < 1 then selectedIndex = #currentSuggestions end
-			highlightItems()
-		end
-		return
-	end
-
-	if input.KeyCode == Enum.KeyCode.Down then
-		if #currentSuggestions > 0 then
-			selectedIndex = selectedIndex + 1
-			if selectedIndex > #currentSuggestions then selectedIndex = 1 end
-			highlightItems()
-		end
-		return
-	end
-end)
-
--- Step 5: selected-ghost label (bottom-left of screen)
+-- Selected label (top-left like before, kept)
 local selectedLabel = Instance.new("TextLabel")
 selectedLabel.Name = "SelectedGhost"
 selectedLabel.Size = UDim2.new(0, 260, 0, 22)
-selectedLabel.Position = UDim2.new(0.270000011, 0, 0.0200000014, 0) -- bottom-left corner
+selectedLabel.Position = UDim2.new(0.27, 0, 0.09, 0)
 selectedLabel.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 selectedLabel.BackgroundTransparency = 1
 selectedLabel.BorderSizePixel = 0
@@ -1408,12 +1139,6 @@ local slCorner = Instance.new("UICorner")
 slCorner.CornerRadius = UDim.new(0, 8)
 slCorner.Parent = selectedLabel
 
-local slStroke = Instance.new("UIStroke")
-slStroke.Color = Color3.fromRGB(90, 90, 120)
-slStroke.Thickness = 1
-slStroke.Transparency = 0.4
-slStroke.Parent = selectedLabel
-
 local function updateSelectedLabel(name)
 	if name and name ~= "" and name ~= "No Ghost Found" then
 		selectedLabel.Text = "Selected: " .. name
@@ -1422,66 +1147,447 @@ local function updateSelectedLabel(name)
 	end
 end
 
--- hook into selectGhost so the label updates on every selection
-local _origSelect = _G.SGC.selectGhost
+local _origSelectBase = _G.SGC.selectGhost
 _G.SGC.selectGhost = function(name)
-	local ok, nm = _origSelect(name)
+	local ok, nm = _origSelectBase(name)
 	updateSelectedLabel(ok and nm or "")
 	return ok, nm
 end
 
--- watch journal Selection (BackgroundColor3 + BackgroundTransparency on ImageButton in Evidence tab) so manual clicks in the Journal sync the label
-local SELECTED_COLOR = Color3.fromRGB(52, 78, 58)
-local SELECTED_TRANSPARENCY = 0.25
-local DEFAULT_COLOR = Color3.fromRGB(25, 25, 25)
-local DEFAULT_TRANSPARENCY = 0.2
+-- Main hover container (bigger, 3 cols)
+local container = Instance.new("Frame")
+container.Name = "HoverContainer"
+container.AnchorPoint = Vector2.new(0.5, 0.5)
+container.Position = UDim2.new(0.5, 0, 0.5, 0)
+container.Size = UDim2.new(0, 540, 0, 360)
+container.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+container.BackgroundTransparency = 0.15
+container.BorderSizePixel = 0
+container.Visible = false
+container.Parent = gui
 
-local function isSelected(btn)
-	-- More robust check: ignore small floating point errors for both color and transparency
-	local colorMatch = (btn.BackgroundColor3.R > SELECTED_COLOR.R - 0.01 and btn.BackgroundColor3.R < SELECTED_COLOR.R + 0.01) and
-		           (btn.BackgroundColor3.G > SELECTED_COLOR.G - 0.01 and btn.BackgroundColor3.G < SELECTED_COLOR.G + 0.01) and
-		           (btn.BackgroundColor3.B > SELECTED_COLOR.B - 0.01 and btn.BackgroundColor3.B < SELECTED_COLOR.B + 0.01)
-	local transMatch = math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05
-	return colorMatch and transMatch
+local uicorner = Instance.new("UICorner")
+uicorner.CornerRadius = UDim.new(0, 10)
+uicorner.Parent = container
+
+local uistroke = Instance.new("UIStroke")
+uistroke.Color = Color3.fromRGB(120, 90, 200)
+uistroke.Thickness = 1
+uistroke.Transparency = 0.3
+uistroke.Parent = container
+
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, 0, 0, 32)
+title.BackgroundTransparency = 1
+title.Text = "Select Ghost  —  hold RMB, hover, release"
+title.TextColor3 = Color3.fromRGB(120, 90, 200)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.Parent = container
+
+local gridFrame = Instance.new("Frame")
+gridFrame.Name = "Grid"
+gridFrame.Size = UDim2.new(1, -16, 1, -40)
+gridFrame.Position = UDim2.new(0, 8, 0, 32)
+gridFrame.BackgroundTransparency = 1
+gridFrame.Parent = container
+
+local gridLayout = Instance.new("UIGridLayout")
+gridLayout.CellSize = UDim2.new(0, 160, 0, 32)
+gridLayout.CellPadding = UDim2.new(0, 6, 0, 6)
+gridLayout.FillDirectionMaxCells = 3
+gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+gridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+gridLayout.Parent = gridFrame
+
+local hoveredName = nil
+local selectedGhostName = nil
+local ghostButtonMap = {}
+
+local HOVER_COLOR = Color3.fromRGB(80, 100, 140)
+local DEFAULT_COLOR = Color3.fromRGB(30, 30, 40)
+local SELECTED_COLOR_UI = Color3.fromRGB(52, 78, 58)
+
+local function getCurrentSelectedName()
+	-- read Evidence tab state as source of truth
+	for _, btn in ipairs(getAllGhostButtonsForSelection()) do
+		local c = btn.BackgroundColor3
+		local isSel = (math.abs(c.R - 52/255) < 0.02 and math.abs(c.G - 78/255) < 0.02 and math.abs(c.B - 58/255) < 0.02)
+			and math.abs(btn.BackgroundTransparency - 0.25) < 0.05
+		if isSel then return btn.Name end
+	end
+	return selectedGhostName
 end
 
-local function getGhostName(btn)
-	-- Evidence tab buttons use their Name property directly
-	return btn.Name
+local function refreshHoverHighlights()
+	local sel = getCurrentSelectedName()
+	for name, btn in pairs(ghostButtonMap) do
+		if name == hoveredName then
+			btn.BackgroundColor3 = HOVER_COLOR
+			btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		elseif name == sel then
+			btn.BackgroundColor3 = SELECTED_COLOR_UI
+			btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		else
+			btn.BackgroundColor3 = DEFAULT_COLOR
+			btn.TextColor3 = Color3.fromRGB(210, 210, 225)
+		end
+	end
+end
+
+local function clearHoverButtons()
+	for _, btn in pairs(ghostButtonMap) do
+		btn:Destroy()
+	end
+	ghostButtonMap = {}
+	hoveredName = nil
+end
+
+local function buildHoverButtons()
+	clearHoverButtons()
+	selectedGhostName = getCurrentSelectedName()
+	local names = getGhostNames()
+	table.sort(names)
+	for idx, name in ipairs(names) do
+		local btn = Instance.new("TextButton")
+		btn.Name = name
+		btn.BackgroundColor3 = (name == selectedGhostName) and SELECTED_COLOR_UI or DEFAULT_COLOR
+		btn.BorderSizePixel = 0
+		btn.AutoButtonColor = false
+		btn.Font = Enum.Font.Gotham
+		btn.TextSize = 14
+		btn.TextColor3 = (name == selectedGhostName) and Color3.fromRGB(255,255,255) or Color3.fromRGB(210, 210, 225)
+		btn.Text = name
+		btn.LayoutOrder = idx
+		btn.Parent = gridFrame
+
+		local bc = Instance.new("UICorner")
+		bc.CornerRadius = UDim.new(0, 6)
+		bc.Parent = btn
+
+		local bs = Instance.new("UIStroke")
+		bs.Color = Color3.fromRGB(70, 70, 90)
+		bs.Transparency = 0.5
+		bs.Thickness = 1
+		bs.Parent = btn
+
+		btn.MouseEnter:Connect(function()
+			hoveredName = name
+			refreshHoverHighlights()
+		end)
+		btn.MouseLeave:Connect(function()
+			if hoveredName == name then
+				hoveredName = nil
+				refreshHoverHighlights()
+			end
+		end)
+
+		ghostButtonMap[name] = btn
+	end
+	-- auto-size container height based on rows (3 cols, bigger)
+	local rows = math.ceil(#names / 3)
+	local needed = 32 + rows * 38 + 16
+	container.Size = UDim2.new(0, 540, 0, math.clamp(needed, 110, 480))
+end
+
+-- PhotoSubject detection frame (right of HoverContainer)
+local PHOTO_TARGETS = {"Cursed Object", "Boo-Boo Doll", "Ghost", "Burning Crucifix"}
+local LIGHT_RED = Color3.fromRGB(255, 120, 120)
+local DONE_GREEN = Color3.fromRGB(144, 238, 144)
+local photoLabels = {}
+
+local photoFrame = Instance.new("Frame")
+photoFrame.Name = "PhotoCheckFrame"
+photoFrame.AnchorPoint = Vector2.new(0, 0.5)
+photoFrame.Position = UDim2.new(0.5, 282, 0.385, 0) -- 270 (half container) + 12 gap
+photoFrame.Size = UDim2.new(0, 180, 0, 138)
+photoFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+photoFrame.BackgroundTransparency = 0.15
+photoFrame.BorderSizePixel = 0
+photoFrame.Visible = false
+photoFrame.Parent = gui
+
+local pCorner = Instance.new("UICorner")
+pCorner.CornerRadius = UDim.new(0, 10)
+pCorner.Parent = photoFrame
+
+local pStroke = Instance.new("UIStroke")
+pStroke.Color = Color3.fromRGB(120, 90, 200)
+pStroke.Thickness = 1
+pStroke.Transparency = 0.3
+pStroke.Parent = photoFrame
+
+local pTitle = Instance.new("TextLabel")
+pTitle.Name = "Title"
+pTitle.Size = UDim2.new(1, 0, 0, 28)
+pTitle.BackgroundTransparency = 1
+pTitle.Text = "Photo Check"
+pTitle.TextColor3 = Color3.fromRGB(120, 90, 200)
+pTitle.Font = Enum.Font.GothamBold
+pTitle.TextSize = 13
+pTitle.Parent = photoFrame
+
+local pList = Instance.new("Frame")
+pList.Name = "List"
+pList.Size = UDim2.new(1, -10, 1, -32)
+pList.Position = UDim2.new(0, 5, 0, 28)
+pList.BackgroundTransparency = 1
+pList.Parent = photoFrame
+
+local pLayout = Instance.new("UIListLayout")
+pLayout.Padding = UDim.new(0, 4)
+pLayout.SortOrder = Enum.SortOrder.LayoutOrder
+pLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+pLayout.Parent = pList
+
+for idx, name in ipairs(PHOTO_TARGETS) do
+	local lbl = Instance.new("TextLabel")
+	lbl.Name = name
+	lbl.Size = UDim2.new(1, 0, 0, 22)
+	lbl.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+	lbl.BackgroundTransparency = 0.25
+	lbl.BorderSizePixel = 0
+	lbl.Text = "  " .. name
+	lbl.TextColor3 = LIGHT_RED
+	lbl.Font = Enum.Font.Gotham
+	lbl.TextSize = 12
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.LayoutOrder = idx
+	lbl.Parent = pList
+	local lc = Instance.new("UICorner")
+	lc.CornerRadius = UDim.new(0, 6)
+	lc.Parent = lbl
+	photoLabels[name] = lbl
+end
+
+local function getFootageRoot()
+	local pg = LocalPlayer:FindFirstChild("PlayerGui")
+	if not pg then return nil end
+	local j = pg:FindFirstChild("Journal")
+	if not j then return nil end
+	return j:FindFirstChild("Background")
+		and j.Background:FindFirstChild("MainContent")
+		and j.Background.MainContent:FindFirstChild("Main")
+		and j.Background.MainContent.Main:FindFirstChild("Others")
+		and j.Background.MainContent.Main.Others:FindFirstChild("Contents")
+		and j.Background.MainContent.Main.Others.Contents:FindFirstChild("Frames")
+		and j.Background.MainContent.Main.Others.Contents.Frames:FindFirstChild("Footage")
+end
+
+local function isPhotoSubjectDetected(target)
+	local footage = getFootageRoot()
+	if not footage then return false end
+	local lowered = string.lower(string.gsub(target, "^%s+", ""):gsub("%s+$", ""))
+	-- also handle typo "Crused" -> "Cursed"
+	if lowered == "crused object" then lowered = "cursed object" end
+	for _, row in ipairs(footage:GetChildren()) do
+		if row.Name:find("Row") then
+			for _, pf in ipairs(row:GetChildren()) do
+				if pf.Name:find("PhotoFrame") then
+					local subj = pf:FindFirstChild("Photo")
+						and pf.Photo:FindFirstChild("PhotoDetailLayers")
+						and pf.Photo.PhotoDetailLayers:FindFirstChild("Top")
+						and pf.Photo.PhotoDetailLayers.Top:FindFirstChild("PhotoSubject")
+					if subj and subj:IsA("TextLabel") then
+						local txt = string.lower(string.gsub(subj.Text or "", "^%s+", ""):gsub("%s+$", ""))
+						if txt ~= "" and txt == lowered then
+							return true
+						end
+					end
+				end
+			end
+		end
+	end
+	return false
+end
+
+local function updatePhotoLabels()
+	for _, target in ipairs(PHOTO_TARGETS) do
+		local lbl = photoLabels[target]
+		if lbl then
+			local done = isPhotoSubjectDetected(target)
+			lbl.TextColor3 = done and DONE_GREEN or LIGHT_RED
+		end
+	end
+end
+
+local function showHoverUI()
+	buildHoverButtons()
+	updatePhotoLabels()
+	container.Visible = true
+	photoFrame.Visible = true
+	refreshHoverHighlights()
+end
+
+local function hideHoverUI()
+	container.Visible = false
+	photoFrame.Visible = false
+	hoveredName = nil
+end
+
+_G.SGC.gui = gui
+_G.SGC.container = container
+_G.SGC.photoFrame = photoFrame
+_G.SGC.photoLabels = photoLabels
+_G.SGC.updatePhotoLabels = updatePhotoLabels
+_G.SGC.isPhotoSubjectDetected = isPhotoSubjectDetected
+_G.SGC.showHoverUI = showHoverUI
+_G.SGC.hideHoverUI = hideHoverUI
+
+-- wrap selectGhost to track selected for hover highlights (needs container/refresh in scope)
+do
+	local _prev = _G.SGC.selectGhost
+	_G.SGC.selectGhost = function(name)
+		local ok, nm = _prev(name)
+		if ok then selectedGhostName = nm else selectedGhostName = nil end
+		if container.Visible then refreshHoverHighlights() end
+		return ok, nm
+	end
+end
+
+-- auto-update photo labels while UI is visible + hook PhotoSubject changes
+do
+	-- poll every 0.35s when visible
+	task.spawn(function()
+		while gui.Parent do
+			task.wait(0.35)
+			if photoFrame.Visible then
+				updatePhotoLabels()
+			end
+		end
+	end)
+	-- connect to existing subjects so instant update without waiting poll
+	local footage = getFootageRoot()
+	if footage then
+		for _, row in ipairs(footage:GetChildren()) do
+			if row.Name:find("Row") then
+				for _, pf in ipairs(row:GetChildren()) do
+					if pf.Name:find("PhotoFrame") then
+						local subj = pf:FindFirstChild("Photo")
+							and pf.Photo:FindFirstChild("PhotoDetailLayers")
+							and pf.Photo.PhotoDetailLayers:FindFirstChild("Top")
+							and pf.Photo.PhotoDetailLayers.Top:FindFirstChild("PhotoSubject")
+						if subj then
+							subj:GetPropertyChangedSignal("Text"):Connect(function()
+								if photoFrame.Visible then updatePhotoLabels() end
+							end)
+						end
+					end
+				end
+			end
+		end
+		-- also watch new rows/frames added later (e.g., photo taken)
+		footage.DescendantAdded:Connect(function(desc)
+			if desc.Name == "PhotoSubject" then
+				task.wait(0.1)
+				if photoFrame.Visible then updatePhotoLabels() end
+				desc:GetPropertyChangedSignal("Text"):Connect(function()
+					if photoFrame.Visible then updatePhotoLabels() end
+				end)
+			end
+		end)
+	end
+end
+
+-- Hold RMB logic (0.1s to unlock + show UI, release to select hovered)
+local holdTime = 0
+local isHolding = false
+local isUnlocked = false
+
+_G.SGC.inputBeganConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		isHolding = true
+		holdTime = 0
+	end
+end)
+
+_G.SGC.inputEndedConn = UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		-- on release: if unlocked and hovering a ghost, select it
+		if isUnlocked and hoveredName then
+			_G.SGC.selectGhost(hoveredName)
+		end
+		isHolding = false
+		isUnlocked = false
+		holdTime = 0
+		_G.freemouse = false
+		hideHoverUI()
+		-- re-lock cursor for gameplay
+		if UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		end
+		if UserInputService.MouseIconEnabled == false then
+			UserInputService.MouseIconEnabled = true
+		end
+	end
+end)
+
+_G.SGC.renderConn = RunService.RenderStepped:Connect(function(dt)
+	if isHolding then
+		holdTime = holdTime + dt
+		if holdTime >= 0.1 and not isUnlocked then
+			isUnlocked = true
+			showHoverUI()
+		end
+	end
+
+	if isUnlocked then
+		_G.freemouse = true
+		if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		end
+		if not UserInputService.MouseIconEnabled then
+			UserInputService.MouseIconEnabled = true
+		end
+	else
+		_G.freemouse = false
+	end
+end)
+
+-- Watch Evidence tab selection so manual clicks sync label (+ keep journal sync)
+local SEL_COLOR = Color3.fromRGB(52, 78, 58)
+local SEL_TRANS = 0.25
+local DEF_COLOR = Color3.fromRGB(25, 25, 25)
+local DEF_TRANS = 0.2
+
+local function isSelected(btn)
+	local c = btn.BackgroundColor3
+	local colorMatch = (math.abs(c.R - SEL_COLOR.R) < 0.02 and math.abs(c.G - SEL_COLOR.G) < 0.02 and math.abs(c.B - SEL_COLOR.B) < 0.02)
+	local transMatch = math.abs(btn.BackgroundTransparency - SEL_TRANS) < 0.05
+	return colorMatch and transMatch
 end
 
 local function watchTemplate(template)
 	if not template:IsA("ImageButton") then return end
-	
 	local function checkSelection()
 		if isSelected(template) then
-			-- a manual click happened. Forcefully deselect EVERY other button first to prevent duplicates
 			local buttons = getAllGhostButtonsForSelection()
 			for _, c in ipairs(buttons) do
 				if c ~= template then
-					c.BackgroundColor3 = DEFAULT_COLOR
-					c.BackgroundTransparency = DEFAULT_TRANSPARENCY
+					c.BackgroundColor3 = DEF_COLOR
+					c.BackgroundTransparency = DEF_TRANS
 				end
 			end
-			updateSelectedLabel(getGhostName(template))
+			selectedGhostName = template.Name
+			updateSelectedLabel(template.Name)
+			if container.Visible then refreshHoverHighlights() end
 		else
-			-- template was deselected. Check if any other button is now the sole selected one
 			local stillSelected = nil
-			local buttons = getAllGhostButtonsForSelection()
-			for _, c in ipairs(buttons) do
+			for _, c in ipairs(getAllGhostButtonsForSelection()) do
 				if isSelected(c) then
-					stillSelected = getGhostName(c)
+					stillSelected = c.Name
 					break
 				end
 			end
+			selectedGhostName = stillSelected
 			updateSelectedLabel(stillSelected or "")
+			if container.Visible then refreshHoverHighlights() end
 		end
 	end
-	
 	template:GetPropertyChangedSignal("BackgroundColor3"):Connect(checkSelection)
 	template:GetPropertyChangedSignal("BackgroundTransparency"):Connect(checkSelection)
-	
-	-- initial check
 	task.defer(checkSelection)
 end
 
@@ -1493,30 +1599,14 @@ end
 
 watchAllTemplates()
 
--- in case buttons are (re)created later (e.g. journal rebuild), watch for new buttons
--- we need to find a stable parent to listen for ChildAdded (the Evidence tab's CanvasGroup.Frame)
-local itemList = LocalPlayer:FindFirstChild("PlayerGui") 
-	and LocalPlayer.PlayerGui:FindFirstChild("Journal")
-	and LocalPlayer.PlayerGui.Journal:FindFirstChild("Background")
-	and LocalPlayer.PlayerGui.Journal.Background:FindFirstChild("MainContent")
-	and LocalPlayer.PlayerGui.Journal.Background.MainContent:FindFirstChild("Main")
-	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main:FindFirstChild("Others")
-	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others:FindFirstChild("Contents")
-	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents:FindFirstChild("Frames")
-	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames:FindFirstChild("Evidence")
-	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames.Evidence:FindFirstChild("Right")
-	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames.Evidence.Right:FindFirstChild("Content")
-	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames.Evidence.Right.Content:FindFirstChild("CanvasGroup")
-	and LocalPlayer.PlayerGui.Journal.Background.MainContent.Main.Others.Contents.Frames.Evidence.Right.Content.CanvasGroup:FindFirstChild("Frame")
-
-if itemList then
-	itemList.ChildAdded:Connect(function(child)
+local evidenceFrame = getGhostSelectionFrame()
+if evidenceFrame then
+	evidenceFrame.ChildAdded:Connect(function(child)
 		if child:IsA("ImageButton") then
 			watchTemplate(child)
 		end
 	end)
 end
-
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
