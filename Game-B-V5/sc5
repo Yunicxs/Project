@@ -916,7 +916,6 @@ local api = {
 _G.__FaejkurTraitsAPI = api
 _G.__FaejkurTraitsState.api = api
 
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -1012,7 +1011,7 @@ end
 local scroller = InventoryPlayer:FindFirstChild("Scroller")
 if scroller then
 	scroller:ClearAllChildren()
-    scroller.Size = UDim2.new(1, 0, 0.9, 0)
+	scroller.Size = UDim2.new(1, 0, 0.9, 0)
 	local grid = Instance.new("UIGridLayout")
 	grid.Parent = scroller
 	grid.SortOrder = Enum.SortOrder.LayoutOrder
@@ -1075,6 +1074,19 @@ local function buildCellTemplate()
 		if statGradient then
 			statGradient:Clone().Parent = icon
 		end
+		local lbl = Instance.new("TextLabel")
+		lbl.Name = "Label"
+		lbl.Size = UDim2.fromScale(0.9, 0.9)
+		lbl.Position = UDim2.fromScale(0.5, 0.5)
+		lbl.AnchorPoint = Vector2.new(0.5, 0.5)
+		lbl.BackgroundTransparency = 1
+		lbl.TextScaled = true
+		lbl.TextWrapped = true
+		lbl.Font = Enum.Font.SourceSansBold
+		lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+		lbl.TextStrokeTransparency = 0.5
+		lbl.Visible = false
+		lbl.Parent = slot
 		slot.Parent = bar
 	end
 	bar.Parent = t
@@ -1086,6 +1098,15 @@ local cellTemplate = buildCellTemplate()
 local cells = {}
 local slotConns = {}
 
+local function getZoneName(player)
+	local zv = player:FindFirstChild("Zone")
+	if zv and zv.Value then
+		local v = zv.Value
+		if typeof(v) == "Instance" then return v.Name else return tostring(v) end
+	end
+	return nil
+end
+
 local function refreshSlots(player, cell)
 	local bar = cell:FindFirstChild("SlotsBar")
 	if not bar then return end
@@ -1094,17 +1115,54 @@ local function refreshSlots(player, cell)
 		local slot = bar:FindFirstChild("Slot" .. i)
 		if slot then
 			local icon = slot:FindFirstChild("Icon")
+			local lbl = slot:FindFirstChild("Label")
 			local tool = slotVal and slotVal.Value
 			local data = tool and tool.Name and iconData[tool.Name]
-			if icon then
-				if data then
-					icon.Image = data.image
-					icon.ImageTransparency = 0
+			if icon and lbl then
+				if tool then
+					local n = tool.Name:lower()
+					local isSpecial = n:find("tarot") or n:find("music box")
+					if isSpecial then
+						icon.Visible = false
+						icon.Image = ""
+						lbl.Text = tool.Name
+						lbl.TextColor3 = Color3.fromRGB(255, 107, 107) -- light red
+						lbl.Visible = true
+					elseif data then
+						icon.Visible = true
+						icon.Image = data.image
+						icon.ImageTransparency = 0
+						lbl.Visible = false
+					else
+						icon.Visible = false
+						icon.Image = ""
+						lbl.Text = tool.Name
+						lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+						lbl.Visible = true
+					end
 				else
+					icon.Visible = false
 					icon.Image = ""
-					icon.ImageTransparency = 0.75
+					lbl.Visible = false
 				end
 			end
+		end
+	end
+end
+
+local function refreshName(player, cell)
+	local tc = cell:FindFirstChild("TopContent")
+	if not tc then return end
+	local labels = tc:FindFirstChild("Labels")
+	local uname = labels and labels:FindFirstChild("UsernameLabel")
+	if uname then
+		uname.RichText = true
+		local zone = getZoneName(player)
+		if zone and zone ~= "" then
+			local col = (zone == "Outside") and "#FF6B6B" or "#7CFF7C"
+			uname.Text = player.DisplayName .. ' - <font color="' .. col .. '">' .. zone .. '</font>'
+		else
+			uname.Text = player.DisplayName
 		end
 	end
 end
@@ -1122,9 +1180,7 @@ local function makeCard(player)
 		end
 		local labels = tc:FindFirstChild("Labels")
 		if labels then
-			local uname = labels:FindFirstChild("UsernameLabel")
 			local kitLabel = labels:FindFirstChild("KitLabel")
-			if uname then uname.Text = player.DisplayName end
 			local kit = player:FindFirstChild("Kit")
 			if kitLabel then
 				kitLabel.Text = kit and kit.Value or ""
@@ -1132,6 +1188,7 @@ local function makeCard(player)
 			end
 		end
 	end
+	refreshName(player, cell)
 	refreshSlots(player, cell)
 	local conns = {}
 	for i = 1, SLOT_COUNT do
@@ -1150,6 +1207,13 @@ local function makeCard(player)
 			local labels = cell:FindFirstChild("TopContent") and cell.TopContent:FindFirstChild("Labels")
 			local kitLabel = labels and labels:FindFirstChild("KitLabel")
 			if kitLabel then kitLabel.Text = kit.Value or "" end
+		end))
+	end
+	local zoneVal = player:FindFirstChild("Zone")
+	if zoneVal then
+		table.insert(conns, zoneVal:GetPropertyChangedSignal("Value"):Connect(function()
+			if state.gen ~= MY_GEN then return end
+			refreshName(player, cell)
 		end))
 	end
 	local uid = player.UserId
