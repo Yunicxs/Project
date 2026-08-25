@@ -843,7 +843,7 @@ end)
 -- Input Detection to disable AFK (catches ALL keyboard, mouse, GUI, and chat input)
 UserInputService.InputBegan:Connect(function(input, processed)
     -- ']' toggles AFK (only when unprocessed to avoid accidental toggle while typing)
-    if input.KeyCode == Enum.KeyCode.Four and not processed then
+    if input.KeyCode == Enum.KeyCode.LeftBracket and not processed then
         toggleAFK(not isAFK)
         lastInputTime = tick()
         return
