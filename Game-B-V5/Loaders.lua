@@ -300,10 +300,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
-
 local LocalPlayer = Players.LocalPlayer
 
--- Constants
 local AFK_TIMEOUT = 15
 local SELECTED_COLOR = Color3.fromRGB(52, 78, 58)
 local SELECTED_TRANSPARENCY = 0.25
@@ -331,7 +329,7 @@ afkGui.Parent = CoreGui
 local afkFrame = Instance.new("Frame")
 afkFrame.Name = "AFKFrame"
 afkFrame.Size = UDim2.new(0, 360, 0, 90)
-afkFrame.Position = UDim2.new(0.5, -180, 0.5, -45)
+afkFrame.Position = UDim2.new(0.5, -180, 0.35, 0)
 afkFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
 afkFrame.BackgroundTransparency = 0.15
 afkFrame.BorderSizePixel = 0
@@ -372,6 +370,171 @@ afkSelected.Parent = afkFrame
 
 local function setAFKVisible(v)
     afkFrame.Visible = v
+    if afkGui:FindFirstChild("PhotoCheckFrame") then
+        afkGui.PhotoCheckFrame.Visible = v
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Photo Check Section (below AFKFrame) - same subjects as hover UI
+--------------------------------------------------------------------------------
+local PHOTO_TARGETS = {"Cursed Object", "Boo-Boo Doll", "Ghost", "Burning Crucifix"}
+local LIGHT_RED = Color3.fromRGB(255, 120, 120)
+local DONE_GREEN = Color3.fromRGB(144, 238, 144)
+local photoLabels = {}
+
+local photoFrame = Instance.new("Frame")
+photoFrame.Name = "PhotoCheckFrame"
+photoFrame.Size = UDim2.new(0, 360, 0, 138)
+photoFrame.Position = UDim2.new(0.5, -180, 0.49, 0) -- 8px below AFKFrame (90 height)
+photoFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+photoFrame.BackgroundTransparency = 0.15
+photoFrame.BorderSizePixel = 0
+photoFrame.Visible = false
+photoFrame.Parent = afkGui
+
+local pCorner = Instance.new("UICorner")
+pCorner.CornerRadius = UDim.new(0, 10)
+pCorner.Parent = photoFrame
+
+local pStroke = Instance.new("UIStroke")
+pStroke.Color = Color3.fromRGB(120, 90, 200)
+pStroke.Thickness = 1
+pStroke.Transparency = 0.35
+pStroke.Parent = photoFrame
+
+local pTitle = Instance.new("TextLabel")
+pTitle.Name = "Title"
+pTitle.Size = UDim2.new(1, 0, 0, 28)
+pTitle.BackgroundTransparency = 1
+pTitle.Text = "Photo Check"
+pTitle.TextColor3 = Color3.fromRGB(120, 90, 200)
+pTitle.Font = Enum.Font.GothamBold
+pTitle.TextSize = 13
+pTitle.Parent = photoFrame
+
+local pList = Instance.new("Frame")
+pList.Name = "List"
+pList.Size = UDim2.new(1, -10, 1, -32)
+pList.Position = UDim2.new(0, 5, 0, 28)
+pList.BackgroundTransparency = 1
+pList.Parent = photoFrame
+
+local pLayout = Instance.new("UIListLayout")
+pLayout.Padding = UDim.new(0, 4)
+pLayout.SortOrder = Enum.SortOrder.LayoutOrder
+pLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+pLayout.Parent = pList
+
+for idx, name in ipairs(PHOTO_TARGETS) do
+    local lbl = Instance.new("TextLabel")
+    lbl.Name = name
+    lbl.Size = UDim2.new(1, 0, 0, 22)
+    lbl.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    lbl.BackgroundTransparency = 0.25
+    lbl.BorderSizePixel = 0
+    lbl.Text = "  " .. name
+    lbl.TextColor3 = LIGHT_RED
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.LayoutOrder = idx
+    lbl.Parent = pList
+    local lc = Instance.new("UICorner")
+    lc.CornerRadius = UDim.new(0, 6)
+    lc.Parent = lbl
+    photoLabels[name] = lbl
+end
+
+local function getFootageRoot()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local j = pg:FindFirstChild("Journal")
+    if not j then return nil end
+    return j:FindFirstChild("Background")
+        and j.Background:FindFirstChild("MainContent")
+        and j.Background.MainContent:FindFirstChild("Main")
+        and j.Background.MainContent.Main:FindFirstChild("Others")
+        and j.Background.MainContent.Main.Others:FindFirstChild("Contents")
+        and j.Background.MainContent.Main.Others.Contents:FindFirstChild("Frames")
+        and j.Background.MainContent.Main.Others.Contents.Frames:FindFirstChild("Footage")
+end
+
+local function isPhotoSubjectDetected(target)
+    local footage = getFootageRoot()
+    if not footage then return false end
+    local lowered = string.lower((target:gsub("^%s+", ""):gsub("%s+$", "")))
+    if lowered == "crused object" then lowered = "cursed object" end
+    for _, row in ipairs(footage:GetChildren()) do
+        if row.Name:find("Row") then
+            for _, pf in ipairs(row:GetChildren()) do
+                if pf.Name:find("PhotoFrame") then
+                    local subj = pf:FindFirstChild("Photo")
+                        and pf.Photo:FindFirstChild("PhotoDetailLayers")
+                        and pf.Photo.PhotoDetailLayers:FindFirstChild("Top")
+                        and pf.Photo.PhotoDetailLayers.Top:FindFirstChild("PhotoSubject")
+                    if subj and subj:IsA("TextLabel") then
+                        local txt = string.lower(((subj.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")))
+                        if txt ~= "" and txt == lowered then
+                            return true
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function updatePhotoLabels()
+    for _, target in ipairs(PHOTO_TARGETS) do
+        local lbl = photoLabels[target]
+        if lbl then
+            local done = isPhotoSubjectDetected(target)
+            lbl.TextColor3 = done and DONE_GREEN or LIGHT_RED
+        end
+    end
+end
+
+-- auto-update while AFK frame visible + hook future PhotoSubjects
+do
+    task.spawn(function()
+        while afkGui.Parent do
+            task.wait(0.35)
+            if photoFrame.Visible then
+                updatePhotoLabels()
+            end
+        end
+    end)
+    local footage = getFootageRoot()
+    if footage then
+        for _, row in ipairs(footage:GetChildren()) do
+            if row.Name:find("Row") then
+                for _, pf in ipairs(row:GetChildren()) do
+                    if pf.Name:find("PhotoFrame") then
+                        local subj = pf:FindFirstChild("Photo")
+                            and pf.Photo:FindFirstChild("PhotoDetailLayers")
+                            and pf.Photo.PhotoDetailLayers:FindFirstChild("Top")
+                            and pf.Photo.PhotoDetailLayers.Top:FindFirstChild("PhotoSubject")
+                        if subj then
+                            subj:GetPropertyChangedSignal("Text"):Connect(function()
+                                if photoFrame.Visible then updatePhotoLabels() end
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+        footage.DescendantAdded:Connect(function(desc)
+            if desc.Name == "PhotoSubject" then
+                task.wait(0.1)
+                if photoFrame.Visible then updatePhotoLabels() end
+                desc:GetPropertyChangedSignal("Text"):Connect(function()
+                    if photoFrame.Visible then updatePhotoLabels() end
+                end)
+            end
+        end)
+    end
 end
 
 local function getGhostNamesFrame()
@@ -547,9 +710,7 @@ local function toggleAFK(state)
     isAFK = state
     setAFKVisible(state)
     if state then
-        
-    else
-        
+        updatePhotoLabels()
     end
 end
 
@@ -648,7 +809,7 @@ end
 
 task.spawn(function()
     while true do
-        task.wait(3)
+        task.wait(0.1)
         if not isAFK then continue end
         local name, votes = getMostVotedGhost()
         if name and votes >= 3 and not isGhostSelectedFromUI(name) then
@@ -682,7 +843,7 @@ end)
 -- Input Detection to disable AFK (catches ALL keyboard, mouse, GUI, and chat input)
 UserInputService.InputBegan:Connect(function(input, processed)
     -- ']' toggles AFK (only when unprocessed to avoid accidental toggle while typing)
-    if input.KeyCode == Enum.KeyCode.RightBracket and not processed then
+    if input.KeyCode == Enum.KeyCode.Four and not processed then
         toggleAFK(not isAFK)
         lastInputTime = tick()
         return
@@ -712,8 +873,6 @@ UserInputService.InputBegan:Connect(function(input, processed)
     end
 end)
 
-
-
 -- AFK Idle Timer Logic
 task.spawn(function()
     while true do
@@ -723,7 +882,6 @@ task.spawn(function()
         end
     end
 end)
-
 
 print("AUTO FARM ACYIVATE")
 
