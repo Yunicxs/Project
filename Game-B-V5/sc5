@@ -1562,3 +1562,28 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleDoors()
     end
 end)
+
+-- Script to automatically fire BackToLobby 5 seconds after Rewards Frame becomes visible
+task.spawn(function()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Players = game:GetService("Players")
+
+    local player = Players.LocalPlayer
+    local rewardsFrame = player:WaitForChild("PlayerGui"):WaitForChild("Rewards"):WaitForChild("Frame")
+    local backToLobbyEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("BackToLobby")
+
+    while true do
+        -- Check if the rewards frame is visible
+        if rewardsFrame.Visible then
+            task.wait(10)
+            
+            -- Double check it's still visible after the wait
+            if rewardsFrame.Visible then
+                backToLobbyEvent:FireServer()
+            end
+        end
+
+        -- Safe loop delay
+        task.wait(0.5)
+    end
+end)
