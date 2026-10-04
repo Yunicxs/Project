@@ -49,10 +49,9 @@ wait(1)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
-
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Constants
 local AFK_TIMEOUT = 15
 local SELECTED_COLOR = Color3.fromRGB(52, 78, 58)
 local SELECTED_TRANSPARENCY = 0.25
@@ -121,19 +120,178 @@ afkSelected.Parent = afkFrame
 
 local function setAFKVisible(v)
     afkFrame.Visible = v
-end
-
-local function setAFKSelectedText(name)
-    if name and name ~= "" and name ~= "No Ghost Found" then
-        afkSelected.Text = "Selected: " .. name
-    else
-        afkSelected.Text = "Selected: None"
+    if afkGui:FindFirstChild("PhotoCheckFrame") then
+        afkGui.PhotoCheckFrame.Visible = v
     end
 end
 
 --------------------------------------------------------------------------------
--- Logic Section (From Tab 6)
+-- Photo Check Section (below AFKFrame) - same subjects as hover UI
 --------------------------------------------------------------------------------
+local PHOTO_TARGETS = {"Cursed Object", "Boo-Boo Doll", "Ghost", "Burning Crucifix"}
+local LIGHT_RED = Color3.fromRGB(255, 120, 120)
+local DONE_GREEN = Color3.fromRGB(144, 238, 144)
+local photoLabels = {}
+
+local photoFrame = Instance.new("Frame")
+photoFrame.Name = "PhotoCheckFrame"
+photoFrame.Size = UDim2.new(0, 360, 0, 138)
+photoFrame.Position = UDim2.new(0.5, -180, 0.5, 53) -- 8px below AFKFrame (90 height)
+photoFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+photoFrame.BackgroundTransparency = 0.15
+photoFrame.BorderSizePixel = 0
+photoFrame.Visible = false
+photoFrame.Parent = afkGui
+
+local pCorner = Instance.new("UICorner")
+pCorner.CornerRadius = UDim.new(0, 10)
+pCorner.Parent = photoFrame
+
+local pStroke = Instance.new("UIStroke")
+pStroke.Color = Color3.fromRGB(120, 90, 200)
+pStroke.Thickness = 1
+pStroke.Transparency = 0.35
+pStroke.Parent = photoFrame
+
+local pTitle = Instance.new("TextLabel")
+pTitle.Name = "Title"
+pTitle.Size = UDim2.new(1, 0, 0, 28)
+pTitle.BackgroundTransparency = 1
+pTitle.Text = "Photo Check"
+pTitle.TextColor3 = Color3.fromRGB(120, 90, 200)
+pTitle.Font = Enum.Font.GothamBold
+pTitle.TextSize = 13
+pTitle.Parent = photoFrame
+
+local pList = Instance.new("Frame")
+pList.Name = "List"
+pList.Size = UDim2.new(1, -10, 1, -32)
+pList.Position = UDim2.new(0, 5, 0, 28)
+pList.BackgroundTransparency = 1
+pList.Parent = photoFrame
+
+local pLayout = Instance.new("UIListLayout")
+pLayout.Padding = UDim.new(0, 4)
+pLayout.SortOrder = Enum.SortOrder.LayoutOrder
+pLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+pLayout.Parent = pList
+
+for idx, name in ipairs(PHOTO_TARGETS) do
+    local lbl = Instance.new("TextLabel")
+    lbl.Name = name
+    lbl.Size = UDim2.new(1, 0, 0, 22)
+    lbl.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    lbl.BackgroundTransparency = 0.25
+    lbl.BorderSizePixel = 0
+    lbl.Text = "  " .. name
+    lbl.TextColor3 = LIGHT_RED
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.LayoutOrder = idx
+    lbl.Parent = pList
+    local lc = Instance.new("UICorner")
+    lc.CornerRadius = UDim.new(0, 6)
+    lc.Parent = lbl
+    photoLabels[name] = lbl
+end
+
+local function getFootageRoot()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local j = pg:FindFirstChild("Journal")
+    if not j then return nil end
+    local bg = j:FindFirstChild("Background")
+    local mc = bg and bg:FindFirstChild("MainContent")
+    local main = mc and mc:FindFirstChild("Main")
+    local others = main and main:FindFirstChild("Others")
+    local contents = others and others:FindFirstChild("Contents")
+    local frames = contents and contents:FindFirstChild("Frames")
+    if not frames then return nil end
+    -- current layout: Footage lives under the Media tab
+    local media = frames:FindFirstChild("Media")
+    local footage = media and media:FindFirstChild("Footage")
+    if footage then return footage end
+    -- legacy layout: standalone Footage frame
+    return frames:FindFirstChild("Footage")
+end
+
+local function isPhotoSubjectDetected(target)
+    local footage = getFootageRoot()
+    if not footage then return false end
+    local lowered = string.lower((target:gsub("^%s+", ""):gsub("%s+$", "")))
+    if lowered == "crused object" then lowered = "cursed object" end
+    for _, row in ipairs(footage:GetChildren()) do
+        if row.Name:find("Row") then
+            for _, pf in ipairs(row:GetChildren()) do
+                if pf.Name:find("PhotoFrame") then
+                    local subj = pf:FindFirstChild("Photo")
+                        and pf.Photo:FindFirstChild("PhotoDetailLayers")
+                        and pf.Photo.PhotoDetailLayers:FindFirstChild("Top")
+                        and pf.Photo.PhotoDetailLayers.Top:FindFirstChild("PhotoSubject")
+                    if subj and subj:IsA("TextLabel") then
+                        local txt = string.lower(((subj.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")))
+                        if txt ~= "" and txt == lowered then
+                            return true
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function updatePhotoLabels()
+    for _, target in ipairs(PHOTO_TARGETS) do
+        local lbl = photoLabels[target]
+        if lbl then
+            local done = isPhotoSubjectDetected(target)
+            lbl.TextColor3 = done and DONE_GREEN or LIGHT_RED
+        end
+    end
+end
+
+-- auto-update while AFK frame visible + hook future PhotoSubjects
+do
+    task.spawn(function()
+        while afkGui.Parent do
+            task.wait(0.35)
+            if photoFrame.Visible then
+                updatePhotoLabels()
+            end
+        end
+    end)
+    local footage = getFootageRoot()
+    if footage then
+        for _, row in ipairs(footage:GetChildren()) do
+            if row.Name:find("Row") then
+                for _, pf in ipairs(row:GetChildren()) do
+                    if pf.Name:find("PhotoFrame") then
+                        local subj = pf:FindFirstChild("Photo")
+                            and pf.Photo:FindFirstChild("PhotoDetailLayers")
+                            and pf.Photo.PhotoDetailLayers:FindFirstChild("Top")
+                            and pf.Photo.PhotoDetailLayers.Top:FindFirstChild("PhotoSubject")
+                        if subj then
+                            subj:GetPropertyChangedSignal("Text"):Connect(function()
+                                if photoFrame.Visible then updatePhotoLabels() end
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+        footage.DescendantAdded:Connect(function(desc)
+            if desc.Name == "PhotoSubject" then
+                task.wait(0.1)
+                if photoFrame.Visible then updatePhotoLabels() end
+                desc:GetPropertyChangedSignal("Text"):Connect(function()
+                    if photoFrame.Visible then updatePhotoLabels() end
+                end)
+            end
+        end)
+    end
+end
 
 local function getGhostNamesFrame()
     local pg = LocalPlayer:FindFirstChild("PlayerGui")
@@ -152,6 +310,16 @@ local function getGhostNamesFrame()
     if not contents then return nil end
     local frames = contents:FindFirstChild("Frames")
     if not frames then return nil end
+    -- current layout: Evidence tab ghost list
+    local evidence = frames:FindFirstChild("Evidence")
+    if evidence then
+        local right = evidence:FindFirstChild("Right")
+        local content = right and right:FindFirstChild("Content")
+        local cg = content and content:FindFirstChild("CanvasGroup")
+        local frame = cg and cg:FindFirstChild("Frame")
+        if frame then return frame end
+    end
+    -- legacy layout: standalone Ghosts tab
     local ghosts = frames:FindFirstChild("Ghosts")
     if not ghosts then return nil end
     local content = ghosts:FindFirstChild("Content")
@@ -163,6 +331,21 @@ local function getGhostNamesFrame()
     local itemList = itemsFrame:FindFirstChild("ItemList")
     if not itemList then return nil end
     return itemList
+end
+
+-- Resolve a ghost button's display name across layouts:
+-- legacy NameLabel -> current More.TextLabel -> button.Name
+local function getGhostButtonName(btn)
+    local nameLabel = btn:FindFirstChild("NameLabel")
+    if nameLabel and nameLabel:IsA("TextLabel") and nameLabel.Text ~= "" then
+        return nameLabel.Text
+    end
+    local more = btn:FindFirstChild("More")
+    local moreLabel = more and more:FindFirstChild("TextLabel")
+    if moreLabel and moreLabel:IsA("TextLabel") and moreLabel.Text ~= "" then
+        return moreLabel.Text
+    end
+    return btn.Name
 end
 
 local function getGhostSelectionFrame()
@@ -197,9 +380,16 @@ local function getAllGhostButtonsForNames()
     local itemList = getGhostNamesFrame()
     local buttons = {}
     if not itemList then return buttons end
-    for _, child in ipairs(itemList:GetDescendants()) do
-        if child:IsA("ImageButton") and child:FindFirstChild("NameLabel") then
+    for _, child in ipairs(itemList:GetChildren()) do
+        if child:IsA("ImageButton") and getGhostButtonName(child) ~= "" then
             table.insert(buttons, child)
+        end
+    end
+    if #buttons == 0 then
+        for _, child in ipairs(itemList:GetDescendants()) do
+            if child:IsA("ImageButton") and getGhostButtonName(child) ~= "" then
+                table.insert(buttons, child)
+            end
         end
     end
     return buttons
@@ -221,8 +411,7 @@ local function getGhostNames()
     local buttons = getAllGhostButtonsForNames()
     local names = {}
     for _, btn in ipairs(buttons) do
-        local nameLabel = btn:FindFirstChild("NameLabel")
-        local txt = nameLabel and nameLabel.Text or btn.Name
+        local txt = getGhostButtonName(btn)
         if txt and txt ~= "" then
             table.insert(names, txt)
         end
@@ -234,8 +423,7 @@ local function findGhostTemplate(name)
     local buttons = getAllGhostButtonsForNames()
     local lowered = string.lower(name)
     for _, btn in ipairs(buttons) do
-        local nameLabel = btn:FindFirstChild("NameLabel")
-        local btnName = nameLabel and nameLabel.Text or btn.Name
+        local btnName = getGhostButtonName(btn)
         if string.lower(btnName) == lowered then
             return btn
         end
@@ -243,33 +431,55 @@ local function findGhostTemplate(name)
     return nil
 end
 
-local function syncSelection(chosenName)
-    local buttons = getAllGhostButtonsForSelection()
-    local lowered = chosenName and string.lower(chosenName) or ""
-    
-    for _, btn in ipairs(buttons) do
-        local isMatch = (lowered ~= "" and string.lower(btn.Name) == lowered)
-        if isMatch then
-            btn.BackgroundColor3 = SELECTED_COLOR
-            btn.BackgroundTransparency = SELECTED_TRANSPARENCY
-        else
-            btn.BackgroundColor3 = DEFAULT_COLOR
-            btn.BackgroundTransparency = DEFAULT_TRANSPARENCY
+local function getSelectedGhostName()
+    local frame = getGhostSelectionFrame()
+    if not frame then return nil end
+    for _, btn in ipairs(frame:GetChildren()) do
+        if btn:IsA("ImageButton") then
+            if (btn.BackgroundColor3.R - SELECTED_COLOR.R)^2 < 0.0001
+                and (btn.BackgroundColor3.G - SELECTED_COLOR.G)^2 < 0.0001
+                and (btn.BackgroundColor3.B - SELECTED_COLOR.B)^2 < 0.0001
+                and math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05 then
+                return btn.Name
+            end
         end
     end
+    return nil
 end
+
+local function updateSelectedText()
+    local name = getSelectedGhostName()
+    if name then
+        afkSelected.Text = "Selected: " .. name
+    else
+        afkSelected.Text = "Selected: None"
+    end
+end
+
+
 
 local function selectGhost(name)
     local template = findGhostTemplate(name)
     if template then
         SelectGhostEvent:FireServer(name)
-        syncSelection(name)
-        setAFKSelectedText(name)
+        -- Update Journal visual: highlight the selected ghost, reset others
+        local selFrame = getGhostSelectionFrame()
+        if selFrame then
+            for _, btn in ipairs(selFrame:GetChildren()) do
+                if btn:IsA("ImageButton") then
+                    if string.lower(btn.Name) == string.lower(name) then
+                        btn.BackgroundColor3 = SELECTED_COLOR
+                        btn.BackgroundTransparency = SELECTED_TRANSPARENCY
+                    else
+                        btn.BackgroundColor3 = DEFAULT_COLOR
+                        btn.BackgroundTransparency = DEFAULT_TRANSPARENCY
+                    end
+                end
+            end
+        end
         return true, name
     else
         SelectGhostEvent:FireServer("No Ghost Found")
-        syncSelection("")
-        setAFKSelectedText("No Ghost Found")
         return false, name
     end
 end
@@ -286,40 +496,113 @@ local function toggleAFK(state)
     isAFK = state
     setAFKVisible(state)
     if state then
-        print("[AFK] Mode Enabled")
-    else
-        print("[AFK] Mode Disabled")
+        updatePhotoLabels()
     end
 end
 
--- Watch Journal Selection for Sync
-local function isSelected(btn)
-    local colorMatch = (btn.BackgroundColor3.R > SELECTED_COLOR.R - 0.01 and btn.BackgroundColor3.R < SELECTED_COLOR.R + 0.01) and
-                      (btn.BackgroundColor3.G > SELECTED_COLOR.G - 0.01 and btn.BackgroundColor3.G < SELECTED_COLOR.G + 0.01) and
-                      (btn.BackgroundColor3.B > SELECTED_COLOR.B - 0.01 and btn.BackgroundColor3.B < SELECTED_COLOR.B + 0.01)
-    local transMatch = math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05
-    return colorMatch and transMatch
+-- Hook ghost button clicks to enforce single selection
+local function isBtnSelected(btn)
+    return (btn.BackgroundColor3.R - SELECTED_COLOR.R)^2 < 0.0001
+        and (btn.BackgroundColor3.G - SELECTED_COLOR.G)^2 < 0.0001
+        and (btn.BackgroundColor3.B - SELECTED_COLOR.B)^2 < 0.0001
+        and math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05
 end
 
-local function watchTemplate(template)
-    if not template:IsA("ImageButton") then return end
-    local function checkSelection()
-        if isSelected(template) then
-            -- Always sync the text, regardless of whether AFK mode is true or false
-            setAFKSelectedText(template.Name)
+local function hookGhostClicks()
+    local frame = getGhostSelectionFrame()
+    if not frame then return end
+    for _, btn in ipairs(frame:GetChildren()) do
+        if btn:IsA("ImageButton") and not btn:GetAttribute("MCPHook") then
+            btn:SetAttribute("MCPHook", true)
+            btn.Activated:Connect(function()
+                for _, other in ipairs(frame:GetChildren()) do
+                    if other:IsA("ImageButton") and other ~= btn and isBtnSelected(other) then
+                        other.BackgroundColor3 = DEFAULT_COLOR
+                        other.BackgroundTransparency = DEFAULT_TRANSPARENCY
+                    end
+                end
+            end)
         end
     end
-    template:GetPropertyChangedSignal("BackgroundColor3"):Connect(checkSelection)
-    template:GetPropertyChangedSignal("BackgroundTransparency"):Connect(checkSelection)
 end
 
-local function watchAllTemplates()
-    for _, c in ipairs(getAllGhostButtonsForSelection()) do
-        watchTemplate(c)
+task.spawn(function()
+    while true do
+        hookGhostClicks()
+        task.wait(2)
     end
+end)
+
+-- Realtime watcher: reads the actual Journal selection every frame
+RunService.Heartbeat:Connect(updateSelectedText)
+
+-- Vote-based auto-select logic
+local function getGhostVoteCount(ghostName)
+    local frame = getGhostSelectionFrame()
+    if not frame then return 0 end
+    local btn = frame:FindFirstChild(ghostName)
+    if not btn or not btn:IsA("ImageButton") then return 0 end
+    local pi = btn:FindFirstChild("PlayerIcons")
+    if not pi then return 0 end
+
+    local iconCount = 0
+    for _, c in ipairs(pi:GetChildren()) do
+        if c:IsA("ImageLabel") and c.Name ~= "IconTemplate" then
+            iconCount = iconCount + 1
+        end
+    end
+
+    local overflow = pi:FindFirstChild("Overflow")
+    local overflowNum = 0
+    if overflow and overflow.Visible then
+        local numStr = overflow.Text:match("%+(%d+)")
+        if numStr then
+            overflowNum = tonumber(numStr) or 0
+        end
+    end
+
+    return iconCount + overflowNum
 end
 
-watchAllTemplates()
+local function getMostVotedGhost()
+    local frame = getGhostSelectionFrame()
+    if not frame then return nil, 0 end
+
+    local bestName = nil
+    local bestVotes = 0
+    for _, btn in ipairs(frame:GetChildren()) do
+        if btn:IsA("ImageButton") then
+            local votes = getGhostVoteCount(btn.Name)
+            if votes > bestVotes then
+                bestVotes = votes
+                bestName = btn.Name
+            end
+        end
+    end
+    return bestName, bestVotes
+end
+
+local function isGhostSelectedFromUI(name)
+    local frame = getGhostSelectionFrame()
+    if not frame then return false end
+    local btn = frame:FindFirstChild(name)
+    if not btn or not btn:IsA("ImageButton") then return false end
+    return (btn.BackgroundColor3.R - SELECTED_COLOR.R)^2 < 0.0001
+        and (btn.BackgroundColor3.G - SELECTED_COLOR.G)^2 < 0.0001
+        and (btn.BackgroundColor3.B - SELECTED_COLOR.B)^2 < 0.0001
+        and math.abs(btn.BackgroundTransparency - SELECTED_TRANSPARENCY) < 0.05
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if not isAFK then continue end
+        local name, votes = getMostVotedGhost()
+        if name and votes >= 3 and not isGhostSelectedFromUI(name) then
+            selectGhost(name)
+        end
+    end
+end)
 
 -- Listen for SystemMessage (QuickChat)
 SystemMessageEvent.OnClientEvent:Connect(function(type, data)
@@ -328,6 +611,12 @@ SystemMessageEvent.OnClientEvent:Connect(function(type, data)
     if type == "QuickChat" and data and data.Message then
         local msg = data.Message
         if string.find(msg, "The Ghost is a") then
+            -- Vote-based logic takes priority: if a ghost has >= 3 votes and is selected, ignore QuickChat
+            local votedName, votedCount = getMostVotedGhost()
+            if votedName and votedCount >= 3 and isGhostSelectedFromUI(votedName) then
+                return
+            end
+
             local ghostName = msg:match("The Ghost is a%s+(.+)$")
             if ghostName then
                 ghostName = string.gsub(ghostName, "[%p%s]+$", "")
@@ -337,21 +626,36 @@ SystemMessageEvent.OnClientEvent:Connect(function(type, data)
     end
 end)
 
--- Input Detection to disable AFK
+-- Input Detection to disable AFK (catches ALL keyboard, mouse, GUI, and chat input)
 UserInputService.InputBegan:Connect(function(input, processed)
-    -- Check for keybind ']' to force AFK mode
-    if input.KeyCode == Enum.KeyCode.RightBracket then
-        toggleAFK(true)
-        lastInputTime = 0 -- reset timer to avoid immediate disable
+    -- ']' toggles AFK (only when unprocessed to avoid accidental toggle while typing)
+    if input.KeyCode == Enum.KeyCode.LeftBracket and not processed then
+        toggleAFK(not isAFK)
+        lastInputTime = tick()
         return
     end
 
-    -- Any other input disables AFK mode
-    if not processed then
-        lastInputTime = tick()
-        if isAFK then
-            toggleAFK(false)
+    -- H broadcasts the selected ghost name via QuickChat
+    if input.KeyCode == Enum.KeyCode.H and not processed then
+        local name = getSelectedGhostName()
+        if name then
+            local QuickChatSent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("QuickChatSent")
+            if QuickChatSent then
+                QuickChatSent:FireServer({
+                    Id = "GhostCertain",
+                    ButtonText = "The Ghost is a ＿＿",
+                    Message = "The Ghost is a %s",
+                    ExtraDetailsType = "Ghosts"
+                }, name)
+            end
         end
+        return
+    end
+
+    -- Any input at all disables AFK and resets idle timer
+    lastInputTime = tick()
+    if isAFK then
+        toggleAFK(false)
     end
 end)
 
@@ -936,6 +1240,8 @@ task.spawn(function()
 	ghostRoom.ImageColor3 = Color3.fromRGB(255, 182, 193)
 end)
 
+
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -962,7 +1268,10 @@ end
 -- Remote (confirmed RemoteEvent)
 local SelectGhostEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SelectGhost1")
 
--- Ghost list container for READING names (Ghosts tab has NameLabel children)
+-- Ghost list container for READING names.
+-- Post-update the standalone Ghosts tab is gone; names live on the Evidence
+-- tab ghost buttons (button.Name + More.TextLabel). Falls back to the old
+-- Ghosts tab path if it ever returns.
 local function getGhostNamesFrame()
 	local pg = LocalPlayer:FindFirstChild("PlayerGui")
 	if not pg then return nil end
@@ -980,6 +1289,16 @@ local function getGhostNamesFrame()
 	if not contents then return nil end
 	local frames = contents:FindFirstChild("Frames")
 	if not frames then return nil end
+	-- current layout: Evidence tab ghost list
+	local evidence = frames:FindFirstChild("Evidence")
+	if evidence then
+		local right = evidence:FindFirstChild("Right")
+		local content = right and right:FindFirstChild("Content")
+		local cg = content and content:FindFirstChild("CanvasGroup")
+		local frame = cg and cg:FindFirstChild("Frame")
+		if frame then return frame end
+	end
+	-- legacy layout: standalone Ghosts tab
 	local ghosts = frames:FindFirstChild("Ghosts")
 	if not ghosts then return nil end
 	local content = ghosts:FindFirstChild("Content")
@@ -991,6 +1310,21 @@ local function getGhostNamesFrame()
 	local itemList = itemsFrame:FindFirstChild("ItemList")
 	if not itemList then return nil end
 	return itemList
+end
+
+-- Resolve a ghost button's display name across layouts:
+-- legacy NameLabel -> current More.TextLabel -> button.Name
+local function getGhostButtonName(btn)
+	local nameLabel = btn:FindFirstChild("NameLabel")
+	if nameLabel and nameLabel:IsA("TextLabel") and nameLabel.Text ~= "" then
+		return nameLabel.Text
+	end
+	local more = btn:FindFirstChild("More")
+	local moreLabel = more and more:FindFirstChild("TextLabel")
+	if moreLabel and moreLabel:IsA("TextLabel") and moreLabel.Text ~= "" then
+		return moreLabel.Text
+	end
+	return btn.Name
 end
 
 -- Ghost list container for SELECTION STATE (Evidence tab uses BackgroundColor3/Transparency)
@@ -1026,9 +1360,16 @@ local function getAllGhostButtonsForNames()
 	local itemList = getGhostNamesFrame()
 	local buttons = {}
 	if not itemList then return buttons end
-	for _, child in ipairs(itemList:GetDescendants()) do
-		if child:IsA("ImageButton") and child:FindFirstChild("NameLabel") then
+	for _, child in ipairs(itemList:GetChildren()) do
+		if child:IsA("ImageButton") and getGhostButtonName(child) ~= "" then
 			table.insert(buttons, child)
+		end
+	end
+	if #buttons == 0 then
+		for _, child in ipairs(itemList:GetDescendants()) do
+			if child:IsA("ImageButton") and getGhostButtonName(child) ~= "" then
+				table.insert(buttons, child)
+			end
 		end
 	end
 	return buttons
@@ -1050,8 +1391,7 @@ local function getGhostNames()
 	local buttons = getAllGhostButtonsForNames()
 	local names = {}
 	for _, btn in ipairs(buttons) do
-		local nameLabel = btn:FindFirstChild("NameLabel")
-		local txt = nameLabel and nameLabel.Text or btn.Name
+		local txt = getGhostButtonName(btn)
 		if txt and txt ~= "" then
 			table.insert(names, txt)
 		end
@@ -1063,8 +1403,7 @@ local function findGhostTemplate(name)
 	local buttons = getAllGhostButtonsForNames()
 	local lowered = string.lower(name)
 	for _, btn in ipairs(buttons) do
-		local nameLabel = btn:FindFirstChild("NameLabel")
-		local btnName = nameLabel and nameLabel.Text or btn.Name
+		local btnName = getGhostButtonName(btn)
 		if string.lower(btnName) == lowered then
 			return btn
 		end
@@ -1366,19 +1705,25 @@ local function getFootageRoot()
 	if not pg then return nil end
 	local j = pg:FindFirstChild("Journal")
 	if not j then return nil end
-	return j:FindFirstChild("Background")
-		and j.Background:FindFirstChild("MainContent")
-		and j.Background.MainContent:FindFirstChild("Main")
-		and j.Background.MainContent.Main:FindFirstChild("Others")
-		and j.Background.MainContent.Main.Others:FindFirstChild("Contents")
-		and j.Background.MainContent.Main.Others.Contents:FindFirstChild("Frames")
-		and j.Background.MainContent.Main.Others.Contents.Frames:FindFirstChild("Footage")
+	local bg = j:FindFirstChild("Background")
+	local mc = bg and bg:FindFirstChild("MainContent")
+	local main = mc and mc:FindFirstChild("Main")
+	local others = main and main:FindFirstChild("Others")
+	local contents = others and others:FindFirstChild("Contents")
+	local frames = contents and contents:FindFirstChild("Frames")
+	if not frames then return nil end
+	-- current layout: Footage lives under the Media tab
+	local media = frames:FindFirstChild("Media")
+	local footage = media and media:FindFirstChild("Footage")
+	if footage then return footage end
+	-- legacy layout: standalone Footage frame
+	return frames:FindFirstChild("Footage")
 end
 
 local function isPhotoSubjectDetected(target)
 	local footage = getFootageRoot()
 	if not footage then return false end
-	local lowered = string.lower(string.gsub(target, "^%s+", ""):gsub("%s+$", ""))
+	local lowered = string.lower((target:gsub("^%s+", ""):gsub("%s+$", "")))
 	-- also handle typo "Crused" -> "Cursed"
 	if lowered == "crused object" then lowered = "cursed object" end
 	for _, row in ipairs(footage:GetChildren()) do
@@ -1390,7 +1735,7 @@ local function isPhotoSubjectDetected(target)
 						and pf.Photo.PhotoDetailLayers:FindFirstChild("Top")
 						and pf.Photo.PhotoDetailLayers.Top:FindFirstChild("PhotoSubject")
 					if subj and subj:IsA("TextLabel") then
-						local txt = string.lower(string.gsub(subj.Text or "", "^%s+", ""):gsub("%s+$", ""))
+						local txt = string.lower(((subj.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")))
 						if txt ~= "" and txt == lowered then
 							return true
 						end
