@@ -60,7 +60,6 @@ local DEFAULT_TRANSPARENCY = 0.2
 
 -- Remotes
 local SelectGhostEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SelectGhost1")
-local SystemMessageEvent = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Radio"):WaitForChild("Remotes"):WaitForChild("SystemMessage")
 
 --------------------------------------------------------------------------------
 -- UI Section (AFKSelectUI)
@@ -600,28 +599,6 @@ task.spawn(function()
         local name, votes = getMostVotedGhost()
         if name and votes >= 3 and not isGhostSelectedFromUI(name) then
             selectGhost(name)
-        end
-    end
-end)
-
--- Listen for SystemMessage (QuickChat)
-SystemMessageEvent.OnClientEvent:Connect(function(type, data)
-    if not isAFK then return end -- Only auto-select if AFK mode is active
-    
-    if type == "QuickChat" and data and data.Message then
-        local msg = data.Message
-        if string.find(msg, "The Ghost is a") then
-            -- Vote-based logic takes priority: if a ghost has >= 3 votes and is selected, ignore QuickChat
-            local votedName, votedCount = getMostVotedGhost()
-            if votedName and votedCount >= 3 and isGhostSelectedFromUI(votedName) then
-                return
-            end
-
-            local ghostName = msg:match("The Ghost is a%s+(.+)$")
-            if ghostName then
-                ghostName = string.gsub(ghostName, "[%p%s]+$", "")
-                selectGhost(ghostName)
-            end
         end
     end
 end)
