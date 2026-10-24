@@ -7,18 +7,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local Dead = LocalPlayer:WaitForChild("Dead")
 local Revive = PlayerGui:WaitForChild("Revive")
+local Dead = LocalPlayer:WaitForChild("Dead")
 local CanvasGroup = Revive:WaitForChild("CanvasGroup")
 local Menu = CanvasGroup:WaitForChild("Menu")
-local YesButton = Menu:WaitForChild("YesButton")
-local NoButton = Menu:WaitForChild("NoButton")
-local TimerLabel = Menu:WaitForChild("Timer")
-local Description = Menu:WaitForChild("Description")
+local Main = Menu:WaitForChild("Main")
+local Vote2Leave = Main:WaitForChild("Vote2Leave")
+local FreeRoam = Main:WaitForChild("FreeRoam")
+local PurchaseRevive = Menu:WaitForChild("PurchaseRevive")
+local TimerLabel = PurchaseRevive:WaitForChild("Timer")
 local YouDiedHeader = Menu:WaitForChild("YouDiedHeader")
 local UIScale = YouDiedHeader and YouDiedHeader:FindFirstChild("UIScale")
 local PromptRevivePurchase = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PromptRevivePurchase")
 
+-- Remove the game's own ReviveHandler so this script owns the prompt
 local ReviveHandler = Revive:FindFirstChild("ReviveHandler")
 if ReviveHandler then
 	ReviveHandler:Destroy()
@@ -28,16 +30,20 @@ local TIMEOUT = 20
 local FADE_DURATION = 0.5
 local FALLEN_DEFAULT = -5000
 
-local function healFallenHeight()
-	if workspace.FallenPartsDestroyHeight ~= workspace.FallenPartsDestroyHeight then
-		workspace.FallenPartsDestroyHeight = _G.reviveFallenGood or FALLEN_DEFAULT
-	else
-		_G.reviveFallenGood = workspace.FallenPartsDestroyHeight
-	end
-end
+-- Duplicate FreeRoam for Yes/No buttons
+local YesButton = FreeRoam:Clone()
+YesButton.Name = "YesButton"
+YesButton.Text = "Revive [Y]"
 
-YesButton.Text = "Revive"
-Description.Text = "Press Y or Button to Revive."
+local NoButton = FreeRoam:Clone()
+NoButton.Name = "NoButton"
+NoButton.Text = "No [N]"
+
+YesButton.Position = UDim2.new(0.0200000014, 0, 0.449999988, 0)
+NoButton.Position = UDim2.new(0.0200000014, 0, 0.550000012, 10)
+
+YesButton.Parent = Main
+NoButton.Parent = Main
 
 local GEN = (_G.reviveTakeoverGen or 0) + 1
 _G.reviveTakeoverGen = GEN
@@ -54,6 +60,14 @@ local getRoot = function(char)
 		return nil, char.PrimaryPart
 	end
 	return nil, nil
+end
+
+local function healFallenHeight()
+	if workspace.FallenPartsDestroyHeight ~= workspace.FallenPartsDestroyHeight then
+		workspace.FallenPartsDestroyHeight = _G.reviveFallenGood or FALLEN_DEFAULT
+	else
+		_G.reviveFallenGood = workspace.FallenPartsDestroyHeight
+	end
 end
 
 local function explodeRespawn()
@@ -307,7 +321,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		elseif timedOut and LocalPlayer.Dead.Value then
 			local now = os.clock()
 			if pendingReopen and now - lastYTime <= DOUBLE_TAP_WINDOW then
-				-- Second Y inside the window: skip the UI entirely, respawn now.
 				task.cancel(pendingReopen)
 				pendingReopen = nil
 				timedOut = false
